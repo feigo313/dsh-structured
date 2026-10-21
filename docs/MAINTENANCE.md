@@ -87,7 +87,6 @@ dsh plugin --profile <profile> add dsh-structured@x.y.z
 
 | 项 | 级别 | 说明 |
 | --- | --- | --- |
-| Release asset ≠ npm tarball | P2 | v0.7.4 的 GitHub asset 内 CHANGELOG 是旧稿（"8 张"），npm 包内是 "4 张"；市场条目指向 release asset，提市场前需重发资产 |
 | 市场 PR 窗口 | 门禁 | 最早 2026-10-22 21:33 +08 |
 | peer 版本门禁 advisory | P2 | 未声明 `@deepseek-ai/*` peerDependencies，`evaluatePluginCompatibility` 不生效 |
 | 500 字上限未运行时强制 | P3 | 目前只是提示词约束 |

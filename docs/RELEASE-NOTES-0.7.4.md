@@ -16,7 +16,7 @@ Structured output for DSH: a no-label title card first, then tables/lists/steps;
 
 - `npm test`: 30/30.
 - `node scripts/desktop-check.mjs`: PASS.
-- `npm pack`: 34 files, 756,988 bytes, SHA-256 `9b53a9fb65fa562a3a4b475a085beefe92ded0df69d24419a2ebca5ddf40efd7`.
+- `npm pack`: 34 files; npm tarball 756,986 bytes, SHA-256 `dbd2935f…`; the GitHub Release asset was replaced with that same tarball on 2026-10-21 (asset digest and size now match npm).
 - `npm publish --dry-run --ignore-scripts`: success (unauthenticated warning only).
 - `structured-test`: install → inject → real uninstall → reinstall, all pass.
 - 12 headless prompts: 12/12 completed; title card 12; no `> **结论**`; max 2 cards; table lead 11/12; code 5/12; prose 0; over500 11/12.
@@ -25,7 +25,7 @@ Structured output for DSH: a no-label title card first, then tables/lists/steps;
 
 - Plugin market: search `dsh-structured` after listing.
 - npm: `dsh plugin --profile <profile> add dsh-structured`.
-- GitHub Release: attach `dsh-structured-0.7.4.tgz`; install from local package.
+- GitHub Release: download `dsh-structured-0.7.4.tgz` and install it as a local package.
 - Local tgz is development-only.
 
 ## Known gaps
