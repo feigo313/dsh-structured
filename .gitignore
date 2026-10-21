@@ -1,0 +1,9 @@
+node_modules/
+.tools/
+artifacts/
+.ego/
+*.tgz
+.DS_Store
+TASK.md
+docs/RE-AUDIT-REPORT.md
+docs/PUBLISH-READY.md
