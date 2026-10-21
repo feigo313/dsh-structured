@@ -1,0 +1,93 @@
+# 维护手册 · dsh-structured
+
+项目 2026-10-21 上线（npm `dsh-structured@0.7.4`、GitHub Release `v0.7.4`、CI 绿）。
+本手册是**每日巡检**的固定流程：抓 issue → 分析 → 回复 → 解决 → 回复 → 关闭。
+每轮结束把结果写进 [`MAINTENANCE-LOG.md`](MAINTENANCE-LOG.md)；**0 issue 的一天也要写**，写"0"，不写"正常"。
+
+## 1. 每轮开始：读数（不看记忆，看线上）
+
+```bash
+gh issue list --repo feigo313/dsh-structured --state all --limit 50 --json number,title,state,createdAt,comments,labels
+gh pr list --repo feigo313/dsh-structured --state all
+gh run list --repo feigo313/dsh-structured --limit 5
+npm view dsh-structured dist-tags --json
+gh release view v0.7.4 --repo feigo313/dsh-structured --json assets
+```
+
+## 2. 分诊：先定优先级，再动手
+
+| 级别 | 判据 | 处理 |
+| --- | --- | --- |
+| P0 | 回合失败、会话损坏、安装失败、数据丢失 | 当天修；先给用户回滚/关闭办法 |
+| P1 | 结构化行为错误、命令失效、状态不落盘、desktop 渲染坏 | 本轮修 |
+| P2 | 文档、打包、兼容性、边缘配置 | 本轮或下轮，记入待办 |
+| P3 | 建议、体验优化、无法复现 | 回复说明，不承诺时间 |
+
+## 3. 复现
+
+- 只在 `structured-test` profile 跑（`dsh --profile structured-test headless "..."`），**不碰 desktop profile**。
+- 注入证据：`node scripts/session-inspect.mjs --session <id> --grep "结构化输出（本会话已启用"`。
+- 不能复现：索要 DSH 版本、profile、`/structured` 输出、出问题那轮的会话日志片段；保持 open，不猜。
+
+## 4. 修复
+
+- 先写失败测试再改；最小改动；不动无关代码；不改既有视觉行为（除非 issue 证明是 bug）。
+- 版本按 semver patch 升；`npm test` 的 `pretest` 会重建 `lib/`。
+
+## 5. 验证（缺一不算过）
+
+```bash
+npm test                                  # 基线 30/30，修复后应 30+N
+node scripts/desktop-check.mjs            # 全 PASS
+npm pack                                  # 34 文件；RE-AUDIT / PUBLISH-READY / RELEASE-NOTES / FULL-TEST 不在包内
+```
+
+- 包内不得出现本机绝对路径。
+- structured-test 安装新版后，注入应命中 1 条 `system/message`。
+
+## 6. 回复与关闭
+
+| 场景 | 回复要点 | 动作 |
+| --- | --- | --- |
+| 首次收到 | 确认已记录 + 复现结论（能/不能）+ 下一步与时间 | 保持 open |
+| 修复完成 | 改了什么 + 验证数字 + 升级命令 | 验证后 `--reason completed` 关闭 |
+| 明确不做 | 原因 + 替代方案 | `--reason "not planned"` 关闭 |
+| 无法复现 | 列出所需证据 | 保持 open，等回复 |
+
+升级命令模板：
+
+```bash
+dsh plugin --profile <profile> add dsh-structured@x.y.z
+```
+
+回复用中文、短句、贴数字（版本/命令/日志），不猜、不承诺未验证的结论。
+
+## 7. 记录
+
+在 `docs/MAINTENANCE-LOG.md` 追加一轮：时间、issue 水位（新/未决/关闭）、本轮动作、验证数字、待办。这是下一轮的起点，也是给 Boss 的审计凭据。
+
+## 8. 外部动作闸门（默认全部不执行）
+
+- 本地 commit：可以。
+- push / tag / Release / npm publish / 市场 PR：**必须先拿 Boss 明确同意**；全局 pre-push 需要 consent token（`~/.zcode/push-consent`，30 分钟有效）。
+- npm 发布 token 已撤销：下次发布先 `npm login --registry https://registry.npmjs.org`（`package.json` 的 `publishConfig.registry` 已锁定 npmjs）。
+- 市场 PR：仓库满 1 天（≥ 2026-10-22 21:33 +08）、有 `dsh-plugin` topic、条目真实可用；**不得修改市场生成的 README**。
+- 远端 `main`（`e2a2416`）与本地历史（`e67a06b`）不相关，普通 push 会被拒；改远端只能走 `gh api` 写文件（同样需同意），**不要 force push**。
+
+## 9. 红线
+
+- 只用 `systemPrompt.section`；不 append 消息、不碰 `agent/pre-step`。
+- `package.json` 的 `files` 必须含 `cordis.patch.yml`。
+- 注入链路任何异常必须 fail-open（宁可这一轮不注入，不许让回合失败）。
+- 不碰 `~/.dsh/AGENTS.md`、用户 memory、其他插件、desktop profile。
+- 截图裁掉侧栏/工作区，不出现 token、会话名、其他项目内容。
+- desktop 是 Electron：不要让 Boss 按 F5/刷新，client 由应用侧加载。
+
+## 10. 已知待办
+
+| 项 | 级别 | 说明 |
+| --- | --- | --- |
+| Release asset ≠ npm tarball | P2 | v0.7.4 的 GitHub asset 内 CHANGELOG 是旧稿（"8 张"），npm 包内是 "4 张"；市场条目指向 release asset，提市场前需重发资产 |
+| 市场 PR 窗口 | 门禁 | 最早 2026-10-22 21:33 +08 |
+| peer 版本门禁 advisory | P2 | 未声明 `@deepseek-ai/*` peerDependencies，`evaluatePluginCompatibility` 不生效 |
+| 500 字上限未运行时强制 | P3 | 目前只是提示词约束 |

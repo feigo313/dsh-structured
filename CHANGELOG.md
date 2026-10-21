@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- 新增 `docs/MAINTENANCE.md`（每日巡检手册）与 `docs/MAINTENANCE-LOG.md`（巡检记录）；两者不进 npm 包（`files` 增加 `!docs/MAINTENANCE*.md`，打包仍为 34 文件）。
+
 ## 0.7.4 — 2026-10-21
 
 - 发布准备：加入 `assets/screenshots/`（4 张）、`screenshots.json`、README Screenshots 与 npm/市场/GitHub Release 安装说明。
