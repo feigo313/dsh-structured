@@ -1,0 +1,85 @@
+{
+  "name": "dsh-structured",
+  "version": "0.7.4",
+  "description": "Structured output for DSH: no-label title card first, then tables/lists/steps; per-session switch and style.md override. 让 DSH 的每条实质回复默认结构化。",
+  "type": "module",
+  "main": "lib/index.js",
+  "license": "MIT",
+  "author": "MYCAIGC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/feigo313/dsh-structured.git"
+  },
+  "homepage": "https://github.com/feigo313/dsh-structured#readme",
+  "bugs": {
+    "url": "https://github.com/feigo313/dsh-structured/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
+  "keywords": [
+    "deepseek",
+    "harness",
+    "dsh",
+    "dsh-plugin",
+    "output-style",
+    "structured-output"
+  ],
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [],
+      "immediately": true
+    },
+    "compatibility": {
+      "dshReleases": {
+        "0.1.7-rc.2": "compatible",
+        "0.2.0-rc.2": "compatible",
+        "0.2.1-rc.1": "compatible",
+        "0.2.1-rc.2": "compatible"
+      }
+    }
+  },
+  "files": [
+    "lib",
+    "src",
+    "scripts",
+    "docs",
+    "!docs/FULL-TEST-PROMPT.md",
+    "!docs/FULL-TEST-REPORT.md",
+    "!docs/RE-AUDIT-REPORT.md",
+    "!docs/PUBLISH-READY.md",
+    "!docs/RELEASE-NOTES-0.7.4.md",
+    "assets/screenshots",
+    "screenshots.json",
+    "test",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "icon.svg",
+    "README.md",
+    "ACCEPTANCE.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "pretest": "node scripts/build.mjs",
+    "test": "node --test test/*.test.mjs",
+    "prepack": "node scripts/build.mjs"
+  },
+  "engines": {
+    "node": ">=22",
+    "dsh": ">=0.1.7-rc.2 <0.3.0-0"
+  }
+}

@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>dsh-structured · 卡片视觉方案</title>
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #f6f7f9;
+    --surface: #ffffff;
+    --surface-2: #f1f3f5;
+    --text: #111827;
+    --muted: #6b7280;
+    --border: #e3e7ec;
+    --brand: #2563eb;
+    --brand-soft: #eff6ff;
+    --warn: #d97706;
+    --warn-soft: #fffbeb;
+    --success: #16a34a;
+    --success-soft: #f0fdf4;
+    --shadow: 0 1px 2px rgba(15, 23, 42, .04), 0 12px 32px -24px rgba(37, 99, 235, .35);
+    --radius: 12px;
+  }
+  [data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #0b0f14;
+    --surface: #11161d;
+    --surface-2: #161c24;
+    --text: #e5e7eb;
+    --muted: #94a3b8;
+    --border: #26303b;
+    --brand: #60a5fa;
+    --brand-soft: rgba(96, 165, 250, .12);
+    --warn: #f59e0b;
+    --warn-soft: rgba(245, 158, 11, .12);
+    --success: #4ade80;
+    --success-soft: rgba(74, 222, 128, .12);
+    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 12px 32px -24px rgba(0, 0, 0, .6);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); }
+  body {
+    font: 15px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+    letter-spacing: .01em;
+    padding: 32px 24px 56px;
+  }
+  .page { max-width: 860px; margin: 0 auto; }
+  .kicker {
+    font: 700 11px/1 ui-monospace, "Cascadia Code", Consolas, monospace;
+    letter-spacing: .12em; text-transform: uppercase; color: var(--brand);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .kicker::before { content: ""; width: 18px; height: 2px; background: var(--brand); border-radius: 2px; }
+  h1 { font-size: 26px; line-height: 1.25; letter-spacing: -.02em; margin: 12px 0 6px; }
+  .lede { color: var(--muted); margin: 0 0 24px; max-width: 640px; }
+  .toolbar { display: flex; gap: 10px; align-items: center; margin-bottom: 22px; }
+  .toolbar button {
+    font: 600 12px/1 inherit; color: var(--text); background: var(--surface);
+    border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; cursor: pointer;
+  }
+  .toolbar button:hover { border-color: var(--brand); color: var(--brand); }
+  .toolbar span { color: var(--muted); font-size: 12px; }
+  .section-label {
+    font: 700 11px/1 ui-monospace, "Cascadia Code", Consolas, monospace;
+    letter-spacing: .1em; text-transform: uppercase; color: var(--muted);
+    margin: 26px 0 10px;
+  }
+  .card {
+    --tone: var(--brand);
+    border: 1px solid color-mix(in srgb, var(--tone) 16%, var(--border));
+    border-left: 3px solid var(--tone);
+    border-radius: var(--radius);
+    background: linear-gradient(135deg, color-mix(in srgb, var(--tone) 6%, var(--surface)), var(--surface) 60%);
+    box-shadow: var(--shadow);
+    padding: 14px 16px 15px;
+    margin: 12px 0;
+  }
+  .card--warn { --tone: var(--warn); }
+  .card--success { --tone: var(--success); }
+  .card-head { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+  .icon {
+    width: 24px; height: 24px; border-radius: 7px; flex: none;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: var(--tone); background: color-mix(in srgb, var(--tone) 12%, transparent);
+  }
+  .icon svg { width: 14px; height: 14px; }
+  .label {
+    font: 700 11px/1 inherit; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--tone);
+  }
+  .count { margin-left: auto; font: 600 10px/1 ui-monospace, Consolas, monospace; color: var(--muted); }
+  .body { margin: 0; font-size: 15.5px; line-height: 1.7; }
+  .body strong { font-weight: 700; }
+  .title { margin: 0 0 4px; font-size: 17px; line-height: 1.35; font-weight: 700; letter-spacing: -.01em; }
+  .meta { margin-top: 9px; font: 500 12px/1.4 ui-monospace, Consolas, monospace; color: var(--muted); }
+  .meta b { color: var(--text); font-weight: 650; }
+  .metric-row { display: flex; gap: 22px; flex-wrap: wrap; margin-top: 2px; }
+  .metric { min-width: 86px; }
+  .metric .n { font: 700 22px/1.1 ui-monospace, Consolas, monospace; letter-spacing: -.02em; }
+  .metric .k { margin-top: 4px; font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  .list { margin: 2px 0 0; padding-left: 1.4em; }
+  .list li { margin: 3px 0; }
+  .list li::marker { color: var(--tone); }
+  .table-lead {
+    border-left: 2px solid var(--brand); padding-left: 10px;
+    margin: 18px 0 8px; font-size: 14px; color: var(--text);
+  }
+  .table-lead b { color: var(--brand); }
+  table {
+    width: 100%; border-collapse: separate; border-spacing: 0;
+    border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
+    background: var(--surface); box-shadow: 0 1px 2px rgba(15, 23, 42, .03);
+    font-size: 13.5px;
+  }
+  thead th {
+    background: var(--surface-2); color: var(--muted);
+    font: 700 11px/1.2 inherit; letter-spacing: .06em; text-transform: uppercase;
+    text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border);
+  }
+  tbody td { padding: 11px 14px; border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, transparent); vertical-align: middle; }
+  tbody tr:last-child td { border-bottom: 0; }
+  tbody tr:hover td { background: color-mix(in srgb, var(--brand) 4%, transparent); }
+  .status { width: 68px; text-align: center; padding: 7px 8px !important; }
+  .status-cell {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 52px; padding: 3px 8px; border-radius: 7px;
+    font: 700 11px/1.2 inherit; white-space: nowrap;
+  }
+  .ok { color: var(--success); background: var(--success-soft); }
+  .todo { color: var(--warn); background: var(--warn-soft); }
+  .notes {
+    margin-top: 30px; border-top: 1px solid var(--border); padding-top: 18px;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px 24px;
+  }
+  .notes h2 { grid-column: 1 / -1; font-size: 16px; margin: 0 0 2px; }
+  .note { color: var(--muted); font-size: 13px; line-height: 1.55; }
+  .note b { color: var(--text); }
+  .note .n {
+    display: inline-flex; width: 18px; height: 18px; margin-right: 6px;
+    align-items: center; justify-content: center; border-radius: 50%;
+    background: var(--brand-soft); color: var(--brand);
+    font: 700 10px/1 ui-monospace, Consolas, monospace;
+  }
+  .footer { margin-top: 26px; color: var(--muted); font-size: 12px; }
+  @media (max-width: 680px) {
+    body { padding: 20px 14px 40px; }
+    .notes { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="kicker">dsh-structured · phase 2</div>
+  <h1>卡片视觉方案</h1>
+  <p class="lede">一套「工程蓝图」：结论先行、状态可扫、表格退为证据。参考 Linear 的秩序、Notion 的卡片、Stripe 的表格密度、Vercel AI Elements 的回复结构。</p>
+  <div class="toolbar">
+    <button id="theme">切换深色</button>
+    <span>方案预览 · 不是已安装样式</span>
+  </div>
+
+  <div class="section-label">一条真实回复的组成</div>
+
+  <div class="card">
+    <div class="card-head">
+      <span class="icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3l9 9-9 9-9-9 9-9z"/></svg>
+      </span>
+      <span class="label">结论</span>
+      <span class="count">1 / 2</span>
+    </div>
+    <p class="title">Phase 1 完成，Phase 2 前 4 项落地</p>
+    <p class="body">卡片、表格和 GenUI 分流都已生效；剩余工作是验收与回归。</p>
+    <div class="meta"><b>28/28</b> tests · desktop <b>0.6.0</b> · GenUI <b>detected</b></div>
+  </div>
+
+  <p class="table-lead"><b>表格结论</b> 底座全绿，剩余 2 项是本周工作。</p>
+
+  <table>
+    <thead>
+      <tr><th class="status">状态</th><th>项</th><th>证据</th></tr>
+    </thead>
+    <tbody>
+      <tr><td class="status"><span class="status-cell ok">✅ 完成</span></td><td>Phase 1 结构 / 开关 / fail-open</td><td>12/12 注入；散文率 0/12</td></tr>
+      <tr><td class="status"><span class="status-cell ok">✅ 完成</span></td><td>2.1–2.4 卡片 / host / client / GenUI</td><td>28/28 测试</td></tr>
+      <tr><td class="status"><span class="status-cell todo">⚠️ 待做</span></td><td>2.5 阅读效率验收</td><td>12 条 before/after</td></tr>
+      <tr><td class="status"><span class="status-cell todo">⚠️ 待做</span></td><td>2.6 明暗 / 密度回归</td><td>单一方案，无主题菜单</td></tr>
+    </tbody>
+  </table>
+
+  <div class="card card--success">
+    <div class="card-head">
+      <span class="icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg>
+      </span>
+      <span class="label">下一步</span>
+      <span class="count">2 / 2</span>
+    </div>
+    <p class="title">先跑 2.5 的 12 条 before/after</p>
+    <ol class="list">
+      <li>先跑 2.5 的 12 条 before/after，确认首屏命中率。</li>
+      <li>再按 2.6 做明暗、密度、窄屏回归。</li>
+    </ol>
+    <div class="meta">验收信号：首屏主卡 ≥80% · 强调块 ≤2 · 散文率 &lt;10%</div>
+  </div>
+
+  <div class="section-label">组件展示（不是一条回复）</div>
+
+  <div class="card">
+    <div class="card-head">
+      <span class="icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 20V10M12 20V4M19 20v-7"/></svg>
+      </span>
+      <span class="label">指标</span>
+    </div>
+    <div class="metric-row">
+      <div class="metric"><div class="n">28/28</div><div class="k">tests</div></div>
+      <div class="metric"><div class="n">0/12</div><div class="k">prose rate</div></div>
+      <div class="metric"><div class="n">12/12</div><div class="k">injection</div></div>
+    </div>
+  </div>
+
+  <div class="card card--warn">
+    <div class="card-head">
+      <span class="icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 4l9 16H3L12 4z"/><path d="M12 10v4M12 17v.5"/></svg>
+      </span>
+      <span class="label">风险</span>
+    </div>
+    <p class="body">视觉层依赖宿主 <code>_markdown_</code> 内部类名；升级改名会退化为原生样式，不打断会话。</p>
+  </div>
+
+  <div class="notes">
+    <h2>为什么这样设计</h2>
+    <div class="note"><span class="n">1</span><b>图标方块</b>：26px、强调色 12% 底、1.5px 线图标；替代 emoji/裸符号，先给眼睛一个锚点。</div>
+    <div class="note"><span class="n">2</span><b>标签</b>：12.5px、700、字距 .07em、全大写；卡片类型一眼可扫，颜色即语义。</div>
+    <div class="note"><span class="n">3</span><b>卡片表面</b>：1px 低对比边 + 6% 淡色渐变 + 12px 圆角 + 轻阴影；有层级但不抢正文。</div>
+    <div class="note"><span class="n">4</span><b>标题 + 正文</b>：17px/700 标题 + 15.5/1.7 正文；标题只写一句判断，正文放证据。</div>
+    <div class="note"><span class="n">5</span><b>状态列</b>：64–68px，只给状态格软底；不再整行 pastel，避免 Excel 感。</div>
+    <div class="note"><span class="n">6</span><b>表格结论</b>：2px 强调左规线 + 14px lead；先结论，后证据。</div>
+  </div>
+
+  <div class="footer">方案预览 · 确认后再落 0.6.x CSS；不做主题菜单。</div>
+</div>
+<script>
+  const root = document.documentElement;
+  const btn = document.getElementById('theme');
+  btn.addEventListener('click', () => {
+    const dark = root.dataset.theme === 'dark';
+    root.dataset.theme = dark ? 'light' : 'dark';
+    btn.textContent = dark ? '切换深色' : '切换浅色';
+  });
+</script>
+</body>
+</html>
