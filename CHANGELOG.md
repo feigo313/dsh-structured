@@ -2,8 +2,8 @@
 
 ## 0.7.4 — 2026-10-21
 
-- 发布准备：加入 `assets/screenshots/`、`screenshots.json`、README Screenshots 与 npm/市场/GitHub Release 安装说明。
-- `npm pack` 排除 `docs/RE-AUDIT-REPORT.md`、`docs/PUBLISH-READY.md` 与 `docs/RELEASE-NOTES-0.7.4.md`；打包内容 35 文件。
+- 发布准备：加入 `assets/screenshots/`（4 张）、`screenshots.json`、README Screenshots 与 npm/市场/GitHub Release 安装说明。
+- `npm pack` 排除 `docs/RE-AUDIT-REPORT.md`、`docs/PUBLISH-READY.md` 与 `docs/RELEASE-NOTES-0.7.4.md`；打包内容 34 文件。
 - 不声明 `@deepseek-ai/*` peerDependencies：插件只使用 host service，不直接 import 官方包；README 明示 `engines.dsh`/`dsh.compatibility` 是 advisory，`evaluatePluginCompatibility` 的 peer 门禁不生效（P2 风险）。
 - 市场 YAML 与 fork/PR 命令放在 `marketplace/`，不提交。
 

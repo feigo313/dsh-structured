@@ -111,11 +111,13 @@ Phase 2 已落地 2.1–2.4：卡片类型（结论/判断/指标/风险/下一�
 
 ![无标签标题卡](assets/screenshots/01-title-card.png)
 
-![表格与 GenUI 相邻](assets/screenshots/02-table.png)
+![状态表](assets/screenshots/06-status-table.png)
 
-![GenUI 文件卡](assets/screenshots/04-genui-file.png)
+![代码块](assets/screenshots/07-code-block.png)
 
-`screenshots.json` 列出全部 5 张；markdown 状态表、代码块、窄窗的真实截图仍缺，发布前需补齐（不得用旧版/合成图代替）。
+![窄窗](assets/screenshots/08-narrow.png)
+
+`screenshots.json` 列出全部 4 张，覆盖标题卡、表格 + 表格结论、状态列、代码块与 800px 窄窗；GenUI 截图因避免暴露工作区未收录。
 
 ### 配置
 

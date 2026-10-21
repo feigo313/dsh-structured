@@ -16,7 +16,7 @@ Structured output for DSH: a no-label title card first, then tables/lists/steps;
 
 - `npm test`: 30/30.
 - `node scripts/desktop-check.mjs`: PASS.
-- `npm pack`: 35 files, 1,220,991 bytes, SHA-256 `a51b7e4a749f3f9e564f2dbd695698fa037b5206a978f4e8116a3cb9f577a4da`.
+- `npm pack`: 34 files, 756,988 bytes, SHA-256 `9b53a9fb65fa562a3a4b475a085beefe92ded0df69d24419a2ebca5ddf40efd7`.
 - `npm publish --dry-run --ignore-scripts`: success (unauthenticated warning only).
 - `structured-test`: install → inject → real uninstall → reinstall, all pass.
 - 12 headless prompts: 12/12 completed; title card 12; no `> **结论**`; max 2 cards; table lead 11/12; code 5/12; prose 0; over500 11/12.
@@ -30,6 +30,5 @@ Structured output for DSH: a no-label title card first, then tables/lists/steps;
 
 ## Known gaps
 
-- Three live screenshots still missing: markdown status table, code block, 800px narrow window.
 - `@deepseek-ai/*` peer gate is not declared; `engines.dsh`/`dsh.compatibility` are advisory (P2).
 - 500-char cap is a prompt rule, not runtime-enforced; 12/12 samples exceed it if counted over the whole markdown.
