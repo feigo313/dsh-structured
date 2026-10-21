@@ -60,6 +60,7 @@
     "!docs/FULL-TEST-REPORT.md",
     "!docs/RE-AUDIT-REPORT.md",
     "!docs/PUBLISH-READY.md",
+    "!docs/RELEASE-NOTES-0.7.4.md",
     "assets/screenshots",
     "screenshots.json",
     "test",

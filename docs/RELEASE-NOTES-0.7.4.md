@@ -16,9 +16,10 @@ Structured output for DSH: a no-label title card first, then tables/lists/steps;
 
 - `npm test`: 30/30.
 - `node scripts/desktop-check.mjs`: PASS.
-- `npm pack`: 35 files, 1,220,799 bytes, SHA-256 `cd24600d92b3cea1578cd97b94c54dd0aab048a814df99e499c1c96a7fc1c069`.
+- `npm pack`: 36 files, 1,226,862 bytes, SHA-256 `1630199e96efd34d90c9cf8b81803aa84d13c1e87bc854296861d4e9a1d2cd98`.
 - `npm publish --dry-run --ignore-scripts`: success (unauthenticated warning only).
 - `structured-test`: install → inject → real uninstall → reinstall, all pass.
+- 12 headless prompts: 12/12 completed; title card 12; no `> **结论**`; max 2 cards; table lead 11/12; code 5/12; prose 0; over500 11/12.
 
 ## Install
 
