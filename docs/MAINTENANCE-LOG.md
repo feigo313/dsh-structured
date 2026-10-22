@@ -43,3 +43,10 @@
 - **验证**：`npm test` 36/36；desktop-check 全 PASS；pack 39 文件 / 763816 B / unpacked 964414 B；`structured-test` 已装 0.8.3（lib hash 一致），两轮 headless 首段均为 `> **` 标题卡（`session-2aa045fb`、`session-c1253adf`）。
 - **市场**：PR #8680 的 `check` 与 `Submission gate` 均已 pass，`mergeStateStatus=CLEAN`。
 - **待决**：0.8.3 未发布；desktop 仍 0.8.2，发布后才生效。
+
+## 2026-10-22 · 0.8.3 发布
+
+- **npm**：`dsh-structured@0.8.3` 已发布（shasum `9fc15c64…`、39 文件、unpacked 964444 B）；官方 registry `latest=0.8.3`。
+- **GitHub**：远端 `main` `7e08c3c`（`gh api` git data 快进，内容同本地 `8505bfc`）；Release `v0.8.3` 资产 `dsh-structured-0.8.3.tgz` 763,827 B、sha256 `29a14044…`（与 npm 包字节一致）。
+- **市场**：PR #8680 分支条目已更新到 v0.8.3（commit `484cf71`），PR 正文同步 v0.8.3；check/gate 重跑中。
+- **网络**：本机 git HTTPS 到 github.com 不通（connect timeout），远端经 `gh api` git data 写入；本地与远端提交号不同，内容一致。
