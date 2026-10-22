@@ -89,6 +89,7 @@
     "@deepseek-ai/schemastery": "^3.18.0"
   },
   "devDependencies": {
-    "@deepseek-ai/schemastery": "^3.18.0"
+    "@deepseek-ai/schemastery": "^3.18.0",
+    "linkedom": "0.18.14"
   }
 }

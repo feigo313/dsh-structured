@@ -226,6 +226,8 @@ scripts/desktop-check.mjs    desktop 兼容性预检
 scripts/measure-prose.mjs    散文率统计（可复跑）
 scripts/lib/session-log.mjs  v4 会话日志 zstd 帧读取
 test/structured.test.mjs     单元测试 + 边界测试
+test/client-visual.test.mjs  client visual 配置开关测试
+test/client-cards.test.mjs   严格卡片识别 DOM 测试
 docs/METRICS.md              A/B 指标与原始明细
 docs/ROADMAP.md              Phase 1/2 路线图与 Phase 2 任务
 docs/CARD-SYSTEM.md          卡片类型、anatomy 与热点预算

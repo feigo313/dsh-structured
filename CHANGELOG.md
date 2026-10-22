@@ -5,6 +5,7 @@
 - 视觉层从“始终开启”改为 profile 级 `visual` 配置（`Config` + `.volatile()`，默认 true）；通过 DSH 插件设置页（bundle 详情表单）切换，不再写共享的 `state.json`。
 - `/structured on|off` 保持原义：只控制按会话的提示词注入；视觉层由 `visual` 控制，`/structured status` 会显示两者状态。
 - client 通过 `configForms.get('dsh-structured')` 读取 `visual` 并启用/停用视觉层；`configForms` 不可用时保持默认开启，不阻断回复。
+- 严格卡片识别：只认完整标签（结论/总结/答案、判断/决策、指标/数据、风险/注意/警告、下一步/行动/待办、验收/通过/完成、重点/关键）；前缀/复合词不染色；普通引用不再自动 lead；statement 仅第一块；GenUI 跳过。
 - 新增 `@deepseek-ai/schemastery` peer/dev 依赖；`desktop-check` 允许宿主 schemastery import 并检查 `Config` 导出；版本 0.8.2。
 
 ## 0.8.1 — 2026-10-22
