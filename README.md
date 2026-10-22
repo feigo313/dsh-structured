@@ -81,7 +81,7 @@ pnpm add $tgz
 
 ### 兼容性门禁
 
-本包不声明 `@deepseek-ai/*` peerDependencies：插件只使用 host service，不直接 import 官方包。`engines.dsh` 与 `dsh.compatibility.dshReleases` 是 advisory；本机 `evaluatePluginCompatibility` 只读 peer，因此版本门禁不生效（P2 风险）。实测 DSH CLI `0.1.7-rc.2` 与 desktop `0.2.1-rc.2`。
+本包声明 `@deepseek-ai/schemastery` peer：`Config`（visual/defaultEnabled/tailReminder/includeSubagents/genui）用它生成设置表单；这是 host 提供的服务，不是门禁。真正门禁是 `engines.dsh`（`>=0.1.7-rc.2 <0.3.0-0`），`dsh-app-boot` 在有 `engines.dsh` 时读取它；`dsh.compatibility.dshReleases` 是 advisory。实测 DSH CLI `0.1.7-rc.2` 与 desktop `0.2.1-rc.2`。
 
 ## 使用
 
@@ -94,6 +94,7 @@ pnpm add $tgz
 
 - 开关按会话独立，状态落在 `$DSH_HOME/dsh-structured/state.json`（tmp + rename 原子写）。
 - 新会话默认开启；`defaultEnabled: false` 可改默认值（见配置）。
+- 视觉层由插件设置 `visual` 控制（默认开启），不写 `state.json`；`/structured on|off` 只控制提示词注入，不影响视觉层。
 - 自定义规则：写 `$DSH_HOME/dsh-structured/style.md`，**非空即整份覆盖**内置文本，保存后下一轮生效；文件为空或删除时回落内置。
 - 内置文本与 `~/.dsh/AGENTS.md` 第 7 节同源：首句结论、组件化正文、一段一主题、禁过程叙事与复述、证据优先、短答不套卡；清晰优先，不设硬性篇幅上限。
 
@@ -103,7 +104,7 @@ pnpm add $tgz
 
 视觉方向只做一套：**Linear 的秩序 + Notion 的卡片 + Stripe 的信息密度 + Vercel AI Elements 的回复结构**，见 [`docs/DESIGN-REFERENCES.md`](docs/DESIGN-REFERENCES.md)。卡片用图标方块 + 13px 标签 + 淡色表面；状态只在 68px 状态列着色，不再整行 pastel；表格结论用强调左规线。不做主题菜单。
 
-设计与分阶段计划见 [`docs/VISUAL-PLAN.md`](docs/VISUAL-PLAN.md)，视觉热点/层级诊断见 [`docs/VISUAL-CRITIQUE.md`](docs/VISUAL-CRITIQUE.md)，卡片类型与热点预算见 [`docs/CARD-SYSTEM.md`](docs/CARD-SYSTEM.md)。视觉层默认开启，**只提供一套「工程蓝图」方案，不做主题选择**；`/structured on|off` 是唯一开关。
+设计与分阶段计划见 [`docs/VISUAL-PLAN.md`](docs/VISUAL-PLAN.md)，视觉热点/层级诊断见 [`docs/VISUAL-CRITIQUE.md`](docs/VISUAL-CRITIQUE.md)，卡片类型与热点预算见 [`docs/CARD-SYSTEM.md`](docs/CARD-SYSTEM.md)。视觉层由插件设置 `visual` 控制（默认开启）；`/structured on|off` 只控制提示词注入。仍只提供一套「工程蓝图」视觉，不做主题选择。
 
 Phase 2 已落地 2.1–2.4：卡片类型（结论/判断/指标/风险/下一步/验收/重点）、`data-dsh-structured-card-type` 归属标记、GenUI 软联动（检测到才追加 `dsh-ui` 路由，未检测走纯 markdown fallback，不硬依赖）。
 
@@ -130,7 +131,10 @@ Phase 2 已落地 2.1–2.4：卡片类型（结论/判断/指标/风险/下一�
     tailReminder: true      # system prompt 末尾追加一句提醒
     includeSubagents: false # 子代理会话不注入（它的产出不直接面向用户）
     genui: auto             # auto | on | off；auto 检测到 GenUI 才追加 dsh-ui 路由
+    visual: true            # 客户端视觉层；由插件设置页切换，不写 state.json
 ```
+
+`visual`、`defaultEnabled`、`tailReminder`、`includeSubagents`、`genui` 都是 `.volatile()` 配置，插件设置页（bundle 详情表单）可编辑；写入走 active profile 的 Cordis patch，home patch / CLI overlay 优先。`/structured on|off` 只影响 `state.json` 里的按会话提示词开关。
 
 ## 验证注入生效
 
@@ -153,7 +157,7 @@ node scripts/session-inspect.mjs --session session-xxxx --last-system --grep "�
 搜索："结构化输出（本会话已启用" → 命中 1 条 system/message
 ```
 
-关闭后（`/structured off` 或把该会话在 `state.json` 里置为 `false`），同一个会话下一轮应看到 `命中 0 条`。视觉样式仍保留；`/structured` 只控制提示词注入，不关闭 client 视觉层。
+关闭后（`/structured off` 或把该会话在 `state.json` 里置为 `false`），同一个会话下一轮应看到 `命中 0 条`。视觉层由插件设置 `visual` 控制，`/structured` 只控制提示词注入，不关闭 client 视觉层。
 
 > 以上命令在仓库根执行。已装到 profile 时，脚本路径是 `<profile>\node_modules\dsh-structured\scripts\`；把命令里的 `scripts/` 换成 `node_modules/dsh-structured/scripts/` 即可。
 

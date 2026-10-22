@@ -22,6 +22,7 @@ import {
 } from 'node:fs'
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
+import Schema from '@deepseek-ai/schemastery'
 
 /** Cordis 插件名。 */
 export const name = 'dsh-structured'
@@ -44,6 +45,24 @@ const REMINDER_ORDER = 10300
 
 /** 会话条目上限：按最近使用淘汰，防止 state.json 无界增长。 */
 export const MAX_SESSION_ENTRIES = 500
+
+/** 把字段标记为 volatile，让 DSH 设置表单可以实时读写。 */
+const k = (x) => (typeof x.volatile === 'function' ? x.volatile() : x)
+
+/** volatile 字段在 host 侧是可读信号；普通字段原样返回。 */
+const readConfig = (x) => (x && typeof x.get === 'function' ? x.get() : x)
+
+/**
+ * DSH 插件配置 schema：设置表单据此渲染，并持久化到 active profile 的 Cordis patch。
+ * 不把 visual 写进 state.json，避免 structured-test 与 desktop 共享同一状态文件。
+ */
+export const Config = Schema.object({
+  visual: k(Schema.boolean().default(true)),
+  defaultEnabled: k(Schema.boolean().default(true)),
+  tailReminder: k(Schema.boolean().default(true)),
+  includeSubagents: k(Schema.boolean().default(false)),
+  genui: k(Schema.union(['auto', 'on', 'off']).default('auto').loose()),
+})
 
 /**
  * 内置规则文本：中文，与 `~/.dsh/AGENTS.md` 第 7 节（响应格式）同源，只规定形状、不另立第二套写作规则。
@@ -284,7 +303,7 @@ export function setEnabledFor(sessions, defaultEnabled, sessionId, enabled) {
 
 /**
  * 生成 /structured 的状态文本（不含副作用）。
- * @param {{ sessionId: string | null, sessions: Record<string, { enabled: boolean, at: number }>, defaultEnabled: boolean, genui?: boolean }} input
+ * @param {{ sessionId: string | null, sessions: Record<string, { enabled: boolean, at: number }>, defaultEnabled: boolean, genui?: boolean, visual?: boolean }} input
  * @returns {string}
  */
 export function statusText(input) {
@@ -294,7 +313,7 @@ export function statusText(input) {
     '结构化提示词：' + (enabled ? '已开启' : '已关闭') + '（本会话）',
     '新会话默认：' + (input.defaultEnabled ? '开启' : '关闭'),
     '规则来源：' + (style.source === 'custom' ? '自定义 ' + styleFile() : '内置（无标签标题卡 + 结构化组件）'),
-    '视觉层：始终开启（/structured 只控制提示词注入，视觉样式不随开关关闭）',
+    '视觉层：' + (input.visual === false ? '已关闭' : '已开启') + '（由插件设置 visual 控制；/structured 只控制提示词）',
     'GenUI 联动：' + (input.genui ? '已检测（图表/交互走 dsh-ui，普通卡片走 fallback）' : '未检测（纯 markdown fallback）'),
     '状态文件：' + stateFile(),
     '用法：/structured on | off | status',
@@ -311,7 +330,7 @@ export function handleCommand(invocation, api) {
   const sessionId = sessionIdOf(invocation)
   const arg = String(invocation?.rawInput ?? '').trim().toLowerCase()
   if (arg === '' || arg === 'status') {
-    return { kind: 'success', text: statusText({ sessionId, sessions: api.sessions, defaultEnabled: api.defaultEnabled, genui: api.genui }) }
+    return { kind: 'success', text: statusText({ sessionId, sessions: api.sessions, defaultEnabled: api.defaultEnabled, genui: api.genui, visual: api.visual }) }
   }
   if (arg !== 'on' && arg !== 'off') {
     return { kind: 'error', text: '未知参数：' + arg + '\n用法：/structured on | off | status' }
@@ -333,17 +352,19 @@ export function handleCommand(invocation, api) {
 /**
  * 挂载结构化输出：提示词 section + 尾部提醒 + 会话开关 + /structured 命令。
  * @param {import('@deepseek-ai/cordis').Context} ctx host 根上下文。
- * @param {{ defaultEnabled?: boolean, tailReminder?: boolean, includeSubagents?: boolean, genui?: 'auto' | 'on' | 'off' }} [config]
+ * @param {{ defaultEnabled?: boolean, tailReminder?: boolean, includeSubagents?: boolean, genui?: 'auto' | 'on' | 'off', visual?: boolean }} [config]
  */
 export function apply(ctx, config = {}) {
-  const defaultEnabled = config?.defaultEnabled !== false
-  const tailReminder = config?.tailReminder !== false
-  const includeSubagents = config?.includeSubagents === true
-  const genui = detectGenui(config, ctx)
+  const defaultEnabled = readConfig(config?.defaultEnabled) !== false
+  const visualNow = () => readConfig(config?.visual) !== false
+  const tailReminder = readConfig(config?.tailReminder) !== false
+  const includeSubagents = readConfig(config?.includeSubagents) === true
+  const genuiConfig = { genui: readConfig(config?.genui) }
+  const genui = detectGenui(genuiConfig, ctx)
   let genuiKnown = genui
   const genuiNow = () => {
     if (genuiKnown) return true
-    genuiKnown = detectGenui(config, ctx)
+    genuiKnown = detectGenui(genuiConfig, ctx)
     return genuiKnown
   }
   const builtinStyleText = () => (genuiNow() ? BUILTIN_STYLE_TEXT + '\n\n' + GENUI_ROUTING_TEXT : BUILTIN_STYLE_TEXT)
@@ -460,6 +481,7 @@ export function apply(ctx, config = {}) {
                 sessions,
                 defaultEnabled,
                 genui: genuiNow(),
+                visual: visualNow(),
                 onChange: (sessionId, enabled, result) => {
                   warn(
                     'session ' + sessionId + ' structured ' + (enabled ? 'on' : 'off') + (result.ok ? '' : '（持久化失败）'),

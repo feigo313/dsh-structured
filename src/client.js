@@ -396,69 +396,123 @@ window.__ModuleLoader__.load({
       }
     }
 
-    return {
-      inject: [],
-      apply(ctx) {
-        if (typeof document === 'undefined' || typeof MutationObserver === 'undefined') return
-        if (document.body === null) return
+    let active = false
+    let disposeLayer = null
 
-        document.getElementById(LEGACY_STYLE_ID)?.remove()
-        document.getElementById(STYLE_ID)?.remove()
-        const style = document.createElement('style')
-        style.id = STYLE_ID
-        style.textContent = CSS
-        document.head.appendChild(style)
-        document.documentElement.setAttribute(ROOT_ATTR, 'active')
+    const enable = () => {
+      if (active) return
+      if (typeof document === 'undefined' || typeof MutationObserver === 'undefined') return
+      if (document.body === null) return
+      active = true
+
+      document.getElementById(LEGACY_STYLE_ID)?.remove()
+      document.getElementById(STYLE_ID)?.remove()
+      const style = document.createElement('style')
+      style.id = STYLE_ID
+      style.textContent = CSS
+      document.head.appendChild(style)
+      document.documentElement.setAttribute(ROOT_ATTR, 'active')
+      try {
+        console.info('[dsh-structured] visual layer active')
+      } catch {
+        // console 不可用时忽略。
+      }
+
+      let disposed = false
+      let scheduled = false
+      let pending = null
+      const run = () => {
+        if (disposed) return
+        scheduled = false
+        pending = null
+        decorate(document)
+      }
+      const schedule = () => {
+        if (disposed || scheduled) return
+        scheduled = true
+        if (typeof requestAnimationFrame === 'function') pending = requestAnimationFrame(run)
+        else pending = setTimeout(run, 16)
+      }
+      const observer = new MutationObserver(schedule)
+      observer.observe(document.body, { childList: true, subtree: true, characterData: true })
+      run()
+
+      disposeLayer = () => {
+        if (disposed) return
+        disposed = true
+        active = false
+        disposeLayer = null
+        observer.disconnect()
+        if (pending !== null) {
+          if (typeof cancelAnimationFrame === 'function') cancelAnimationFrame(pending)
+          else clearTimeout(pending)
+        }
+        style.remove()
+        document.documentElement.removeAttribute(ROOT_ATTR)
+        for (const attr of [CARD_ATTR, CARD_TYPE_ATTR, ICON_ATTR, TONE_ATTR, LANG_ATTR, STATUS_ATTR, STATUS_TABLE_ATTR, LEAD_ATTR, ROW_ATTR]) {
+          for (const element of document.querySelectorAll('[' + attr + ']')) element.removeAttribute(attr)
+        }
         try {
-          console.info('[dsh-structured] visual layer active')
+          console.info('[dsh-structured] visual layer disposed')
         } catch {
           // console 不可用时忽略。
         }
+      }
+    }
 
-        let disposed = false
-        let scheduled = false
-        let pending = null
-        const run = () => {
-          if (disposed) return
-          scheduled = false
-          pending = null
-          decorate(document)
-        }
-        const schedule = () => {
-          if (disposed || scheduled) return
-          scheduled = true
-          if (typeof requestAnimationFrame === 'function') pending = requestAnimationFrame(run)
-          else pending = setTimeout(run, 16)
-        }
-        const observer = new MutationObserver(schedule)
-        observer.observe(document.body, { childList: true, subtree: true, characterData: true })
-        run()
+    const disable = () => {
+      const layer = disposeLayer
+      disposeLayer = null
+      if (typeof layer === 'function') layer()
+      if (typeof document === 'undefined') return
+      document.getElementById(STYLE_ID)?.remove()
+      document.documentElement.removeAttribute(ROOT_ATTR)
+      for (const attr of [CARD_ATTR, CARD_TYPE_ATTR, ICON_ATTR, TONE_ATTR, LANG_ATTR, STATUS_ATTR, STATUS_TABLE_ATTR, LEAD_ATTR, ROW_ATTR]) {
+        for (const element of document.querySelectorAll('[' + attr + ']')) element.removeAttribute(attr)
+      }
+    }
 
-        const dispose = () => {
-          if (disposed) return
-          disposed = true
-          observer.disconnect()
-          if (pending !== null) {
-            if (typeof cancelAnimationFrame === 'function') cancelAnimationFrame(pending)
-            else clearTimeout(pending)
-          }
-          style.remove()
-          document.documentElement.removeAttribute(ROOT_ATTR)
-          for (const attr of [CARD_ATTR, CARD_TYPE_ATTR, ICON_ATTR, TONE_ATTR, LANG_ATTR, STATUS_ATTR, STATUS_TABLE_ATTR, LEAD_ATTR, ROW_ATTR]) {
-            for (const element of document.querySelectorAll('[' + attr + ']')) element.removeAttribute(attr)
-          }
-          try {
-            console.info('[dsh-structured] visual layer disposed')
-          } catch {
-            // console 不可用时忽略。
-          }
+    const applyVisual = (on) => {
+      if (on) enable()
+      else disable()
+    }
+
+    return {
+      inject: [],
+      apply(ctx) {
+        // 默认开启，保持 0.8.1 的现有观感；随后由插件设置里的 visual 覆盖。
+        enable()
+        try {
+          ctx?.inject?.(['configForms'], (child) => {
+            try {
+              const form = child.configForms?.get('dsh-structured')
+              if (!form || typeof form.getSnapshot !== 'function') return
+              const read = () => {
+                try {
+                  const raw = form.getSnapshot()?.value?.visual
+                  const visual = raw && typeof raw.get === 'function' ? raw.get() : raw
+                  applyVisual(visual !== false)
+                } catch {
+                  // 读取失败时保持当前状态，不打断回复。
+                }
+              }
+              read()
+              if (typeof form.subscribe === 'function') {
+                child.effect?.(() => form.subscribe(read), 'dsh-structured: visual preference')
+              }
+            } catch {
+              // configForms 不可用时保持默认开启。
+            }
+          })
+        } catch {
+          // 无 ctx.inject 的宿主保持默认开启。
         }
         try {
-          ctx?.effect?.(() => dispose, 'dsh-structured: visual layer')
+          ctx?.effect?.(() => disable, 'dsh-structured: visual layer')
         } catch {
-          dispose()
+          // 没有 effect 释放器时，视觉层保持到页面卸载。
         }
-        return dispose
+        return disable
       },
     }
   },

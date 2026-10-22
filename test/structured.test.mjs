@@ -6,6 +6,7 @@ import test from 'node:test'
 
 import {
   BUILTIN_STYLE_TEXT,
+  Config,
   GENUI_ROUTING_TEXT,
   MAX_SESSION_ENTRIES,
   TAIL_REMINDER_TEXT,
@@ -145,6 +146,22 @@ test('statusText 显示 GenUI 联动状态', () => {
   } finally {
     box.cleanup()
   }
+})
+
+test('Config：visual 默认开启，且可显式关闭', () => {
+  const value = (x) => (x && typeof x.get === 'function' ? x.get() : x)
+  const defaults = Config({})
+  assert.equal(value(defaults.visual), true)
+  assert.equal(value(defaults.defaultEnabled), true)
+  assert.equal(value(defaults.tailReminder), true)
+  assert.equal(value(defaults.includeSubagents), false)
+  assert.equal(value(defaults.genui), 'auto')
+  assert.equal(value(Config({ visual: false }).visual), false)
+  assert.equal(value(Config({ defaultEnabled: false }).defaultEnabled), false)
+  assert.match(
+    statusText({ sessionId: 'session-a', sessions: {}, defaultEnabled: true, visual: false }),
+    /视觉层：已关闭/,
+  )
 })
 
 test('无状态文件时按默认值开启', () => {
@@ -505,6 +522,15 @@ test('client：卡片类型与归属标记存在', () => {
   for (const label of ['判断', '指标', '风险', '下一步', '验收', '重点']) {
     assert.match(client, new RegExp(label))
   }
+})
+
+test('client：视觉层可由 configForms 的 visual 设置关闭', () => {
+  const client = readFileSync('src/client.js', 'utf8')
+  assert.match(client, /configForms/)
+  assert.match(client, /getSnapshot/)
+  assert.match(client, /visual !== false/)
+  assert.match(client, /applyVisual/)
+  assert.doesNotMatch(client, /state\.json/)
 })
 
 test('构建产物 lib/index.js 与 lib/client.js 均 = banner + src', () => {
