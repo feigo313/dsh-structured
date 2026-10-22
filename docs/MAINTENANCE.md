@@ -14,7 +14,7 @@ npm view dsh-structured dist-tags --json
 gh release view v0.7.4 --repo feigo313/dsh-structured --json assets
 ```
 
-## 2. 先验真：非置信原则（issue 与 PR 一视同仁）
+## 2. 先验真：零信任原则（默认不采信，先验后动；issue 与 PR 一视同仁）
 
 外部陈述默认是**未经证实的断言**：作者身份、措辞、复现步骤、PR 标题与 diff 说明都不算证据。先做正确性分析，再决定动作。
 
