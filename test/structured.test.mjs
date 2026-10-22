@@ -76,12 +76,21 @@ function fakeCtx() {
   return { ctx, sections, commands, warnings }
 }
 
-test('内置规则覆盖首句结论、组件、篇幅三件事', () => {
+test('内置规则覆盖首句结论、组件、清晰度三件事', () => {
   assert.match(BUILTIN_STYLE_TEXT, /首句给结论/)
   assert.match(BUILTIN_STYLE_TEXT, /清单或表格/)
-  assert.match(BUILTIN_STYLE_TEXT, /500 字/)
+  assert.match(BUILTIN_STYLE_TEXT, /标题即结论/)
+  assert.match(BUILTIN_STYLE_TEXT, /表格优先 ≤5 行/)
+  assert.match(BUILTIN_STYLE_TEXT, /不设硬性篇幅上限/)
+  assert.match(BUILTIN_STYLE_TEXT, /不为了字数删信息/)
+  assert.match(BUILTIN_STYLE_TEXT, /过程叙事/)
+  assert.match(BUILTIN_STYLE_TEXT, /推断/)
+  assert.match(BUILTIN_STYLE_TEXT, /短答不套卡/)
+  assert.doesNotMatch(BUILTIN_STYLE_TEXT, /500\s*字|≤\s*500|字数上限/)
   assert.match(BUILTIN_STYLE_TEXT, /可复制内容用代码块/)
   assert.match(TAIL_REMINDER_TEXT, /加粗标题/)
+  assert.match(TAIL_REMINDER_TEXT, /清晰优先/)
+  assert.doesNotMatch(TAIL_REMINDER_TEXT, /500\s*字|≤\s*500|字数上限/)
   assert.match(BUILTIN_STYLE_TEXT, /判断/)
   assert.match(BUILTIN_STYLE_TEXT, /指标/)
   assert.match(BUILTIN_STYLE_TEXT, /风险/)

@@ -95,7 +95,7 @@ pnpm add $tgz
 - 开关按会话独立，状态落在 `$DSH_HOME/dsh-structured/state.json`（tmp + rename 原子写）。
 - 新会话默认开启；`defaultEnabled: false` 可改默认值（见配置）。
 - 自定义规则：写 `$DSH_HOME/dsh-structured/style.md`，**非空即整份覆盖**内置文本，保存后下一轮生效；文件为空或删除时回落内置。
-- 内置文本与 `~/.dsh/AGENTS.md` 第 7 节同源：首句结论、组件化正文、禁过程叙事与复述、结构化不等于变长、500 字上限。
+- 内置文本与 `~/.dsh/AGENTS.md` 第 7 节同源：首句结论、组件化正文、一段一主题、禁过程叙事与复述、证据优先、短答不套卡；清晰优先，不设硬性篇幅上限。
 
 ### 视觉层（desktop 主目标；web 兼容）
 

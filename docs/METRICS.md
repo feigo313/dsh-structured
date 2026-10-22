@@ -34,7 +34,7 @@ node scripts/measure-prose.mjs --since-days 30 --before "2026-10-20T21:35:00+08:
 
 ## 2. 改后样本（插件开启，测试 profile）
 
-- profile：`structured-test`（`dsh-base` + `dsh-headless` + `dsh-structured@0.1.2`）。测试构建是 0.1.2；交付的 0.7.4 为发布准备（截图/README/市场 YAML/npm 包），host 注入与统计口径未变。
+- profile：`structured-test`（`dsh-base` + `dsh-headless` + `dsh-structured@0.1.2`）。测试构建是 0.1.2；0.8.1 只改规则文本（清晰度约束，无运行时截断/字数统计），host 注入与统计口径未变；0.7.4 为上一发布版。
 - 模型：headless 默认 `deepseek-flash`。
 - 样本：12 个新会话，同一组 12 条问题；**12/12 会话的 `system/message` 都同时命中主规则段与尾部提醒**。
 - 命令：
@@ -82,6 +82,7 @@ node scripts/measure-prose.mjs --since-days 30 --before "2026-10-20T21:35:00+08:
 node scripts/measure-prose.mjs --sessions session-xxxx
 
 # 换首屏阈值 / 换整篇口径
+# 500 是视口高度像素，不是字数；0.8.1 起不设硬性篇幅上限
 node scripts/measure-prose.mjs --first-screen 500
 node scripts/measure-prose.mjs --whole
 ```

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.1 — 2026-10-22
+
+- 规则文本从“500 字硬上限”改为清晰度约束：标题即结论、按信息类型选组件、一段一主题、证据优先、短答不套卡、长答不设硬性篇幅上限。
+- 表格优先 ≤5 行；信息确实多时用 `dsh-ui` 大表或拆表，不硬砍内容；不为了格式加内容，也不为了字数删信息。
+- 同步 README、`docs/METRICS.md`、`docs/CARD-SYSTEM.md` 与测试断言；无运行时截断、无字数统计、无长度预算；不改 client/注入通道。
+
 ## Unreleased
 
 - 新增 `docs/MAINTENANCE.md`（每日巡检手册）与 `docs/MAINTENANCE-LOG.md`（巡检记录）；两者不进 npm 包（`files` 增加 `!docs/MAINTENANCE*.md`，打包仍为 34 文件）。
