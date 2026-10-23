@@ -50,3 +50,12 @@
 - **GitHub**：远端 `main` `7e08c3c`（`gh api` git data 快进，内容同本地 `8505bfc`）；Release `v0.8.3` 资产 `dsh-structured-0.8.3.tgz` 763,827 B、sha256 `29a14044…`（与 npm 包字节一致）。
 - **市场**：PR #8680 分支条目已更新到 v0.8.3（commit `484cf71`），PR 正文同步 v0.8.3；check/gate 重跑中。
 - **网络**：本机 git HTTPS 到 github.com 不通（connect timeout），远端经 `gh api` git data 写入；本地与远端提交号不同，内容一致。
+
+## 2026-10-23 · 第 3 轮
+
+- **issue 水位**：1 open / 0 closed 起步；本轮关闭 #1，收为 0 open / 1 closed；仓库 PR 0。
+- **市场**：PR #8680 已 MERGED（2026-10-22T17:43:45Z），entry 收录 v0.8.3 tarball。
+- **零信任分析 #1**：机制部分成立——`style.md` 非空整份覆盖内置文本、每轮请求重新求值、`tailReminder` 是独立 section；作者给的 96% / 60% 对比是沙箱实测，本轮未复跑，按"未复现的作者数据"处理。请求选项 1（文档说明）成立且最小；选项 2/3（拆段 / persona.md）会改 `style.md` 语义与注入通道，暂不做。
+- **本轮动作**：README 增加「用 style.md 承载人格 / 长期设定」说明（整份覆盖、如何同时保留结构化规则、只当人格用时关 `tailReminder`、全局共用一份）；选项 2/3 不做并在 issue 里说明。
+- **其他复核**：npm latest `0.8.3`；Release `v0.8.3` 资产 sha256 `29a14044…` 与 npm 包同字节；CI 已由 `0224afe`（先 `npm install`）修复，最近 run success。
+- **待办**：无；下一轮继续盯 issue 与 CI。
