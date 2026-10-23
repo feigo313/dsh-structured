@@ -59,3 +59,14 @@
 - **本轮动作**：README 增加「用 style.md 承载人格 / 长期设定」说明（整份覆盖、如何同时保留结构化规则、只当人格用时关 `tailReminder`、全局共用一份）；选项 2/3 不做并在 issue 里说明。
 - **其他复核**：npm latest `0.8.3`；Release `v0.8.3` 资产 sha256 `29a14044…` 与 npm 包同字节；CI 已由 `0224afe`（先 `npm install`）修复，最近 run success。
 - **待办**：无；下一轮继续盯 issue 与 CI。
+
+## 2026-10-23 · 0.9.1 发布
+
+- **合并/推送**：`Release 0.9.1` merge `c271ad5`（docs 修复 `c2c1c94` 一并合入）；main `a63b91f`（市场条目指向 v0.9.1）；远端 main 已同步。
+- **tag/Release**：annotated tag `v0.9.1`（对象 `83a3216` → `c271ad5`）；Release `v0.9.1`，asset `dsh-structured-0.9.1.tgz` 770,432 B / sha256 `5b48c3a0…`。
+- **npm**：`dsh-structured@0.9.1` 为 latest，42 文件 / unpacked 997,070 B，shasum `fa8d8703…`（与 Release 资产同字节）；tarball HTTP 200。
+- **门禁**：npm test 49/49；desktop-check PASS；theme-contrast PASS 60；pack 42 / 770432 / 997070；grep「不做主题菜单」0；lib 与 src 一致。
+- **市场**：PR #8874（entry tarball → v0.9.1），check 运行中。
+- **desktop 安装**：`pnpm add dsh-structured@0.9.1` 成功（dependency 0.9.1，installed 0.9.1；已备份 package.json / pnpm-lock）；运行中的 Electron 仍加载 0.8.3，重启后生效。
+- **UNVERIFIED**：desktop 实机 6 字段可见/可改、三主题 × 明暗切换、3×2 截图、`data-diff` 可达性——需重启 Desktop 后验证，本轮未重启（重启会终止当前会话）。
+- **变更日志**：仓库 CHANGELOG 与 GitHub Release body 均含 0.9.1；市场 schema 无 changelog 字段（entry 只有 url/name/category/tarball/description），市场侧通过条目版本 + Release 页承载。
