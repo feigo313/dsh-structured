@@ -1,4 +1,6 @@
-# 视觉方案：风险评估与回滚路径（0.7.3）
+# 视觉方案：风险评估与回滚路径（0.7.3 历史，0.9.1 更新）
+
+> 0.9.1 现状：`theme`/`visual` 由 profile Config 控制；普通首引用 lead 与文本前缀 tone 已删除；下文 0.7.3 的风险/回滚记录仅作历史参考，当前回滚以 profile `cordis.patch.yml` 和插件卸载为准。
 
 评估对象：`src/client.js` 的视觉层（CSS 皮肤 + 语义装饰）+ `src/index.js` 注入的标题卡契约。
 实装状态：desktop profile 已装 0.7.3（`file:<repo>/dsh-structured-0.7.3.tgz`，`dsh.profile.bundles` 中一行）。

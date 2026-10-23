@@ -116,7 +116,7 @@ function makeContext(form) {
 test('client：visual=false 停用视觉层，visual=true 恢复', () => {
   const dom = makeDom()
   const form = {
-    value: { visual: false },
+    value: { visual: false, theme: 'codex' },
     listeners: new Set(),
     getSnapshot() {
       return { value: this.value }
@@ -131,16 +131,27 @@ test('client：visual=false 停用视觉层，visual=true 恢复', () => {
 
   assert.equal(dom.styles.has('dsh-structured-skin-style'), false)
   assert.equal(dom.attrs.has('data-dsh-structured'), false)
+  assert.equal(dom.document.body['data-dsh-structured-theme'], undefined)
 
-  form.value = { visual: true }
+  form.value = { visual: true, theme: 'codex' }
   for (const listener of form.listeners) listener()
   assert.equal(dom.styles.has('dsh-structured-skin-style'), true)
   assert.equal(dom.attrs.get('data-dsh-structured'), 'active')
+  assert.equal(dom.document.body['data-dsh-structured-theme'], 'codex')
 
-  form.value = { visual: false }
+  form.value = { visual: true, theme: 'anthropic' }
+  for (const listener of form.listeners) listener()
+  assert.equal(dom.document.body['data-dsh-structured-theme'], 'anthropic')
+
+  form.value = { visual: true, theme: 'bogus' }
+  for (const listener of form.listeners) listener()
+  assert.equal(dom.document.body['data-dsh-structured-theme'], 'deepseek')
+
+  form.value = { visual: false, theme: 'anthropic' }
   for (const listener of form.listeners) listener()
   assert.equal(dom.styles.has('dsh-structured-skin-style'), false)
   assert.equal(dom.attrs.has('data-dsh-structured'), false)
+  assert.equal(dom.document.body['data-dsh-structured-theme'], undefined)
 
   dispose()
 })

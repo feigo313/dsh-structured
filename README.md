@@ -81,7 +81,7 @@ pnpm add $tgz
 
 ### 兼容性门禁
 
-本包声明 `@deepseek-ai/schemastery` peer：`Config`（visual/defaultEnabled/tailReminder/includeSubagents/genui）用它生成设置表单；这是 host 提供的服务，不是门禁。真正门禁是 `engines.dsh`（`>=0.1.7-rc.2 <0.3.0-0`），`dsh-app-boot` 在有 `engines.dsh` 时读取它；`dsh.compatibility.dshReleases` 是 advisory。实测 DSH CLI `0.1.7-rc.2` 与 desktop `0.2.1-rc.2`。
+本包声明 `@deepseek-ai/schemastery` peer：`Config`（theme/visual/defaultEnabled/tailReminder/includeSubagents/genui）用它生成设置表单；这是 host 提供的服务，不是门禁。真正门禁是 `engines.dsh`（`>=0.1.7-rc.2 <0.3.0-0`），`dsh-app-boot` 在有 `engines.dsh` 时读取它；`dsh.compatibility.dshReleases` 是 advisory。实测 DSH CLI `0.1.7-rc.2` 与 desktop `0.2.1-rc.2`。
 
 ## 使用
 
@@ -101,11 +101,11 @@ pnpm add $tgz
 
 ### 视觉层（desktop 主目标；web 兼容）
 
-客户端半区会给对话 markdown 加一层排版：标题层级与图标方块、表头/细横线/状态列、代码块语言色与贴合 banner、风险/验收/结论三色卡片、结论/下一步卡、列表/链接/分隔线。强调色固定为 `#2563eb`（暗色 `#60a5fa`），其余 token 跟随明暗主题；只给宿主节点加 class/attribute，不改消息内容，headless / CLI 不加载 client 半区。
+客户端半区会给对话 markdown 加一层排版：标题层级与图标方块、表头/细横线/状态列、代码块语言色与贴合 banner、风险/验收/结论三色卡片、结论/下一步卡、列表/链接/分隔线。`theme` 提供 `deepseek`（默认）/`codex`/`anthropic` 三套 token（surface/text/muted/border/accent/status/code），暗色走宿主 `body[data-ds-dark-theme]`；只给宿主节点加 class/attribute，不改消息内容，headless / CLI 不加载 client 半区。
 
-视觉方向只做一套：**Linear 的秩序 + Notion 的卡片 + Stripe 的信息密度 + Vercel AI Elements 的回复结构**，见 [`docs/DESIGN-REFERENCES.md`](docs/DESIGN-REFERENCES.md)。卡片用图标方块 + 13px 标签 + 淡色表面；状态只在 68px 状态列着色，不再整行 pastel；表格结论用强调左规线。不做主题菜单。
+视觉方向只做一套：**Linear 的秩序 + Notion 的卡片 + Stripe 的信息密度 + Vercel AI Elements 的回复结构**，见 [`docs/DESIGN-REFERENCES.md`](docs/DESIGN-REFERENCES.md)。卡片用图标方块 + 13px 标签 + 淡色表面；状态只在 68px 状态列着色，不再整行 pastel；表格结论用强调左规线。`theme` 只切换 token，不做主题市场/自定义 CSS/按消息主题。
 
-设计与分阶段计划见 [`docs/VISUAL-PLAN.md`](docs/VISUAL-PLAN.md)，视觉热点/层级诊断见 [`docs/VISUAL-CRITIQUE.md`](docs/VISUAL-CRITIQUE.md)，卡片类型与热点预算见 [`docs/CARD-SYSTEM.md`](docs/CARD-SYSTEM.md)。视觉层由插件设置 `visual` 控制（默认开启）；`/structured on|off` 只控制提示词注入。仍只提供一套「工程蓝图」视觉，不做主题选择。
+设计与分阶段计划见 [`docs/VISUAL-PLAN.md`](docs/VISUAL-PLAN.md)，视觉热点/层级诊断见 [`docs/VISUAL-CRITIQUE.md`](docs/VISUAL-CRITIQUE.md)，卡片类型与热点预算见 [`docs/CARD-SYSTEM.md`](docs/CARD-SYSTEM.md)。视觉层由插件设置 `visual` 控制（默认开启），`theme` 控制三套 token；`/structured on|off` 只控制提示词注入。
 
 Phase 2 已落地 2.1–2.4：卡片类型（结论/判断/指标/风险/下一步/验收/重点）、`data-dsh-structured-card-type` 归属标记、GenUI 软联动（检测到才追加 `dsh-ui` 路由，未检测走纯 markdown fallback，不硬依赖）。
 
@@ -128,14 +128,15 @@ Phase 2 已落地 2.1–2.4：卡片类型（结论/判断/指标/风险/下一�
 ```yaml
 - id: dsh-structured
   config:
-    defaultEnabled: true    # 新会话默认开启
-    tailReminder: true      # system prompt 末尾追加一句提醒
+    theme: deepseek        # deepseek | codex | anthropic；三套主题 token
+    visual: true           # 客户端视觉层；由插件设置页切换，不写 state.json
+    defaultEnabled: true   # 新会话默认开启
+    tailReminder: true     # system prompt 末尾追加一句提醒
     includeSubagents: false # 子代理会话不注入（它的产出不直接面向用户）
-    genui: auto             # auto | on | off；auto 检测到 GenUI 才追加 dsh-ui 路由
-    visual: true            # 客户端视觉层；由插件设置页切换，不写 state.json
+    genui: auto            # auto | on | off；auto 检测到 GenUI 才追加 dsh-ui 路由
 ```
 
-`visual`、`defaultEnabled`、`tailReminder`、`includeSubagents`、`genui` 都是 `.volatile()` 配置，插件设置页（bundle 详情表单）可编辑；写入走 active profile 的 Cordis patch，home patch / CLI overlay 优先。`/structured on|off` 只影响 `state.json` 里的按会话提示词开关。
+`theme`、`visual`、`defaultEnabled`、`tailReminder`、`includeSubagents`、`genui` 都是 `.volatile()` 配置，插件设置页（bundle 详情表单）可编辑；写入走 active profile 的 Cordis patch，home patch / CLI overlay 优先。若表单快照的 `writable` 为 false，说明当前配置被上层覆盖，设置页不会静默写入成功；请改上层配置或接受只读。`/structured on|off` 只影响 `state.json` 里的按会话提示词开关，不影响 `theme`/`visual`。
 
 ## 验证注入生效
 

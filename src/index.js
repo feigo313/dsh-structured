@@ -52,16 +52,20 @@ const k = (x) => (typeof x.volatile === 'function' ? x.volatile() : x)
 /** volatile 字段在 host 侧是可读信号；普通字段原样返回。 */
 const readConfig = (x) => (x && typeof x.get === 'function' ? x.get() : x)
 
+/** 主题白名单：host 与 client 共用同一组值。 */
+export const THEMES = ['deepseek', 'codex', 'anthropic']
+
 /**
  * DSH 插件配置 schema：设置表单据此渲染，并持久化到 active profile 的 Cordis patch。
- * 不把 visual 写进 state.json，避免 structured-test 与 desktop 共享同一状态文件。
+ * 不把主题/视觉写进 state.json，避免 structured-test 与 desktop 共享同一状态文件。
  */
 export const Config = Schema.object({
-  visual: k(Schema.boolean().default(true)),
-  defaultEnabled: k(Schema.boolean().default(true)),
-  tailReminder: k(Schema.boolean().default(true)),
-  includeSubagents: k(Schema.boolean().default(false)),
-  genui: k(Schema.union(['auto', 'on', 'off']).default('auto').loose()),
+  theme: k(Schema.union(THEMES).default('deepseek').description('主题 / Theme: deepseek | codex | anthropic').loose()),
+  visual: k(Schema.boolean().default(true).description('视觉层 / Visual layer: 关闭后不加载回复区样式')),
+  defaultEnabled: k(Schema.boolean().default(true).description('新会话默认开启 / Default on for new sessions')),
+  tailReminder: k(Schema.boolean().default(true).description('尾部提醒 / Tail reminder: 每轮追加一句结构化提醒')),
+  includeSubagents: k(Schema.boolean().default(false).description('子代理注入 / Include subagents: 默认关闭')),
+  genui: k(Schema.union(['auto', 'on', 'off']).default('auto').description('GenUI 联动 / GenUI routing: auto | on | off').loose()),
 })
 
 /**
@@ -303,16 +307,18 @@ export function setEnabledFor(sessions, defaultEnabled, sessionId, enabled) {
 
 /**
  * 生成 /structured 的状态文本（不含副作用）。
- * @param {{ sessionId: string | null, sessions: Record<string, { enabled: boolean, at: number }>, defaultEnabled: boolean, genui?: boolean, visual?: boolean }} input
+ * @param {{ sessionId: string | null, sessions: Record<string, { enabled: boolean, at: number }>, defaultEnabled: boolean, genui?: boolean, visual?: boolean, theme?: string }} input
  * @returns {string}
  */
 export function statusText(input) {
   const style = activeStyle()
   const enabled = isEnabledFor(input.sessions, input.defaultEnabled, input.sessionId)
+  const theme = THEMES.includes(input.theme) ? input.theme : 'deepseek'
   return [
     '结构化提示词：' + (enabled ? '已开启' : '已关闭') + '（本会话）',
     '新会话默认：' + (input.defaultEnabled ? '开启' : '关闭'),
     '规则来源：' + (style.source === 'custom' ? '自定义 ' + styleFile() : '内置（无标签标题卡 + 结构化组件）'),
+    '主题：' + theme + '（由插件设置 theme 控制）',
     '视觉层：' + (input.visual === false ? '已关闭' : '已开启') + '（由插件设置 visual 控制；/structured 只控制提示词）',
     'GenUI 联动：' + (input.genui ? '已检测（图表/交互走 dsh-ui，普通卡片走 fallback）' : '未检测（纯 markdown fallback）'),
     '状态文件：' + stateFile(),
@@ -330,7 +336,7 @@ export function handleCommand(invocation, api) {
   const sessionId = sessionIdOf(invocation)
   const arg = String(invocation?.rawInput ?? '').trim().toLowerCase()
   if (arg === '' || arg === 'status') {
-    return { kind: 'success', text: statusText({ sessionId, sessions: api.sessions, defaultEnabled: api.defaultEnabled, genui: api.genui, visual: api.visual }) }
+    return { kind: 'success', text: statusText({ sessionId, sessions: api.sessions, defaultEnabled: api.defaultEnabled, genui: api.genui, visual: api.visual, theme: api.theme }) }
   }
   if (arg !== 'on' && arg !== 'off') {
     return { kind: 'error', text: '未知参数：' + arg + '\n用法：/structured on | off | status' }
@@ -352,10 +358,14 @@ export function handleCommand(invocation, api) {
 /**
  * 挂载结构化输出：提示词 section + 尾部提醒 + 会话开关 + /structured 命令。
  * @param {import('@deepseek-ai/cordis').Context} ctx host 根上下文。
- * @param {{ defaultEnabled?: boolean, tailReminder?: boolean, includeSubagents?: boolean, genui?: 'auto' | 'on' | 'off', visual?: boolean }} [config]
+ * @param {{ defaultEnabled?: boolean, tailReminder?: boolean, includeSubagents?: boolean, genui?: 'auto' | 'on' | 'off', visual?: boolean, theme?: 'deepseek' | 'codex' | 'anthropic' }} [config]
  */
 export function apply(ctx, config = {}) {
   const defaultEnabled = readConfig(config?.defaultEnabled) !== false
+  const themeNow = () => {
+    const theme = readConfig(config?.theme)
+    return THEMES.includes(theme) ? theme : 'deepseek'
+  }
   const visualNow = () => readConfig(config?.visual) !== false
   const tailReminder = readConfig(config?.tailReminder) !== false
   const includeSubagents = readConfig(config?.includeSubagents) === true
@@ -482,6 +492,7 @@ export function apply(ctx, config = {}) {
                 defaultEnabled,
                 genui: genuiNow(),
                 visual: visualNow(),
+                theme: themeNow(),
                 onChange: (sessionId, enabled, result) => {
                   warn(
                     'session ' + sessionId + ' structured ' + (enabled ? 'on' : 'off') + (result.ok ? '' : '（持久化失败）'),

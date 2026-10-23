@@ -532,7 +532,7 @@ test('client：视觉层可由 configForms 的 visual 设置关闭', () => {
   const client = readFileSync('src/client.js', 'utf8')
   assert.match(client, /configForms/)
   assert.match(client, /getSnapshot/)
-  assert.match(client, /visual !== false/)
+  assert.match(client, /readValue\(value\.visual\) !== false/)
   assert.match(client, /applyVisual/)
   assert.doesNotMatch(client, /state\.json/)
 })
