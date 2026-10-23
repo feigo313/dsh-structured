@@ -2,6 +2,7 @@
 
 ## 0.9.1 — 2026-10-23
 
+- 代码/diff 隔离：` ```diff `/`patch` 代码块、`[data-diff]`/`.md-diff`/GenUI diff 区域不套插件的 code/table chrome；diff 行色与宿主渲染保持原样。代码/diff 回复允许代码块或 diff 卡直接作首块，不强制标题卡。
 - 设置中心：`theme`、`visual`、`defaultEnabled`、`tailReminder`、`includeSubagents`、`genui` 六个 profile 级 Config 字段，全部 `.volatile()`，带中英双语 description；标准 bundle 详情表单优先，不新增 React 依赖。
 - `statusText` 显示主题与视觉层；client 订阅 `configForms` 的 theme/visual 变化；`/structured on|off` 仍只控制按会话提示词。
 - 写入 active profile 的 Cordis patch；home patch/CLI overlay 优先，表单 `writable=false` 时不静默成功（README 说明）。`state.json` 仍只存会话提示词开关。

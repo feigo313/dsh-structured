@@ -99,6 +99,12 @@ pnpm add $tgz
 - **用 `style.md` 承载人格 / 长期设定（可选）**：`style.md` 的内容会被原样放进每次请求的 section，所以也可以写人格、收尾格式或长期设定；代价是**整份覆盖**——内置结构化规则会消失。想同时保留两者，把内置 6 条规则（`src/index.js` 的 `BUILTIN_STYLE_TEXT`）抄进去，再在后面追加人格段。只当人格用、不需要结构化时，建议把 `tailReminder` 设为 `false`，否则尾部提醒仍会要求「首段 markdown 标题卡」。`style.md` 位于 `$DSH_HOME`，所有 profile 共用同一份。
 - 内置文本与 `~/.dsh/AGENTS.md` 第 7 节同源：首句结论、组件化正文、一段一主题、禁过程叙事与复述、证据优先、短答不套卡；清晰优先，不设硬性篇幅上限。
 
+### 代码 / diff 例外
+
+- ` ```diff ` / ` ```patch ` 代码块、`[data-diff]`、`.md-diff`、`[class*="_diff_"]` 与 GenUI diff 区域**不套**插件的代码块/表格 chrome；diff 行色与宿主渲染保持原样。
+- 当回复主要是代码、代码 diff、文件修改或补丁时，代码块或 diff 卡可以直接作为第一块，不强制标题卡；仍不写过程叙事。
+- `/structured off` 仍只控制提示词；视觉层由插件设置 `visual` 控制。
+
 ### 视觉层（desktop 主目标；web 兼容）
 
 客户端半区会给对话 markdown 加一层排版：标题层级与图标方块、表头/细横线/状态列、代码块语言色与贴合 banner、风险/验收/结论三色卡片、结论/下一步卡、列表/链接/分隔线。`theme` 提供 `deepseek`（默认）/`codex`/`anthropic` 三套 token（surface/text/muted/border/accent/status/code），暗色走宿主 `body[data-ds-dark-theme]`；只给宿主节点加 class/attribute，不改消息内容，headless / CLI 不加载 client 半区。
