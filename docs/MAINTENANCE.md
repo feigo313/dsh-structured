@@ -104,7 +104,8 @@ dsh plugin --profile <profile> add dsh-structured@x.y.z
 - push / tag / Release / npm publish / 市场 PR：**必须先拿 Boss 明确同意**；全局 pre-push 需要 consent token（`~/.zcode/push-consent`，30 分钟有效）。
 - npm 发布 token 已撤销：下次发布先 `npm login --registry https://registry.npmjs.org`（`package.json` 的 `publishConfig.registry` 已锁定 npmjs）。
 - 市场 PR：仓库满 1 天（≥ 2026-10-22 21:33 +08）、有 `dsh-plugin` topic、条目真实可用；**不得修改市场生成的 README**。
-- 远端 `main`（`e2a2416`）与本地历史（`e67a06b`）不相关，普通 push 会被拒；改远端只能走 `gh api` 写文件（同样需同意），**不要 force push**。
+- 本地 `main` 与 `origin/main` 保持同步：`git fetch` 后 `git merge --ff-only`；consent token 有效时普通 `git push` 可用。仅当 git HTTPS 不通时才用 `gh api` 写文件，并在事后把本地历史对齐到远端（避免重复提交）。**不要 force push**。
+- push 前确认本仓库 `.git/hooks/pre-push` 存在且可执行；没有它时 consent 闸门不生效。
 
 ## 10. 红线
 

@@ -3,6 +3,7 @@ node_modules/
 artifacts/
 .ego/
 *.tgz
+*.mp4
 .DS_Store
 TASK.md
 docs/RE-AUDIT-REPORT.md
