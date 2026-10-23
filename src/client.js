@@ -51,33 +51,33 @@ window.__ModuleLoader__.load({
     const CSS = `
 [class*="_markdown_"]{
   --ds-surface:#FFFFFF;--ds-surface-2:#F4F7FB;--ds-text:#0F172A;--ds-muted:#5B6B82;
-  --ds-border:#E2E8F0;--ds-accent:#2563EB;--ds-success:#166534;--ds-warn:#92400E;--ds-error:#991B1B;
+  --ds-border:#E2E8F0;--ds-accent:#2563EB;--ds-accent-text:#2563EB;--ds-success:#166534;--ds-warn:#92400E;--ds-error:#991B1B;
   --ds-code-bg:#F6F8FA;--ds-code-text:#0F172A;
   font-size:15px;line-height:1.72;letter-spacing:.01em;
 }
 body[data-ds-dark-theme] [class*="_markdown_"]{
   --ds-surface:#111827;--ds-surface-2:#1F2937;--ds-text:#E5E7EB;--ds-muted:#9CA3AF;
-  --ds-border:#374151;--ds-accent:#60A5FA;--ds-success:#4ADE80;--ds-warn:#FBBF24;--ds-error:#F87171;
+  --ds-border:#374151;--ds-accent:#60A5FA;--ds-accent-text:#60A5FA;--ds-success:#4ADE80;--ds-warn:#FBBF24;--ds-error:#F87171;
   --ds-code-bg:#0B1220;--ds-code-text:#E5E7EB;
 }
 body[data-dsh-structured-theme="codex"] [class*="_markdown_"]{
-  --ds-surface:#FFFFFF;--ds-surface-2:#F6F8FA;--ds-text:#0D1117;--ds-muted:#57606A;
-  --ds-border:#D0D7DE;--ds-accent:#0E7490;--ds-success:#116329;--ds-warn:#7D4E00;--ds-error:#A40E26;
-  --ds-code-bg:#F6F8FA;--ds-code-text:#0D1117;
+  --ds-surface:#FFFFFF;--ds-surface-2:#F0F7F4;--ds-text:#0D1117;--ds-muted:#4F625A;
+  --ds-border:#CFE3DB;--ds-accent:#10A37F;--ds-accent-text:#0B6B4F;--ds-success:#116329;--ds-warn:#7D4E00;--ds-error:#A40E26;
+  --ds-code-bg:#F0F7F4;--ds-code-text:#0D1117;
 }
 body[data-ds-dark-theme][data-dsh-structured-theme="codex"] [class*="_markdown_"]{
-  --ds-surface:#0D1117;--ds-surface-2:#161B22;--ds-text:#E6EDF3;--ds-muted:#8B949E;
-  --ds-border:#30363D;--ds-accent:#22D3EE;--ds-success:#3FB950;--ds-warn:#D29922;--ds-error:#F85149;
-  --ds-code-bg:#010409;--ds-code-text:#E6EDF3;
+  --ds-surface:#0B1512;--ds-surface-2:#12211B;--ds-text:#E6F2EC;--ds-muted:#9DB2A8;
+  --ds-border:#233A31;--ds-accent:#34D399;--ds-accent-text:#6EE7B7;--ds-success:#3FB950;--ds-warn:#D29922;--ds-error:#F85149;
+  --ds-code-bg:#07100D;--ds-code-text:#E6F2EC;
 }
 body[data-dsh-structured-theme="anthropic"] [class*="_markdown_"]{
   --ds-surface:#FAF9F5;--ds-surface-2:#F5F1E8;--ds-text:#141413;--ds-muted:#6B6359;
-  --ds-border:#E5E0D5;--ds-accent:#A14A2E;--ds-success:#266B4D;--ds-warn:#92400E;--ds-error:#8C1D18;
+  --ds-border:#E5E0D5;--ds-accent:#CC785C;--ds-accent-text:#A14A2E;--ds-success:#266B4D;--ds-warn:#92400E;--ds-error:#8C1D18;
   --ds-code-bg:#F5F1E8;--ds-code-text:#141413;
 }
 body[data-ds-dark-theme][data-dsh-structured-theme="anthropic"] [class*="_markdown_"]{
   --ds-surface:#1F1E1D;--ds-surface-2:#2A2825;--ds-text:#F5F1E8;--ds-muted:#A8A29A;
-  --ds-border:#3A3733;--ds-accent:#E8A087;--ds-success:#6FBF9A;--ds-warn:#E0A458;--ds-error:#F28B82;
+  --ds-border:#3A3733;--ds-accent:#E8A087;--ds-accent-text:#E8A087;--ds-success:#6FBF9A;--ds-warn:#E0A458;--ds-error:#F28B82;
   --ds-code-bg:#171614;--ds-code-text:#F5F1E8;
 }
 [class*="_markdown_"] p{margin:.72em 0}
@@ -96,14 +96,14 @@ body[data-ds-dark-theme][data-dsh-structured-theme="anthropic"] [class*="_markdo
   display:inline-flex;align-items:center;justify-content:center;
   width:22px;height:22px;margin-right:8px;border-radius:6px;
   background:color-mix(in srgb,var(--ds-accent) 12%,transparent);
-  color:var(--ds-accent);font-size:12px;font-weight:700;vertical-align:2px;
+  color:var(--ds-accent-text);font-size:12px;font-weight:700;vertical-align:2px;
 }
 [class*="_markdown_"] strong{font-weight:700;color:var(--ds-text)}
-[class*="_markdown_"] a{color:var(--ds-accent);text-decoration:none;border-bottom:1px solid color-mix(in srgb,var(--ds-accent) 38%,transparent)}
+[class*="_markdown_"] a{color:var(--ds-accent-text);text-decoration:none;border-bottom:1px solid color-mix(in srgb,var(--ds-accent) 38%,transparent)}
 [class*="_markdown_"] a:hover{border-bottom-color:var(--ds-accent)}
 [class*="_markdown_"] ul,[class*="_markdown_"] ol{padding-left:1.5em;margin:.6em 0}
 [class*="_markdown_"] li{margin:.28em 0}
-[class*="_markdown_"] li::marker{color:var(--ds-accent)}
+[class*="_markdown_"] li::marker{color:var(--ds-accent-text)}
 [class*="_markdown_"] hr{height:1px;border:0;margin:28px 0;background:linear-gradient(90deg,transparent,var(--ds-border),transparent)}
 [class*="_markdown_"] table:not([${SKIP_ATTR}]){
   width:100%;margin:18px 0;border-collapse:separate;border-spacing:0;
@@ -142,11 +142,11 @@ body[data-ds-dark-theme][data-dsh-structured-theme="anthropic"] [class*="_markdo
   border-left:2px solid var(--ds-accent);padding-left:10px;margin:10px 0 8px;
   font-size:14px;color:var(--ds-text);
 }
-[class*="_markdown_"] p[${LEAD_ATTR}="table"] strong{color:var(--ds-accent)}
+[class*="_markdown_"] p[${LEAD_ATTR}="table"] strong{color:var(--ds-accent-text)}
 [class*="_markdown_"] h2+table,[class*="_markdown_"] h2+p,[class*="_markdown_"] h3+table,[class*="_markdown_"] h3+p{margin-top:8px}
 [class*="_markdown_"] :not(pre)>code{
   background:var(--ds-surface-2);border:1px solid var(--ds-border);border-radius:6px;
-  padding:.12em .38em;font-size:.9em;color:var(--ds-accent);overflow-wrap:anywhere;
+  padding:.12em .38em;font-size:.9em;color:var(--ds-accent-text);overflow-wrap:anywhere;
 }
 [class*="_markdown_"] .md-code-block[${CODE_ATTR}="1"]{
   margin:16px 0;border:1px solid var(--ds-border);border-radius:12px;overflow:hidden;
@@ -190,8 +190,8 @@ body[data-ds-dark-theme][data-dsh-structured-theme="anthropic"] [class*="_markdo
   margin:14px 0;padding:10px 14px;border-left:3px solid var(--ds-accent);
   background:color-mix(in srgb,var(--ds-accent) 6%,transparent);border-radius:0 10px 10px 0;
 }
-[class*="_markdown_"] blockquote[${TONE_ATTR}="warn"]{--ds-accent:var(--ds-warn)}
-[class*="_markdown_"] blockquote[${TONE_ATTR}="success"]{--ds-accent:var(--ds-success)}
+[class*="_markdown_"] blockquote[${TONE_ATTR}="warn"]{--ds-accent:var(--ds-warn);--ds-accent-text:var(--ds-warn)}
+[class*="_markdown_"] blockquote[${TONE_ATTR}="success"]{--ds-accent:var(--ds-success);--ds-accent-text:var(--ds-success)}
 [class*="_markdown_"] blockquote[${CARD_ATTR}="1"]{
   border:1px solid color-mix(in srgb,var(--ds-accent) 16%,var(--ds-border));
   border-left:3px solid var(--ds-accent);
@@ -202,7 +202,7 @@ body[data-ds-dark-theme][data-dsh-structured-theme="anthropic"] [class*="_markdo
 [class*="_markdown_"] blockquote[${CARD_ATTR}="1"]>p:first-child>strong:first-child{
   display:flex;align-items:center;gap:9px;position:relative;
   font-size:13px;line-height:1.1;letter-spacing:.06em;text-transform:uppercase;
-  color:var(--ds-accent);margin-bottom:8px;
+  color:var(--ds-accent-text);margin-bottom:8px;
 }
 [class*="_markdown_"] blockquote[${CARD_ATTR}="1"]>p:first-child>strong:first-child::before{
   content:"";display:inline-flex;flex:none;
@@ -221,7 +221,7 @@ body[data-ds-dark-theme][data-dsh-structured-theme="anthropic"] [class*="_markdo
 }
 [class*="_markdown_"] blockquote[${CARD_ATTR}="1"]>p{font-size:15.5px;line-height:1.7;font-weight:450;color:var(--ds-text)}
 [class*="_markdown_"] blockquote[${CARD_ATTR}="1"]>p strong{font-weight:700;color:var(--ds-text)}
-[class*="_markdown_"] blockquote[${TONE_ATTR}]>p:first-child>strong:first-child{color:var(--ds-accent)}
+[class*="_markdown_"] blockquote[${TONE_ATTR}]>p:first-child>strong:first-child{color:var(--ds-accent-text)}
 [class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="conclusion"]{
   --ds-card-icon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 3l9 9-9 9-9-9 9-9z' fill='none' stroke='black' stroke-width='1.8' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
@@ -232,14 +232,14 @@ body[data-ds-dark-theme][data-dsh-structured-theme="anthropic"] [class*="_markdo
   --ds-card-icon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M5 20V10M12 20V4M19 20v-7' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E");
 }
 [class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="risk"]{
-  --ds-accent:var(--ds-warn);
+  --ds-accent:var(--ds-warn);--ds-accent-text:var(--ds-warn);
   --ds-card-icon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 4l9 16H3L12 4z' fill='none' stroke='black' stroke-width='1.8' stroke-linejoin='round'/%3E%3Cpath d='M12 10v4M12 17v.5' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E");
 }
 [class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="next"]{
   --ds-card-icon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M5 12h14M13 6l6 6-6 6' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 [class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="accept"]{
-  --ds-accent:var(--ds-success);
+  --ds-accent:var(--ds-success);--ds-accent-text:var(--ds-success);
   --ds-card-icon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 12.5l5 5L20 6.5' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 [class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="key"]{
@@ -265,8 +265,8 @@ body[data-ds-dark-theme][data-dsh-structured-theme="anthropic"] [class*="_markdo
   [class*="_markdown_"]{font-size:14.5px}
   [class*="_markdown_"] h1{font-size:22px}
   [class*="_markdown_"] h2{font-size:18px}
-  [class*="_markdown_"] table{font-size:13px}
-  [class*="_markdown_"] thead th,[class*="_markdown_"] tbody td{padding:7px 9px}
+  [class*="_markdown_"] table:not([${SKIP_ATTR}]){font-size:13px}
+  [class*="_markdown_"] table:not([${SKIP_ATTR}]) thead th,[class*="_markdown_"] table:not([${SKIP_ATTR}]) tbody td{padding:7px 9px}
 }
 @media (prefers-reduced-motion:reduce){
   [class*="_markdown_"] *{transition:none!important;animation:none!important}
@@ -314,9 +314,15 @@ body[data-ds-dark-theme][data-dsh-structured-theme="anthropic"] [class*="_markdo
       }
     }
 
-    function isDiffCode(code) {
+    function bannerLanguage(code) {
       const banner = code.querySelector?.('[data-code-block-banner]')
-      const lang = (banner?.textContent ?? '').trim().split(/\s+/)[0]?.toLowerCase() ?? ''
+      const heading = banner?.querySelector?.('[class*="_heading"]')
+      const raw = ((heading?.textContent ?? banner?.textContent) ?? '').trim().split(/\s+/)[0] ?? ''
+      return raw.toLowerCase().replace(/[^a-z0-9+#]/g, '')
+    }
+
+    function isDiffCode(code) {
+      const lang = bannerLanguage(code)
       return lang === 'diff' || lang === 'patch'
     }
 
@@ -397,7 +403,12 @@ body[data-ds-dark-theme][data-dsh-structured-theme="anthropic"] [class*="_markdo
       }
 
       for (const table of root.querySelectorAll('[class*="_markdown_"] table')) {
-        if (inGenui(table) || inDiff(table)) {
+        if (inGenui(table)) {
+          table.removeAttribute(SKIP_ATTR)
+          table.removeAttribute(STATUS_TABLE_ATTR)
+          continue
+        }
+        if (inDiff(table)) {
           table.setAttribute(SKIP_ATTR, 'table')
           table.removeAttribute(STATUS_TABLE_ATTR)
           continue
@@ -421,7 +432,13 @@ body[data-ds-dark-theme][data-dsh-structured-theme="anthropic"] [class*="_markdo
       }
 
       for (const code of root.querySelectorAll('[class*="_markdown_"] .md-code-block')) {
-        if (inGenui(code) || inDiff(code) || isDiffCode(code)) {
+        if (inGenui(code)) {
+          code.removeAttribute(LANG_ATTR)
+          code.removeAttribute(CODE_ATTR)
+          code.removeAttribute(SKIP_ATTR)
+          continue
+        }
+        if (inDiff(code) || isDiffCode(code)) {
           code.removeAttribute(LANG_ATTR)
           code.removeAttribute(CODE_ATTR)
           code.setAttribute(SKIP_ATTR, 'code')
@@ -429,9 +446,7 @@ body[data-ds-dark-theme][data-dsh-structured-theme="anthropic"] [class*="_markdo
         }
         code.removeAttribute(SKIP_ATTR)
         code.setAttribute(CODE_ATTR, '1')
-        const banner = code.querySelector('[data-code-block-banner]')
-        const raw = (banner?.textContent ?? '').trim().split(/\s+/)[0] ?? ''
-        const lang = raw.toLowerCase().replace(/[^a-z0-9+#]/g, '')
+        const lang = bannerLanguage(code)
         if (lang.length === 0) code.removeAttribute(LANG_ATTR)
         else code.setAttribute(LANG_ATTR, lang)
       }

@@ -201,9 +201,14 @@ test('client：diff 代码块不套插件 chrome，普通代码块才套', () =>
     querySelector: () => ({ textContent: 'js' }),
     closest: () => null,
   })
+  const diffCopyCode = attrsElement({
+    querySelector: () => ({ textContent: 'diff复制' }),
+    closest: () => null,
+  })
+  assert.equal(module.__test.isDiffCode(diffCopyCode), true)
   const root = {
     querySelectorAll(selector) {
-      if (selector.includes('.md-code-block')) return [diffCode, jsCode]
+      if (selector.includes('.md-code-block')) return [diffCode, jsCode, diffCopyCode]
       return []
     },
   }
@@ -211,8 +216,59 @@ test('client：diff 代码块不套插件 chrome，普通代码块才套', () =>
   assert.equal(diffCode.attrs.get('data-dsh-structured-skip'), 'code')
   assert.equal(diffCode.attrs.get('data-dsh-structured-code'), undefined)
   assert.equal(diffCode.attrs.get('data-dsh-structured-lang'), undefined)
+  assert.equal(diffCopyCode.attrs.get('data-dsh-structured-skip'), 'code')
   assert.equal(jsCode.attrs.get('data-dsh-structured-code'), '1')
   assert.equal(jsCode.attrs.get('data-dsh-structured-lang'), 'js')
+})
+
+test('client：普通状态表仍套插件表格样式并标状态行', () => {
+  const dom = makeDom()
+  const module = loadClient(dom)
+  const row = attrsElement({
+    textContent: '✅ 完成',
+    cells: [{ textContent: '✅ 完成' }],
+    closest: () => null,
+  })
+  const table = attrsElement({
+    closest: () => null,
+    querySelectorAll: (selector) => (selector === 'tbody tr' ? [row] : []),
+  })
+  const root = {
+    querySelectorAll(selector) {
+      if (selector === '[class*="_markdown_"] table') return [table]
+      if (selector === '[class*="_markdown_"] tbody tr') return [row]
+      if (selector === '[class*="_markdown_"] table tr') return [row]
+      return []
+    },
+  }
+  module.__test.decorate(root)
+  assert.equal(table.attrs.get('data-dsh-structured-status-table'), '1')
+  assert.equal(table.attrs.get('data-dsh-structured-skip'), undefined)
+  assert.equal(row.attrs.get('data-dsh-structured-row'), 'success')
+})
+
+test('client：GenUI 区域不写入 skip，保持旧行为', () => {
+  const dom = makeDom()
+  const module = loadClient(dom)
+  const code = attrsElement({
+    querySelector: () => ({ textContent: 'js' }),
+    closest: (selector) => (selector.includes('genui') ? {} : null),
+  })
+  const table = attrsElement({
+    closest: (selector) => (selector.includes('genui') ? {} : null),
+    querySelectorAll: () => [],
+  })
+  const root = {
+    querySelectorAll(selector) {
+      if (selector.includes('.md-code-block')) return [code]
+      if (selector === '[class*="_markdown_"] table') return [table]
+      return []
+    },
+  }
+  module.__test.decorate(root)
+  assert.equal(code.attrs.get('data-dsh-structured-skip'), undefined)
+  assert.equal(code.attrs.get('data-dsh-structured-code'), undefined)
+  assert.equal(table.attrs.get('data-dsh-structured-skip'), undefined)
 })
 
 test('client：diff 表格不套插件表格样式', () => {

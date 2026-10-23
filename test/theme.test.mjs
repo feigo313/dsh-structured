@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
 import { Config, statusText, THEMES } from '../src/index.js'
-import { checkThemeContrast } from '../scripts/theme-contrast.mjs'
+import { checkThemeContrast, THEME_TOKENS } from '../scripts/theme-contrast.mjs'
 
 const value = (field) => (field && typeof field.get === 'function' ? field.get() : field)
 
@@ -77,14 +77,45 @@ test('0.9.0 client：主题 token/暗色 selector/code token 存在，旧 select
   assert.match(client, /data-dsh-structured-theme/)
   assert.match(client, /--ds-code-bg/)
   assert.match(client, /--ds-code-text/)
+  assert.match(client, /--ds-accent-text/)
   assert.doesNotMatch(client, /\[data-theme="dark"\]/)
   assert.doesNotMatch(client, /--dsw-alias-state-/)
   assert.match(client, /--ds-accent:#2563EB/)
   for (const theme of ['codex', 'anthropic']) assert.match(client, new RegExp(`data-dsh-structured-theme="${theme}"`))
+  assert.match(client, /a\{color:var\(--ds-accent-text\)/)
+  assert.match(client, /li::marker\{color:var\(--ds-accent-text\)/)
+  assert.match(client, /p\[\$\{LEAD_ATTR\}="table"\] strong\{color:var\(--ds-accent-text\)/)
+  assert.match(client, /color:var\(--ds-accent-text\);overflow-wrap:anywhere/)
+  assert.match(client, /blockquote\[\$\{TONE_ATTR\}\]>p:first-child>strong:first-child\{color:var\(--ds-accent-text\)/)
+  const narrow = client.slice(client.indexOf('@media (max-width:720px)'), client.indexOf('@media (prefers-reduced-motion'))
+  assert.match(narrow, /table:not\(\[\$\{SKIP_ATTR\}\]\)/)
+  assert.doesNotMatch(narrow, /\[class\*="_markdown_"\] table\{/)
 })
 
-test('0.9.0 对比度：3×2 全组通过', () => {
+test('0.9.1 主题 v2：三套 token 精确值与 accentText', () => {
+  assert.equal(THEME_TOKENS.deepseek.light.accent, '#2563EB')
+  assert.equal(THEME_TOKENS.deepseek.light.accentText, '#2563EB')
+  assert.equal(THEME_TOKENS.deepseek.dark.accentText, '#60A5FA')
+  assert.equal(THEME_TOKENS.codex.light.accent, '#10A37F')
+  assert.equal(THEME_TOKENS.codex.light.accentText, '#0B6B4F')
+  assert.equal(THEME_TOKENS.codex.light.surface2, '#F0F7F4')
+  assert.equal(THEME_TOKENS.codex.dark.accent, '#34D399')
+  assert.equal(THEME_TOKENS.codex.dark.accentText, '#6EE7B7')
+  assert.equal(THEME_TOKENS.codex.dark.surface, '#0B1512')
+  assert.equal(THEME_TOKENS.anthropic.light.accent, '#CC785C')
+  assert.equal(THEME_TOKENS.anthropic.light.accentText, '#A14A2E')
+  assert.equal(THEME_TOKENS.anthropic.light.surface, '#FAF9F5')
+  assert.equal(THEME_TOKENS.anthropic.light.text, '#141413')
+  assert.equal(THEME_TOKENS.anthropic.dark.accent, '#E8A087')
+  const client = readFileSync(new URL('../src/client.js', import.meta.url), 'utf8')
+  assert.match(client, /--ds-accent:#10A37F;--ds-accent-text:#0B6B4F/)
+  assert.match(client, /--ds-accent:#CC785C;--ds-accent-text:#A14A2E/)
+  assert.match(client, /blockquote\[\$\{TONE_ATTR\}="warn"\]\{--ds-accent:var\(--ds-warn\);--ds-accent-text:var\(--ds-warn\)\}/)
+  assert.match(client, /blockquote\[\$\{TONE_ATTR\}="success"\]\{--ds-accent:var\(--ds-success\);--ds-accent-text:var\(--ds-success\)\}/)
+})
+
+test('0.9.0 对比度：3×2 全组 60 项通过', () => {
   const { results, failures } = checkThemeContrast()
   assert.equal(failures.length, 0, JSON.stringify(failures, null, 2))
-  assert.equal(results.length, 54)
+  assert.equal(results.length, 60)
 })

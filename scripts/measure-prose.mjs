@@ -92,7 +92,8 @@ export function analysisText(text) {
 
 /**
  * 首屏是否出现结构。按字符数截断而不是按行数，避免长段落把结构推到屏幕外。
- * dsh-ui 组件块在原文里识别；普通代码块不算结构（先剥掉，避免代码里的 | / - 被误判）。
+ * 代码/ diff 优先回复：首屏出现 fenced code（含 diff/patch）计为结构化；
+ * 非代码的 fenced block 仍先剥掉，避免代码里的 | / - 被误判。
  * @param {string} text
  * @param {number} limit
  * @returns {boolean}
@@ -100,6 +101,7 @@ export function analysisText(text) {
 export function firstScreenStructured(text, limit = DEFAULT_FIRST_SCREEN) {
   const head = text.slice(0, limit)
   if (head.includes('```dsh-ui')) return true
+  if (/```(?!dsh-ui)/.test(head)) return true
   // 非 dsh-ui 的 fenced block：从开栅栏起整段丢弃（含未闭合到首屏末尾的情况）。
   const cleaned = head.replace(/```(?!dsh-ui)[^\n]*\n[\s\S]*?(?:```|$)/g, '\n')
   const lines = cleaned.split('\n')
