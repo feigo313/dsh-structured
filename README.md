@@ -125,7 +125,11 @@ Phase 2 已落地 2.1–2.4：卡片类型（结论/判断/指标/风险/下一�
 
 ![窄窗](assets/screenshots/08-narrow.png)
 
-`screenshots.json` 列出全部 4 张，覆盖标题卡、表格 + 表格结论、状态列、代码块与 800px 窄窗；GenUI 截图因避免暴露工作区未收录。
+![三套主题·浅色](assets/screenshots/09-theme-light.png)
+
+![三套主题·暗色](assets/screenshots/10-theme-dark.png)
+
+`screenshots.json` 列出全部 6 张：前 4 张是实机裁图，覆盖标题卡、表格 + 表格结论、状态列、代码块与 800px 窄窗；后 2 张是按 0.9.1 实际 token 渲染的主题对照图，用于看 accent/surface/status，**不是桌面实机截图**。GenUI 截图因避免暴露工作区未收录。
 
 ### 配置
 
