@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.9.1 — 2026-10-23
+
+- 代码/diff 隔离：` ```diff `/`patch` 代码块、`[data-diff]`/`.md-diff`/GenUI diff 区域不套插件的 code/table chrome；diff 行色与宿主渲染保持原样。代码/diff 回复允许代码块或 diff 卡直接作首块，不强制标题卡。
+- 设置中心：`theme`、`visual`、`defaultEnabled`、`tailReminder`、`includeSubagents`、`genui` 六个 profile 级 Config 字段，全部 `.volatile()`，带中英双语 description；标准 bundle 详情表单优先，不新增 React 依赖。
+- `statusText` 显示主题与视觉层；client 订阅 `configForms` 的 theme/visual 变化；`/structured on|off` 仍只控制按会话提示词。
+- 写入 active profile 的 Cordis patch；home patch/CLI overlay 优先，表单 `writable=false` 时不静默成功（README 说明）。`state.json` 仍只存会话提示词开关。
+- 未做主题市场/自定义 CSS/按消息主题；未 push/publish/市场 PR。
+
+## 0.9.0 — 2026-10-23
+
+- 主题系统：新增 `theme` Config（deepseek/codex/anthropic，默认 deepseek）与三套明/暗 token；暗色改用宿主 `body[data-ds-dark-theme]`，删除 `[data-theme="dark"]`。
+- client 通过 `configForms` 读取 theme，写 `body[data-dsh-structured-theme]`；视觉关闭时移除 style 与 `data-dsh-structured*`；configForms 缺失回落 deepseek/开启。
+- 新增 `scripts/theme-contrast.mjs`（3×2 全组 ≥4.5）、`test/theme.test.mjs`；`--ds-code-bg`/`--ds-code-text` 落地；语义状态色改用 `--ds-success/warn/error`。
+
 ## 0.8.3 — 2026-10-22
 
 - 提示词优先级加固：首段 markdown 标题卡即使后文使用 `dsh-ui` 也必须存在；`dsh-ui` 只能跟在标题卡与正文之后，不得用其 `title` 充当首卡，不得把结论/判断/风险/下一步做成 dsh-ui 组件；宿主默认要出 UI 时以插件规则为准。

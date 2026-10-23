@@ -2,7 +2,7 @@
 
 ## 方向
 
-不做主题菜单，只做一套：**Linear 的秩序 + Notion 的卡片 + Stripe 的信息密度 + Vercel AI Elements 的 AI 回复结构**。
+0.9.0 提供 deepseek/codex/anthropic 三套 token，不做主题市场/自定义 CSS：**Linear 的秩序 + Notion 的卡片 + Stripe 的信息密度 + Vercel AI Elements 的 AI 回复结构**。
 
 ## 参考项目
 

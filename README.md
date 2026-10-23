@@ -81,7 +81,7 @@ pnpm add $tgz
 
 ### 兼容性门禁
 
-本包声明 `@deepseek-ai/schemastery` peer：`Config`（visual/defaultEnabled/tailReminder/includeSubagents/genui）用它生成设置表单；这是 host 提供的服务，不是门禁。真正门禁是 `engines.dsh`（`>=0.1.7-rc.2 <0.3.0-0`），`dsh-app-boot` 在有 `engines.dsh` 时读取它；`dsh.compatibility.dshReleases` 是 advisory。实测 DSH CLI `0.1.7-rc.2` 与 desktop `0.2.1-rc.2`。
+本包声明 `@deepseek-ai/schemastery` peer：`Config`（theme/visual/defaultEnabled/tailReminder/includeSubagents/genui）用它生成设置表单；这是 host 提供的服务，不是门禁。真正门禁是 `engines.dsh`（`>=0.1.7-rc.2 <0.3.0-0`），`dsh-app-boot` 在有 `engines.dsh` 时读取它；`dsh.compatibility.dshReleases` 是 advisory。实测 DSH CLI `0.1.7-rc.2` 与 desktop `0.2.1-rc.2`。
 
 ## 使用
 
@@ -96,16 +96,22 @@ pnpm add $tgz
 - 新会话默认开启；`defaultEnabled: false` 可改默认值（见配置）。
 - 视觉层由插件设置 `visual` 控制（默认开启），不写 `state.json`；`/structured on|off` 只控制提示词注入，不影响视觉层。
 - 自定义规则：写 `$DSH_HOME/dsh-structured/style.md`，**非空即整份覆盖**内置文本，保存后下一轮生效；文件为空或删除时回落内置。
-- **用 `style.md` 承载人格 / 长期设定（可选）**：`style.md` 的内容会被原样放进每次请求的 section，所以也可以写人格、收尾格式或长期设定；代价是**整份覆盖**——内置结构化规则会消失。想同时保留两者，把内置 6 条规则（`src/index.js` 的 `BUILTIN_STYLE_TEXT`）抄进去，再在后面追加人格段。只当人格用、不需要结构化时，建议把 `tailReminder` 设为 `false`，否则尾部提醒仍会要求「首段 markdown 标题卡」。`style.md` 位于 `$DSH_HOME`，所有 profile 共用同一份。
+- **用 `style.md` 承载人格 / 长期设定（可选）**：`style.md` 的内容会被原样放进每次请求的 section，所以也可以写人格、收尾格式或长期设定；代价是**整份覆盖**——内置结构化规则会消失。想同时保留两者，把 `src/index.js` 的 `BUILTIN_STYLE_TEXT` 全文抄进去，再在后面追加人格段。只当人格用、不需要结构化时，建议把 `tailReminder` 设为 `false`，否则尾部提醒仍会要求「首段 markdown 标题卡」。`style.md` 位于 `$DSH_HOME`，所有 profile 共用同一份。
 - 内置文本与 `~/.dsh/AGENTS.md` 第 7 节同源：首句结论、组件化正文、一段一主题、禁过程叙事与复述、证据优先、短答不套卡；清晰优先，不设硬性篇幅上限。
+
+### 代码 / diff 例外
+
+- ` ```diff ` / ` ```patch ` 代码块、`[data-diff]`、`.md-diff`、`[class*="_diff_"]` 与 GenUI diff 区域**不套**插件的代码块/表格 chrome；diff 行色与宿主渲染保持原样。`data-diff`/类名守卫是防御性选择器，当前 host 是否真实可达未单独 live 验证。
+- 当回复主要是代码、代码 diff、文件修改或补丁时，代码块或 diff 卡可以直接作为第一块，不强制标题卡；仍不写过程叙事。
+- `/structured off` 仍只控制提示词；视觉层由插件设置 `visual` 控制。
 
 ### 视觉层（desktop 主目标；web 兼容）
 
-客户端半区会给对话 markdown 加一层排版：标题层级与图标方块、表头/细横线/状态列、代码块语言色与贴合 banner、风险/验收/结论三色卡片、结论/下一步卡、列表/链接/分隔线。强调色固定为 `#2563eb`（暗色 `#60a5fa`），其余 token 跟随明暗主题；只给宿主节点加 class/attribute，不改消息内容，headless / CLI 不加载 client 半区。
+客户端半区会给对话 markdown 加一层排版：标题层级与图标方块、表头/细横线/状态列、代码块语言色与贴合 banner、风险/验收/结论三色卡片、结论/下一步卡、列表/链接/分隔线。`theme` 提供 `deepseek`（默认）/`codex`/`anthropic` 三套 token；`--ds-accent` 负责任 fill/border/icon，`--ds-accent-text` 负责文字/链接/标签/行内 code/表格结论（保证小字 AA）；暗色走宿主 `body[data-ds-dark-theme]`。Codex 为绿 `#10A37F`/文字 `#0B6B4F`，Anthropic 为陶土 `#CC785C`/文字 `#A14A2E`，DeepSeek 默认蓝 `#2563EB` 不变；只给宿主节点加 class/attribute，不改消息内容，headless / CLI 不加载 client 半区。
 
-视觉方向只做一套：**Linear 的秩序 + Notion 的卡片 + Stripe 的信息密度 + Vercel AI Elements 的回复结构**，见 [`docs/DESIGN-REFERENCES.md`](docs/DESIGN-REFERENCES.md)。卡片用图标方块 + 13px 标签 + 淡色表面；状态只在 68px 状态列着色，不再整行 pastel；表格结论用强调左规线。不做主题菜单。
+视觉方向只做一套：**Linear 的秩序 + Notion 的卡片 + Stripe 的信息密度 + Vercel AI Elements 的回复结构**，见 [`docs/DESIGN-REFERENCES.md`](docs/DESIGN-REFERENCES.md)。卡片用图标方块 + 13px 标签 + 淡色表面；状态只在 68px 状态列着色，不再整行 pastel；表格结论用强调左规线。`theme` 只切换 token，不做主题市场/自定义 CSS/按消息主题。
 
-设计与分阶段计划见 [`docs/VISUAL-PLAN.md`](docs/VISUAL-PLAN.md)，视觉热点/层级诊断见 [`docs/VISUAL-CRITIQUE.md`](docs/VISUAL-CRITIQUE.md)，卡片类型与热点预算见 [`docs/CARD-SYSTEM.md`](docs/CARD-SYSTEM.md)。视觉层由插件设置 `visual` 控制（默认开启）；`/structured on|off` 只控制提示词注入。仍只提供一套「工程蓝图」视觉，不做主题选择。
+设计与分阶段计划见 [`docs/VISUAL-PLAN.md`](docs/VISUAL-PLAN.md)，视觉热点/层级诊断见 [`docs/VISUAL-CRITIQUE.md`](docs/VISUAL-CRITIQUE.md)，卡片类型与热点预算见 [`docs/CARD-SYSTEM.md`](docs/CARD-SYSTEM.md)。视觉层由插件设置 `visual` 控制（默认开启），`theme` 控制三套 token；`/structured on|off` 只控制提示词注入。
 
 Phase 2 已落地 2.1–2.4：卡片类型（结论/判断/指标/风险/下一步/验收/重点）、`data-dsh-structured-card-type` 归属标记、GenUI 软联动（检测到才追加 `dsh-ui` 路由，未检测走纯 markdown fallback，不硬依赖）。
 
@@ -128,14 +134,15 @@ Phase 2 已落地 2.1–2.4：卡片类型（结论/判断/指标/风险/下一�
 ```yaml
 - id: dsh-structured
   config:
-    defaultEnabled: true    # 新会话默认开启
-    tailReminder: true      # system prompt 末尾追加一句提醒
+    theme: deepseek        # deepseek | codex | anthropic；三套主题 token
+    visual: true           # 客户端视觉层；由插件设置页切换，不写 state.json
+    defaultEnabled: true   # 新会话默认开启
+    tailReminder: true     # system prompt 末尾追加一句提醒
     includeSubagents: false # 子代理会话不注入（它的产出不直接面向用户）
-    genui: auto             # auto | on | off；auto 检测到 GenUI 才追加 dsh-ui 路由
-    visual: true            # 客户端视觉层；由插件设置页切换，不写 state.json
+    genui: auto            # auto | on | off；auto 检测到 GenUI 才追加 dsh-ui 路由
 ```
 
-`visual`、`defaultEnabled`、`tailReminder`、`includeSubagents`、`genui` 都是 `.volatile()` 配置，插件设置页（bundle 详情表单）可编辑；写入走 active profile 的 Cordis patch，home patch / CLI overlay 优先。`/structured on|off` 只影响 `state.json` 里的按会话提示词开关。
+`theme`、`visual`、`defaultEnabled`、`tailReminder`、`includeSubagents`、`genui` 都是 `.volatile()` 配置，插件设置页（bundle 详情表单）可编辑；写入走 active profile 的 Cordis patch，home patch / CLI overlay 优先。若表单快照的 `writable` 为 false，说明当前配置被上层覆盖，设置页不会静默写入成功；请改上层配置或接受只读。`/structured on|off` 只影响 `state.json` 里的按会话提示词开关，不影响 `theme`/`visual`。
 
 ## 验证注入生效
 

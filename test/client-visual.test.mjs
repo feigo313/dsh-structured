@@ -116,7 +116,7 @@ function makeContext(form) {
 test('client：visual=false 停用视觉层，visual=true 恢复', () => {
   const dom = makeDom()
   const form = {
-    value: { visual: false },
+    value: { visual: false, theme: 'codex' },
     listeners: new Set(),
     getSnapshot() {
       return { value: this.value }
@@ -131,16 +131,27 @@ test('client：visual=false 停用视觉层，visual=true 恢复', () => {
 
   assert.equal(dom.styles.has('dsh-structured-skin-style'), false)
   assert.equal(dom.attrs.has('data-dsh-structured'), false)
+  assert.equal(dom.document.body['data-dsh-structured-theme'], undefined)
 
-  form.value = { visual: true }
+  form.value = { visual: true, theme: 'codex' }
   for (const listener of form.listeners) listener()
   assert.equal(dom.styles.has('dsh-structured-skin-style'), true)
   assert.equal(dom.attrs.get('data-dsh-structured'), 'active')
+  assert.equal(dom.document.body['data-dsh-structured-theme'], 'codex')
 
-  form.value = { visual: false }
+  form.value = { visual: true, theme: 'anthropic' }
+  for (const listener of form.listeners) listener()
+  assert.equal(dom.document.body['data-dsh-structured-theme'], 'anthropic')
+
+  form.value = { visual: true, theme: 'bogus' }
+  for (const listener of form.listeners) listener()
+  assert.equal(dom.document.body['data-dsh-structured-theme'], 'deepseek')
+
+  form.value = { visual: false, theme: 'anthropic' }
   for (const listener of form.listeners) listener()
   assert.equal(dom.styles.has('dsh-structured-skin-style'), false)
   assert.equal(dom.attrs.has('data-dsh-structured'), false)
+  assert.equal(dom.document.body['data-dsh-structured-theme'], undefined)
 
   dispose()
 })
@@ -160,4 +171,120 @@ test('client：configForms 不可用时视觉层保持默认开启', () => {
   assert.equal(dom.styles.has('dsh-structured-skin-style'), true)
   assert.equal(dom.attrs.get('data-dsh-structured'), 'active')
   dispose()
+})
+
+function attrsElement(extra = {}) {
+  const attrs = new Map()
+  return {
+    attrs,
+    setAttribute(name, value) {
+      attrs.set(name, value)
+    },
+    removeAttribute(name) {
+      attrs.delete(name)
+    },
+    getAttribute(name) {
+      return attrs.get(name)
+    },
+    ...extra,
+  }
+}
+
+test('client：diff 代码块不套插件 chrome，普通代码块才套', () => {
+  const dom = makeDom()
+  const module = loadClient(dom)
+  const diffCode = attrsElement({
+    querySelector: () => ({ textContent: 'diff' }),
+    closest: () => null,
+  })
+  const jsCode = attrsElement({
+    querySelector: () => ({ textContent: 'js' }),
+    closest: () => null,
+  })
+  const diffCopyCode = attrsElement({
+    querySelector: () => ({ textContent: 'diff复制' }),
+    closest: () => null,
+  })
+  assert.equal(module.__test.isDiffCode(diffCopyCode), true)
+  const root = {
+    querySelectorAll(selector) {
+      if (selector.includes('.md-code-block')) return [diffCode, jsCode, diffCopyCode]
+      return []
+    },
+  }
+  module.__test.decorate(root)
+  assert.equal(diffCode.attrs.get('data-dsh-structured-skip'), 'code')
+  assert.equal(diffCode.attrs.get('data-dsh-structured-code'), undefined)
+  assert.equal(diffCode.attrs.get('data-dsh-structured-lang'), undefined)
+  assert.equal(diffCopyCode.attrs.get('data-dsh-structured-skip'), 'code')
+  assert.equal(jsCode.attrs.get('data-dsh-structured-code'), '1')
+  assert.equal(jsCode.attrs.get('data-dsh-structured-lang'), 'js')
+})
+
+test('client：普通状态表仍套插件表格样式并标状态行', () => {
+  const dom = makeDom()
+  const module = loadClient(dom)
+  const row = attrsElement({
+    textContent: '✅ 完成',
+    cells: [{ textContent: '✅ 完成' }],
+    closest: () => null,
+  })
+  const table = attrsElement({
+    closest: () => null,
+    querySelectorAll: (selector) => (selector === 'tbody tr' ? [row] : []),
+  })
+  const root = {
+    querySelectorAll(selector) {
+      if (selector === '[class*="_markdown_"] table') return [table]
+      if (selector === '[class*="_markdown_"] tbody tr') return [row]
+      if (selector === '[class*="_markdown_"] table tr') return [row]
+      return []
+    },
+  }
+  module.__test.decorate(root)
+  assert.equal(table.attrs.get('data-dsh-structured-status-table'), '1')
+  assert.equal(table.attrs.get('data-dsh-structured-skip'), undefined)
+  assert.equal(row.attrs.get('data-dsh-structured-row'), 'success')
+})
+
+test('client：GenUI 区域不写入 skip，保持旧行为', () => {
+  const dom = makeDom()
+  const module = loadClient(dom)
+  const code = attrsElement({
+    querySelector: () => ({ textContent: 'js' }),
+    closest: (selector) => (selector.includes('genui') ? {} : null),
+  })
+  const table = attrsElement({
+    closest: (selector) => (selector.includes('genui') ? {} : null),
+    querySelectorAll: () => [],
+  })
+  const root = {
+    querySelectorAll(selector) {
+      if (selector.includes('.md-code-block')) return [code]
+      if (selector === '[class*="_markdown_"] table') return [table]
+      return []
+    },
+  }
+  module.__test.decorate(root)
+  assert.equal(code.attrs.get('data-dsh-structured-skip'), undefined)
+  assert.equal(code.attrs.get('data-dsh-structured-code'), undefined)
+  assert.equal(table.attrs.get('data-dsh-structured-skip'), undefined)
+})
+
+test('client：diff 表格不套插件表格样式', () => {
+  const dom = makeDom()
+  const module = loadClient(dom)
+  const table = attrsElement({
+    closest: (selector) => (selector.includes('[data-diff]') ? {} : null),
+    querySelectorAll: () => [],
+  })
+  const root = {
+    querySelectorAll(selector) {
+      if (selector === '[class*="_markdown_"] table') return [table]
+      return []
+    },
+  }
+  module.__test.decorate(root)
+  assert.equal(table.attrs.get('data-dsh-structured-skip'), 'table')
+  assert.equal(table.attrs.get('data-dsh-structured-status-table'), undefined)
 })
