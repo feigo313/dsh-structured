@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- client 视觉层改为增量扫描：MutationObserver 只重扫变更所在的 markdown 容器或新增子树，不再每帧对整页做全量 `querySelectorAll`；长会话与流式输出的装饰成本从 O(整页) 降到 O(变更容器)，首次加载仍全量扫描。新增 `test/client-incremental.test.mjs` 3 项回归。
+
 ## 0.9.4 — 2026-10-24
 
 - DSH 0.3.0-rc.1 兼容声明：`engines.dsh` 上限从 `<0.3.0-0` 放宽到 `<0.4.0-0`（否则 desktop 0.3.0-rc.1 的装配门禁会挡住本插件）；`dsh.compatibility.dshReleases` 补 `0.2.1-rc.3`、`0.3.0-rc.1` 为 compatible。
@@ -50,10 +54,6 @@
 - 规则文本从“500 字硬上限”改为清晰度约束：标题即结论、按信息类型选组件、一段一主题、证据优先、短答不套卡、长答不设硬性篇幅上限。
 - 表格优先 ≤5 行；信息确实多时用 `dsh-ui` 大表或拆表，不硬砍内容；不为了格式加内容，也不为了字数删信息。
 - 同步 README、`docs/METRICS.md`、`docs/CARD-SYSTEM.md` 与测试断言；无运行时截断、无字数统计、无长度预算；不改 client/注入通道。
-
-## Unreleased
-
-- 新增 `docs/MAINTENANCE.md`（每日巡检手册）与 `docs/MAINTENANCE-LOG.md`（巡检记录）；两者不进 npm 包（`files` 增加 `!docs/MAINTENANCE*.md`，打包仍为 34 文件）。
 
 ## 0.7.4 — 2026-10-21
 
