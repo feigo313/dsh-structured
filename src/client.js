@@ -42,6 +42,49 @@ window.__ModuleLoader__.load({
       { field: 'genui', kind: 'segmented', fallback: 'auto', label: 'GenUI 联动 / GenUI routing', hint: 'auto：检测到 dsh-genui 才追加 dsh-ui 路由规则', options: [['auto', 'auto'], ['on', 'on'], ['off', 'off']] },
     ]
 
+    /**
+     * 配置页专用样式：主题分段选择器的三个选项各带自己所代表主题的强调色
+     * （圆点标识 + 选中态文字着色，明暗自适应）。色值与视觉层三套 token 同源，
+     * 但作用域是设置面板（不在 _markdown_ 容器内），所以单独一份而不是复用 --ds-*。
+     */
+    const CONFIG_STYLE_ID = 'dsh-structured-config-style'
+    const CONFIG_CSS = `
+[data-dsh-structured-config] button[id^="dsh-structured-theme-"]{position:relative}
+[data-dsh-structured-config] button[id^="dsh-structured-theme-"]::before{
+  content:"";display:inline-block;width:7px;height:7px;border-radius:50%;
+  margin-right:7px;vertical-align:baseline;background:var(--dsw-alias-label-tertiary,#9CA3AF);
+}
+[data-dsh-structured-config] button#dsh-structured-theme-deepseek::before{background:#2563EB}
+[data-dsh-structured-config] button#dsh-structured-theme-codex::before{background:#10A37F}
+[data-dsh-structured-config] button#dsh-structured-theme-anthropic::before{background:#CC785C}
+[data-dsh-structured-config] button#dsh-structured-theme-deepseek[aria-selected="true"]{color:#2563EB;font-weight:600}
+[data-dsh-structured-config] button#dsh-structured-theme-codex[aria-selected="true"]{color:#0B6B4F;font-weight:600}
+[data-dsh-structured-config] button#dsh-structured-theme-anthropic[aria-selected="true"]{color:#A14A2E;font-weight:600}
+body[data-ds-dark-theme] [data-dsh-structured-config] button#dsh-structured-theme-deepseek::before{background:#60A5FA}
+body[data-ds-dark-theme] [data-dsh-structured-config] button#dsh-structured-theme-codex::before{background:#34D399}
+body[data-ds-dark-theme] [data-dsh-structured-config] button#dsh-structured-theme-anthropic::before{background:#E8A087}
+body[data-ds-dark-theme] [data-dsh-structured-config] button#dsh-structured-theme-deepseek[aria-selected="true"]{color:#60A5FA}
+body[data-ds-dark-theme] [data-dsh-structured-config] button#dsh-structured-theme-codex[aria-selected="true"]{color:#34D399}
+body[data-ds-dark-theme] [data-dsh-structured-config] button#dsh-structured-theme-anthropic[aria-selected="true"]{color:#E8A087}
+`
+
+    /** 插入配置页样式；返回移除函数。document 不可用时是空操作。 */
+    const ensureConfigStyle = () => {
+      if (typeof document === 'undefined' || document.head === null) return () => {}
+      document.getElementById(CONFIG_STYLE_ID)?.remove()
+      const style = document.createElement('style')
+      style.id = CONFIG_STYLE_ID
+      style.textContent = CONFIG_CSS
+      document.head.appendChild(style)
+      return () => {
+        try {
+          style.remove()
+        } catch {
+          // 移除失败不影响宿主。
+        }
+      }
+    }
+
     const CARD_TYPES = new Map([
       ['结论', 'conclusion'], ['总结', 'conclusion'], ['答案', 'conclusion'],
       ['判断', 'decision'], ['决策', 'decision'],
@@ -553,8 +596,10 @@ body[data-ds-dark-theme][data-dsh-structured-theme="anthropic"] [class*="_markdo
 
       child.effect?.(
         () =>
-          child.configForms.whileServed([CONFIG_NS], () =>
-            child.slots.inject(BUNDLE_CONFIG_SLOT, () =>
+          child.configForms.whileServed([CONFIG_NS], () => {
+            // 样式与 slot 注册同生命周期：命名空间不被服务时一并撤下。
+            const removeStyle = ensureConfigStyle()
+            const offSlot = child.slots.inject(BUNDLE_CONFIG_SLOT, () =>
               child.slots.register({
                 name: BUNDLE_CONFIG_SLOT,
                 key: 'dsh-structured',
@@ -569,8 +614,16 @@ body[data-ds-dark-theme][data-dsh-structured-theme="anthropic"] [class*="_markdo
                   },
                 }),
               }, StructuredConfigCard),
-            ),
-          ),
+            )
+            return () => {
+              try {
+                offSlot?.()
+              } catch {
+                // slot 撤销失败交由宿主清理。
+              }
+              removeStyle()
+            }
+          }),
         'dsh-structured: bundle config page',
       )
     }

@@ -103,3 +103,11 @@
 - **市场**：PR #9046 的 `check` 与 `Submission gate` 均 SUCCESS，`mergeStateStatus=CLEAN`，等维护者合并（同 0.8.3/0.9.1 流程）。
 - **待 Boss**：重启 Desktop 验证详情页配置区（六字段可见/可改、写入落 Cordis patch、主题即时切换）。
 - **本条目暂存本地未推送**：push 同意令牌已超 30 分钟有效期，机械闸门要求重新征得同意；Boss 一句话即可补推。
+
+## 2026-10-24 · 0.9.3：主题按钮强调色 + 设置页实机截图
+
+- **实机确认**：Boss 重启后在插件中心 → dsh-structured 详情页看到 0.9.2 配置区（截图六字段齐全），0.9.2 的 UNVERIFIED 项就此闭环。Boss 另提需求：主题三分段按钮（DeepSeek/Codex/Anthropic）各带匹配所代表主题的强调色。
+- **实现（0.9.3）**：配置页注入 `dsh-structured-config-style`——三主题选项前 7px 圆点 + 选中态文字着色，明暗自适应（与视觉层 token 同源：#2563EB/#60A5FA、#10A37F/#34D399、#CC785C/#E8A087）；作用域限 `[data-dsh-structured-config]`，随 whileServed 与 slot 同生命周期注入/撤销。新增测试断言注入/撤销与六个色值齐全。
+- **截图**：`assets/screenshots/11-config-page.png`（Boss 提供的设置界面实机图）入 screenshots.json + README（第 7 张）。
+- **门禁**：npm test 55/55；theme-contrast PASS 60；pack 46 文件 / 1,080,789 B；lib 与 src 一致。
+- **desktop 预览**：`pnpm add file:…0.9.3.tgz`（备份 package.json / pnpm-lock）；发布后换回 registry。

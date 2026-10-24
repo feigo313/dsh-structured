@@ -129,7 +129,9 @@ Phase 2 已落地 2.1–2.4：卡片类型（结论/判断/指标/风险/下一�
 
 ![三套主题·暗色](assets/screenshots/10-theme-dark.png)
 
-`screenshots.json` 列出全部 6 张：前 4 张是实机裁图，覆盖标题卡、表格 + 表格结论、状态列、代码块与 800px 窄窗；后 2 张是按 0.9.1 实际 token 渲染的主题对照图，用于看 accent/surface/status，**不是桌面实机截图**。GenUI 截图因避免暴露工作区未收录。
+![插件设置页](assets/screenshots/11-config-page.png)
+
+`screenshots.json` 列出全部 7 张：前 4 张是实机裁图，覆盖标题卡、表格 + 表格结论、状态列、代码块与 800px 窄窗；09/10 两张是按 0.9.1 实际 token 渲染的主题对照图（不是桌面实机截图）；第 7 张是 0.9.2 起插件板块 → dsh-structured 详情页的配置区实机截图（六字段 + 主题分段按钮带各主题强调色）。GenUI 截图因避免暴露工作区未收录。
 
 ### 配置
 
@@ -144,7 +146,7 @@ Phase 2 已落地 2.1–2.4：卡片类型（结论/判断/指标/风险/下一�
 GenUI 联动              auto | on | off
 ```
 
-宿主 describe 未服务本插件、或部署缺少前端 primitives 时，配置区自动隐藏（此时用下面的 patch 方式）。会话级开关不在这里：用 `/structured on | off`。
+宿主 describe 未服务本插件、或部署缺少前端 primitives 时，配置区自动隐藏（此时用下面的 patch 方式）。会话级开关不在这里：用 `/structured on | off`。主题分段的三个选项各带所代表主题的强调色圆点，选中态文字同色（0.9.3 起）。
 
 底层方式：在 profile 的 `cordis.patch.yml` 里覆盖同一行（注意：config 是整份替换，不是深合并）：
 

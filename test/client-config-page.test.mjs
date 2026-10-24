@@ -21,12 +21,30 @@ function makeDom() {
       return null
     },
   })
+  // 可观察的 style 表：createElement('style') 产物按 id 登记，remove 时注销。
+  const styles = new Map()
+  const styleElement = () => {
+    const style = element()
+    style.id = ''
+    style.textContent = ''
+    style.remove = () => {
+      if (style.id) styles.delete(style.id)
+    }
+    return style
+  }
   return {
+    styles,
     body: element(),
     documentElement: { setAttribute() {}, removeAttribute() {} },
-    head: { children: [], appendChild() {} },
-    createElement: () => element(),
-    getElementById: () => null,
+    head: {
+      children: [],
+      appendChild(style) {
+        this.children.push(style)
+        if (style.id) styles.set(style.id, style)
+      },
+    },
+    createElement: (tag) => (tag === 'style' ? styleElement() : element()),
+    getElementById: (id) => styles.get(id) ?? null,
     querySelectorAll: () => [],
   }
 }
@@ -82,13 +100,14 @@ function loadClient(dom, fakeRequire) {
 }
 
 function makeChild(form, slots) {
-  return {
+  const child = {
     configForms: {
       get(id) {
         return id === 'dsh-structured' ? form : undefined
       },
       whileServed(namespaces, register) {
-        if (served) register()
+        // 把 register 返回的组合 disposer 暴露给测试，模拟命名空间停服。
+        if (served) child.__disposeRegistration = register()
         return () => {}
       },
     },
@@ -97,6 +116,7 @@ function makeChild(form, slots) {
       return fn()
     },
   }
+  return child
 }
 
 let served = true
@@ -106,7 +126,7 @@ function collectRegistration() {
   const slots = {
     inject(name, factory) {
       assert.equal(name, 'plugins.bundle.config')
-      factory()
+      return factory()
     },
     register(options, component) {
       registered = { options, component }
@@ -270,4 +290,40 @@ test('config page：插件未就绪与只读态的降级渲染', () => {
   const switches = flat.filter((element) => element.type?.name === 'Switch')
   assert.equal(switches.length, 4)
   for (const element of switches) assert.equal(element.props.disabled, true)
+})
+
+test('config page：主题分段按钮带各主题强调色，随注册注入/撤销移除', () => {
+  served = true
+  const { require: fakeRequire } = fakeRuntime()
+  const dom = makeDom()
+  const module = loadClient(dom, fakeRequire)
+  const form = {
+    set() {
+      return Promise.resolve(true)
+    },
+    getSnapshot() {
+      return { status: 'ready', writable: true, value: {} }
+    },
+    subscribe() {
+      return () => {}
+    },
+  }
+  const { slots } = collectRegistration()
+  const child = makeChild(form, slots)
+  module.__test.setupConfigPage(child, form)
+
+  const style = dom.getElementById('dsh-structured-config-style')
+  assert.ok(style, 'config style should be injected with the slot registration')
+  // 三套主题的强调色选择器齐全（明暗两态），与视觉层 token 同源。
+  for (const token of ['#2563EB', '#10A37F', '#CC785C', '#60A5FA', '#34D399', '#E8A087']) {
+    assert.ok(style.textContent.includes(token), 'missing theme token ' + token)
+  }
+  assert.match(style.textContent, /#dsh-structured-theme-deepseek\[aria-selected="true"\]/)
+  assert.match(style.textContent, /#dsh-structured-theme-codex\[aria-selected="true"\]/)
+  assert.match(style.textContent, /#dsh-structured-theme-anthropic\[aria-selected="true"\]/)
+  assert.match(style.textContent, /body\[data-ds-dark-theme\]/)
+
+  // 命名空间停服：slot 与样式一并撤下。
+  child.__disposeRegistration?.()
+  assert.equal(dom.getElementById('dsh-structured-config-style'), null)
 })

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.9.3 — 2026-10-24
+
+- 配置页主题分段：三个主题选项（DeepSeek / Codex / Anthropic）各带所代表主题的强调色——选项前 7px 圆点标识 + 选中态文字着色，明暗自适应（DeepSeek `#2563EB`/`#60A5FA`、Codex `#10A37F`/`#34D399`、Anthropic `#CC785C`/`#E8A087`，与视觉层三套 token 同源）。样式只作用于 `[data-dsh-structured-config]` 容器内，随配置页 slot 同生命周期注入/撤销。
+- 截图：新增第 7 张 `assets/screenshots/11-config-page.png`（插件板块 → dsh-structured 详情页配置区实机截图，0.9.2 效果）；`screenshots.json` 与 README Screenshots 节同步。
+
 ## 0.9.2 — 2026-10-24
 
 - 插件详情页配置区：client 注册 `plugins.bundle.config`（键 `dsh-structured`），`theme`/`visual`/`defaultEnabled`/`tailReminder`/`includeSubagents`/`genui` 六字段在 插件板块 → dsh-structured 详情页直接编辑；写入走 configForms 的 `set`（落到 active profile 的 Cordis patch），`writable=false` 时控件只读并提示。
