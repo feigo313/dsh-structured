@@ -96,3 +96,10 @@
 - **市场**：fork 同步 upstream → 分支 `entry-v0.9.2` → 条目 tarball 改 v0.9.2（gh api PUT，commit `a9fd07dc`）→ **PR #9046**。
 - **desktop 正规化**：`pnpm add dsh-structured@0.9.2` 被 profile 的供应链策略 `minimumReleaseAge` 拒绝（0.9.2 发布于 03:52Z，未满 ~1h 冷却；依赖仍为 file: 预览，功能与 0.9.2 字节一致）。已挂后台任务在发布满 1h 后自动重试（重试前再备份 package.json / pnpm-lock.yaml）；成功后补记。
 - **UNVERIFIED（等 Boss 重启 Desktop）**：详情页配置区可见/可改、六字段写入 Cordis patch、`writable=false` 只读提示、写入后主题即时切换。
+
+## 2026-10-24 · 0.9.2 收尾：desktop 正规化完成
+
+- **desktop**：冷却期满后自动重试 `pnpm add dsh-structured@0.9.2 --registry=https://registry.npmjs.org` 成功——dependency 从 file: 预览换回 registry `0.9.2`，bundle 行完好，node_modules 实装 0.9.2（pnpm 按 registry integrity 校验，与前述 sha256 同源）。重试前已再备份 package.json / pnpm-lock.yaml（*.bak-*）。
+- **市场**：PR #9046 的 `check` 与 `Submission gate` 均 SUCCESS，`mergeStateStatus=CLEAN`，等维护者合并（同 0.8.3/0.9.1 流程）。
+- **待 Boss**：重启 Desktop 验证详情页配置区（六字段可见/可改、写入落 Cordis patch、主题即时切换）。
+- **本条目暂存本地未推送**：push 同意令牌已超 30 分钟有效期，机械闸门要求重新征得同意；Boss 一句话即可补推。
