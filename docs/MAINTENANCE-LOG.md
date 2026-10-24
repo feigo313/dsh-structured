@@ -146,3 +146,9 @@
 - **链路**：`main c9b5bb3..145c556`（0fd1e4a 声明 + 145c556 市场）+ tag `v0.9.4`；npm `dsh-structured@0.9.4`；Release 资产 1,082,575 B / sha256 `09272c4e…` 与本地 tgz 字节一致；市场 PR #9046 分支推到 v0.9.4（commit `1e33a33`）+ 留言，checks 重跑中。
 - **desktop**：预览装 file: 0.9.4（备份 bak-*；engines 已是 `<0.4.0-0`）；registry 正规化冷却任务已挂（0.9.3 的旧任务已停，避免装回旧声明）。
 - **Boss 升级 DSH 0.3.0-rc.1 后**：插件可正常装配；配置页/注入/视觉层是否全量正常待实测，实测结果回写本日志与 README 兼容性标注。
+
+## 2026-10-24 · 0.9.4 desktop 正规化完成
+
+- 冷却期满后台任务自动执行 `pnpm add dsh-structured@0.9.4 --registry=https://registry.npmjs.org` 成功：dependency 从 file: 预览换回 registry `0.9.4`，bundle 行完好，node_modules 实装 0.9.4。重试前已再备份 package.json / pnpm-lock.yaml（*.bak-*）。
+- 至此 0.9.4 全链闭环：git / npm / Release / 市场 PR #9046（门禁过、待合并）/ desktop registry 实装。
+- 剩余待办不变：Boss 升级 DSH 0.3.0-rc.1 后实测回写；市场合并后确认 listing。
