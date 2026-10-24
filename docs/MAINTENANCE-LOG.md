@@ -123,3 +123,12 @@
 
 - **Boss 验收**：圆点样式通过（不改竖条）；提供 0.9.3 实机截图（主题三色圆点 + DeepSeek 选中态蓝色强调均可见）替换 `11-config-page.png`（94,880 B），README 第 7 张截图与实际效果一致。
 - **指令**：Boss「继续任务」= 走正式发布链（npm / Release / 市场），见下一条记录。
+
+## 2026-10-24 · 0.9.3 发布（Boss 验收后批准）
+
+- **推送**：截图替换 `63bbe9d` + 市场 `de8e348` 上 main；annotated tag `v0.9.3`。git HTTPS 多次超时/重置（Connection reset / connect timeout），短超时重试成功；期间写好 `.tools/push-ghapi.mjs`（gh api git-data 兜底脚本，blob→tree→commit→ref；本地 git/commits 端点需完整 sha）备用未最终启用。
+- **npm**：`dsh-structured@0.9.3` 已发布（发本地 tgz）；官方 registry 生效后核验。
+- **Release**：`v0.9.3` 资产 1,080,789 B，api digest `sha256:7cb0c845…` 与本地包逐字节一致。
+- **市场**：PR #9046（仍 OPEN 未合并）分支 `entry-v0.9.2` 上追加 commit `7693bef` 直接把条目推到 v0.9.3（同 0.8.3 先例：一个 PR 直达最新），并留言说明 supersede；checks 重跑中。
+- **desktop**：预览装 file: 0.9.3（Boss 已实机验收圆点效果）；registry 正规化挂后台任务，minimumReleaseAge 冷却期满自动重试，完成后补记。
+- **Boss 验收记录**：圆点样式通过（不改竖条）；`11-config-page.png` 换为 Boss 提供的 0.9.3 实机图（三色圆点 + DeepSeek 选中态蓝色强调可见，94,880 B）。
