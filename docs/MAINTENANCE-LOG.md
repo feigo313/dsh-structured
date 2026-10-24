@@ -70,3 +70,11 @@
 - **desktop 安装**：`pnpm add dsh-structured@0.9.1` 成功（dependency 0.9.1，installed 0.9.1；已备份 package.json / pnpm-lock）；运行中的 Electron 仍加载 0.8.3，重启后生效。
 - **UNVERIFIED**：desktop 实机 6 字段可见/可改、三主题 × 明暗切换、3×2 截图、`data-diff` 可达性——需重启 Desktop 后验证，本轮未重启（重启会终止当前会话）。
 - **变更日志**：仓库 CHANGELOG 与 GitHub Release body 均含 0.9.1；市场 schema 无 changelog 字段（entry 只有 url/name/category/tarball/description），市场侧通过条目版本 + Release 页承载。
+
+## 2026-10-24 · 第 4 轮
+
+- **issue 水位**：0 open / 1 closed（#1 已于上轮回复并关闭，无新 issue）；仓库 PR 0。
+- **线上复核**：npm `latest=0.9.1`；Release `v0.9.1` 资产 sha256 `5b48c3a0…`、770,432 B 未变；CI 最近 5 次 run 全 success（含截图 docs push `6139142`）。
+- **市场**：条目 PR #8874 已 MERGED，listing 版本显示 `v0.9.1`；nightly `build-site` 于 02:37Z 启动（in_progress），完成后 listing 应从 4 张变 6 张（含 09/10 主题对照图）；当前页面仍是构建前缓存。
+- **本轮动作**：无代码改动；只做复核与记录。本地 main `6139142` 与 origin 一致。
+- **待办**：等 build-site 完成后确认 listing 出现 09/10 两张图。
