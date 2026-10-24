@@ -140,3 +140,9 @@
 - **口径**：0.2.1-rc.3 / 0.3.0-rc.1 为**声明性兼容**（依赖面 systemPrompt / commands / configForms / plugins.bundle.config 均为宿主稳定服务，未见破坏性变更公告，未逐项实测；实测后更新标注）。
 - **门禁**：npm test 55/55；desktop-check 全 PASS；pack 46 文件 / 1,082,575 B。
 - **运维**：已停掉上一轮挂的 0.9.3 冷却重试任务（防止把旧声明版本装回 desktop）。
+
+## 2026-10-24 · 0.9.4 发布完成
+
+- **链路**：`main c9b5bb3..145c556`（0fd1e4a 声明 + 145c556 市场）+ tag `v0.9.4`；npm `dsh-structured@0.9.4`；Release 资产 1,082,575 B / sha256 `09272c4e…` 与本地 tgz 字节一致；市场 PR #9046 分支推到 v0.9.4（commit `1e33a33`）+ 留言，checks 重跑中。
+- **desktop**：预览装 file: 0.9.4（备份 bak-*；engines 已是 `<0.4.0-0`）；registry 正规化冷却任务已挂（0.9.3 的旧任务已停，避免装回旧声明）。
+- **Boss 升级 DSH 0.3.0-rc.1 后**：插件可正常装配；配置页/注入/视觉层是否全量正常待实测，实测结果回写本日志与 README 兼容性标注。
