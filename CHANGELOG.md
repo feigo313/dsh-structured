@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.9.2 — 2026-10-24
+
+- 插件详情页配置区：client 注册 `plugins.bundle.config`（键 `dsh-structured`），`theme`/`visual`/`defaultEnabled`/`tailReminder`/`includeSubagents`/`genui` 六字段在 插件板块 → dsh-structured 详情页直接编辑；写入走 configForms 的 `set`（落到 active profile 的 Cordis patch），`writable=false` 时控件只读并提示。
+- 背景：宿主不会从 Config schema 自动生成表单——配置页必须由插件自己的浏览器半侧注册（`dsh-client-ui-plugin-manager` slot 合同的 `plugins.bundle.config`/`plugins.row.config`）。0.8.2 引入 Config 起、直到 0.9.1，插件从未注册配置页，所以详情页一直没有设置项；本次按官方伴生包模式（`whileServed` + `slots.inject`）补齐。
+- 防御：宿主 describe 未服务本命名空间、`react/jsx-runtime`/`dsh-client-ui-primitives` 缺失时静默不出配置页；配置页注入与主题/视觉联动分开挂 child inject，互不影响；headless/CLI 不加载 client 半区。
+- 文档修复：README 安装节三处 `0.7.4.tgz` 过时引用改为通用写法，移除三个「（发布后）」括号，实装实测记录更新为 0.9.1；`.gitignore` 增加 `.v2c/`、`out/`。
+
 ## 0.9.1 — 2026-10-23
 
 - 代码/diff 隔离：` ```diff `/`patch` 代码块、`[data-diff]`/`.md-diff`/GenUI diff 区域不套插件的 code/table chrome；diff 行色与宿主渲染保持原样。代码/diff 回复允许代码块或 diff 卡直接作首块，不强制标题卡。

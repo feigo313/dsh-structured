@@ -27,11 +27,11 @@ node scripts/desktop-check.mjs
 
 `desktop` 由 Electron 独占只影响 **CLI 的 `--profile desktop` 子命令**，不影响插件本身；推荐走插件管理入口，或退出 Desktop 后手工 pnpm（方式二）。
 
-### 方式一：插件市场（发布后）
+### 方式一：插件市场
 
 在 DSH 插件管理里搜索 `dsh-structured` 安装；市场收录后可用。桌面端由应用侧加载 client，不需要浏览器刷新。
 
-### 方式二：npm（发布后）
+### 方式二：npm
 
 ```powershell
 dsh plugin --profile <profile> add dsh-structured
@@ -39,13 +39,13 @@ dsh plugin --profile <profile> add dsh-structured
 
 desktop profile 由 Electron 独占，使用插件管理搜索/安装，不要跑 `--profile desktop`。
 
-### 方式三：GitHub Release（发布后）
+### 方式三：GitHub Release
 
-从 GitHub Releases 下载 `dsh-structured-0.7.4.tgz`，在插件管理里选择本地包；不使用 npm 时，市场 YAML 的 `tarball` 指向该 release。
+从 GitHub Releases 下载最新版的 `dsh-structured-<version>.tgz`（当前 0.9.1），在插件管理里选择本地包；不使用 npm 时，市场 YAML 的 `tarball` 指向该 release。
 
 ### 开发方式：本地 tgz / 手工 pnpm（desktop profile）
 
-本地包只用于开发验证：在 DSH 插件管理里选择 `dsh-structured-0.7.4.tgz`，或 `plugin_manager.install_bundle` 指向该文件。手工 pnpm 方式如下。
+本地包只用于开发验证：在 DSH 插件管理里选择仓库根的 `dsh-structured-<version>.tgz`，或 `plugin_manager.install_bundle` 指向该文件。手工 pnpm 方式如下。
 
 `desktop` profile 由 Electron 独占：**全局 `dsh plugin --profile desktop ...` 会被 CLI 直接拒绝**（`profile "desktop" is managed exclusively by the Electron application`）。不要用那条命令。要先**完全退出 Desktop**，再在 profile 目录里手工 pnpm：
 
@@ -56,7 +56,7 @@ Copy-Item "$dir\pnpm-lock.yaml" "$dir\pnpm-lock.yaml.bak-before-dsh-structured"
 Copy-Item "$dir\cordis.patch.yml" "$dir\cordis.patch.yml.bak-before-dsh-structured"
 
 Set-Location $dir
-$tgz = "dsh-structured-0.7.4.tgz"   # 把 tgz 放到当前目录，或写成实际路径
+$tgz = "dsh-structured-0.9.1.tgz"   # 把 tgz 放到当前目录，或写成实际路径
 pnpm add $tgz
 ```
 
@@ -76,7 +76,7 @@ pnpm add $tgz
 
 - 预检：`node scripts/desktop-check.mjs` 全部 PASS —— desktop profile 已初始化、bundle 栈含 `dsh-base`/`dsh-web-app`、`files` 含 `cordis.patch.yml`、`main`/`exports` 指向存在文件、`dsh.client.platform: web` 与 `exports["./client"]` 就位、`engines.dsh`/`dsh.compatibility.dshReleases` 已声明、运行时只 import `node:`、无 Electron 专有 API、无 profile 分支、状态走 `DSH_HOME`。
 - **desktop 是主目标，Web 只做兼容。** 本会话本身运行在 desktop profile，`systemPrompt` 与 `commands` 由 live host 的 Service 查询确认；`dsh.client.platform: web` 是 DSH 客户端模块的格式（desktop 的 Web UI 也加载它），不代表 Web 优先。
-- desktop 实装实测：`plugin_manager install_bundle` 返回 `applied`（0.7.4），desktop `dependencies`/`bundles` 各一处；当前 desktop 会话最新 `system/message` 命中两段注入。
+- desktop 实装实测：desktop profile 已装 0.9.1（`dependencies`/`bundles` 各一处，见 `docs/MAINTENANCE-LOG.md` 2026-10-23 条目）；desktop 会话最新 `system/message` 命中注入（可用 `scripts/session-inspect.mjs` 复跑）。
 - 视觉层由 desktop 应用侧加载，验收以应用内实际渲染为准；不要求用户手动刷新。
 
 ### 兼容性门禁
@@ -133,7 +133,20 @@ Phase 2 已落地 2.1–2.4：卡片类型（结论/判断/指标/风险/下一�
 
 ### 配置
 
-在 profile 的 `cordis.patch.yml` 里覆盖同一行（注意：config 是整份替换，不是深合并）：
+**首选：插件板块 → dsh-structured → 详情页的配置区**（0.9.2 起）。插件自己的浏览器半侧把六个字段注册进宿主 `plugins.bundle.config` slot，改完立即写入 active profile 的 Cordis patch：
+
+```text
+主题 / Theme           deepseek | codex | anthropic
+视觉层 / Visual layer   开关
+新会话默认开启           开关
+尾部提醒 / Tail reminder 开关
+子代理注入 / Subagents   开关
+GenUI 联动              auto | on | off
+```
+
+宿主 describe 未服务本插件、或部署缺少前端 primitives 时，配置区自动隐藏（此时用下面的 patch 方式）。会话级开关不在这里：用 `/structured on | off`。
+
+底层方式：在 profile 的 `cordis.patch.yml` 里覆盖同一行（注意：config 是整份替换，不是深合并）：
 
 ```yaml
 - id: dsh-structured
@@ -146,7 +159,7 @@ Phase 2 已落地 2.1–2.4：卡片类型（结论/判断/指标/风险/下一�
     genui: auto            # auto | on | off；auto 检测到 GenUI 才追加 dsh-ui 路由
 ```
 
-`theme`、`visual`、`defaultEnabled`、`tailReminder`、`includeSubagents`、`genui` 都是 `.volatile()` 配置，插件设置页（bundle 详情表单）可编辑；写入走 active profile 的 Cordis patch，home patch / CLI overlay 优先。若表单快照的 `writable` 为 false，说明当前配置被上层覆盖，设置页不会静默写入成功；请改上层配置或接受只读。`/structured on|off` 只影响 `state.json` 里的按会话提示词开关，不影响 `theme`/`visual`。
+`theme`、`visual`、`defaultEnabled`、`tailReminder`、`includeSubagents`、`genui` 都是 `.volatile()` 配置：插件板块详情页的配置区（0.9.2 起，见上）与标准 bundle 表单都可编辑，写入走 active profile 的 Cordis patch，home patch / CLI overlay 优先。若快照的 `writable` 为 false，说明当前配置被上层覆盖，配置区控件只读并提示，不会静默写入成功；请改上层配置或接受只读。`/structured on|off` 只影响 `state.json` 里的按会话提示词开关，不影响 `theme`/`visual`。
 
 ## 验证注入生效
 

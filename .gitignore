@@ -2,6 +2,8 @@ node_modules/
 .tools/
 artifacts/
 .ego/
+.v2c/
+out/
 *.tgz
 *.mp4
 .DS_Store

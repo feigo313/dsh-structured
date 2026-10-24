@@ -10,7 +10,7 @@
  */
 window.__ModuleLoader__.load({
   id: 'dsh-structured',
-  factory() {
+  factory(require) {
     const CARD_ATTR = 'data-dsh-structured-card'
     const CARD_TYPE_ATTR = 'data-dsh-structured-card-type'
     const ICON_ATTR = 'data-dsh-structured-icon'
@@ -27,6 +27,20 @@ window.__ModuleLoader__.load({
     const THEMES = ['deepseek', 'codex', 'anthropic']
     const STYLE_ID = 'dsh-structured-skin-style'
     const LEGACY_STYLE_ID = 'dsh-structured-card-style'
+
+    /** 配置页常量：宿主插件详情页的 bundle 配置 slot（键 = 包名）。 */
+    const CONFIG_NS = 'dsh-structured'
+    const BUNDLE_CONFIG_SLOT = 'plugins.bundle.config'
+
+    /** 六个配置字段的界面文案；field 与 host Config schema 对齐，fallback 为 schema 默认值。 */
+    const CONFIG_FIELDS = [
+      { field: 'theme', kind: 'segmented', fallback: 'deepseek', label: '主题 / Theme', hint: '回复区配色，改完立即生效', options: [['deepseek', 'DeepSeek'], ['codex', 'Codex'], ['anthropic', 'Anthropic']] },
+      { field: 'visual', kind: 'switch', fallback: true, label: '视觉层 / Visual layer', hint: '关闭后不加载回复区样式（标题卡、表格、代码块皮肤）' },
+      { field: 'defaultEnabled', kind: 'switch', fallback: true, label: '新会话默认开启 / Default on', hint: '新会话默认注入结构化提示词' },
+      { field: 'tailReminder', kind: 'switch', fallback: true, label: '尾部提醒 / Tail reminder', hint: '在 system prompt 末尾追加一句结构化提醒' },
+      { field: 'includeSubagents', kind: 'switch', fallback: false, label: '子代理注入 / Subagents', hint: '子代理会话也注入（其产出不直接面向用户）' },
+      { field: 'genui', kind: 'segmented', fallback: 'auto', label: 'GenUI 联动 / GenUI routing', hint: 'auto：检测到 dsh-genui 才追加 dsh-ui 路由规则', options: [['auto', 'auto'], ['on', 'on'], ['off', 'off']] },
+    ]
 
     const CARD_TYPES = new Map([
       ['结论', 'conclusion'], ['总结', 'conclusion'], ['答案', 'conclusion'],
@@ -452,6 +466,115 @@ body[data-ds-dark-theme][data-dsh-structured-theme="anthropic"] [class*="_markdo
       }
     }
 
+    /**
+     * 在插件板块的插件详情页注册配置区（plugins.bundle.config，键 = 包名）。
+     * 宿主不会从 Config schema 自动生成表单——配置页必须由插件自己的浏览器半侧注册；
+     * 宿主 describe 未服务本命名空间（whileServed 不触发）或 primitives 缺失时不出配置页，
+     * 且任何失败都不影响视觉层与消息渲染。
+     */
+    function setupConfigPage(child, form) {
+      if (typeof require !== 'function') return
+      if (typeof child?.configForms?.whileServed !== 'function') return
+      if (typeof child?.slots?.inject !== 'function' || typeof child?.slots?.register !== 'function') return
+      if (typeof form?.set !== 'function') return
+      let jsx
+      let jsxs
+      let ui
+      try {
+        const runtime = require('react/jsx-runtime')
+        jsx = runtime.jsx
+        jsxs = runtime.jsxs
+        ui = require('@deepseek-ai/dsh-client-ui-primitives')
+        if (typeof ui?.Switch !== 'function' || typeof ui?.SegmentedControl !== 'function') return
+      } catch {
+        // primitives 不可用（非 desktop 表层）：不出配置页。
+        return
+      }
+
+      const labelStyle = { fontSize: '14px', lineHeight: '20px', color: 'var(--dsw-alias-label-primary, inherit)' }
+      const hintStyle = { fontSize: '12.5px', lineHeight: '18px', color: 'var(--dsw-alias-label-tertiary, inherit)', marginTop: '2px' }
+      const rowStyle = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', padding: '10px 0', borderBottom: '1px solid var(--dsw-alias-border-l2, rgba(127,127,127,.18))' }
+      const noteStyle = { fontSize: '12.5px', lineHeight: '18px', color: 'var(--dsw-alias-label-tertiary, inherit)', margin: '6px 0 2px' }
+
+      const fieldValue = (value, spec) => {
+        const raw = value?.[spec.field]
+        if (raw && typeof raw.get === 'function') return raw.get()
+        return raw === undefined || raw === null ? spec.fallback : raw
+      }
+
+      const renderRow = (state, setField, spec) => {
+        const writable = state.writable !== false
+        const control = spec.kind === 'switch'
+          ? jsx(ui.Switch, {
+              checked: fieldValue(state.value, spec) === true,
+              disabled: !writable,
+              label: spec.label,
+              onChange: (next) => setField(spec.field, next === true),
+            })
+          : jsx(ui.SegmentedControl, {
+              id: 'dsh-structured-' + spec.field,
+              value: String(fieldValue(state.value, spec)),
+              options: spec.options.map(([value, text]) => ({ value, label: text })),
+              disabled: !writable,
+              label: spec.label,
+              onChange: (next) => setField(spec.field, next),
+            })
+        return jsxs('div', {
+          style: rowStyle,
+          children: [
+            jsxs('div', { style: { minWidth: 0 }, children: [
+              jsx('div', { style: labelStyle, children: spec.label }),
+              jsx('div', { style: hintStyle, children: spec.hint }),
+            ] }),
+            control,
+          ],
+        })
+      }
+
+      const StructuredConfigCard = (props) => {
+        if (props.view !== undefined && props.view !== 'page') return null
+        const read = props.useStructuredConfig ?? props.structuredConfig
+        const state = typeof read === 'function' ? read((snapshot) => snapshot) : null
+        if (!state || state.status !== 'ready' || typeof state.value !== 'object' || state.value === null) {
+          return jsx('p', { style: noteStyle, children: '插件未加载或配置暂不可用。' })
+        }
+        const setField = typeof props.setField === 'function' ? props.setField : () => {}
+        return jsxs('div', {
+          'data-dsh-structured-config': '1',
+          children: [
+            state.writable === false
+              ? jsx('p', { style: noteStyle, children: '当前配置被更高层覆盖（home patch / CLI overlay），此处只读。' })
+              : null,
+            jsx('div', { children: CONFIG_FIELDS.map((spec) => renderRow(state, setField, spec)) }),
+            jsx('p', { style: noteStyle, children: '会话级开关请用 /structured on | off（按会话生效，不写入这里）。' }),
+          ],
+        })
+      }
+
+      child.effect?.(
+        () =>
+          child.configForms.whileServed([CONFIG_NS], () =>
+            child.slots.inject(BUNDLE_CONFIG_SLOT, () =>
+              child.slots.register({
+                name: BUNDLE_CONFIG_SLOT,
+                key: 'dsh-structured',
+                inject: () => ({
+                  hooks: { structuredConfig: form },
+                  setField: (field, value) => {
+                    try {
+                      form.set(field, value)
+                    } catch {
+                      // 写入失败不打断页面；快照未变化即用户可见的反馈。
+                    }
+                  },
+                }),
+              }, StructuredConfigCard),
+            ),
+          ),
+        'dsh-structured: bundle config page',
+      )
+    }
+
     let active = false
     let disposeLayer = null
     let currentTheme = 'deepseek'
@@ -546,7 +669,7 @@ body[data-ds-dark-theme][data-dsh-structured-theme="anthropic"] [class*="_markdo
 
     return {
       inject: [],
-      __test: { inDiff, isDiffCode, decorate },
+      __test: { inDiff, isDiffCode, decorate, setupConfigPage },
       apply(ctx) {
         // 默认主题/视觉先启用；随后由 profile Config 的 theme/visual 覆盖。
         enable()
@@ -575,6 +698,19 @@ body[data-ds-dark-theme][data-dsh-structured-theme="anthropic"] [class*="_markdo
           })
         } catch {
           // 无 ctx.inject 的宿主保持默认开启。
+        }
+        try {
+          // 插件详情页配置区与视觉层分开注入：配置页失败不影响主题/视觉联动。
+          ctx?.inject?.(['configForms', 'slots'], (child) => {
+            try {
+              const form = child.configForms?.get('dsh-structured')
+              if (form) setupConfigPage(child, form)
+            } catch {
+              // 配置页不可用不影响视觉层与注入。
+            }
+          })
+        } catch {
+          // 无 ctx.inject 的宿主没有配置页，视觉层照常。
         }
         try {
           ctx?.effect?.(() => disable, 'dsh-structured: visual layer')

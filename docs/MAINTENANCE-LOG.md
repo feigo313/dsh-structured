@@ -78,3 +78,12 @@
 - **市场**：条目 PR #8874 已 MERGED，listing 版本显示 `v0.9.1`；nightly `build-site` 于 02:37Z 启动（in_progress），完成后 listing 应从 4 张变 6 张（含 09/10 主题对照图）；当前页面仍是构建前缓存。
 - **本轮动作**：无代码改动；只做复核与记录。本地 main `6139142` 与 origin 一致。
 - **待办**：等 build-site 完成后确认 listing 出现 09/10 两张图。
+
+## 2026-10-24 · 「设置不见」根因与 0.9.2 修复
+
+- **Boss 报告**：插件板块点进 dsh-structured 详情页，看不到皮肤设置。零信任排查：desktop profile 实装 0.9.1（10-23 12:45），Desktop 进程 10-49 重启过（版本不是旧的）；当日会话注入命中 1 条（插件本体正常）；仓库 Config 六字段 meta.volatile 全 true（schema 没问题）；profile/home patch 无重复行。
+- **根因（逆向 app.asar 宿主源码）**：`dsh-client-ui-plugin-manager` 的 slot 合同要求插件的配置页由插件自己的浏览器半侧注册进 `plugins.bundle.config`（键=包名）或 `plugins.row.config`（键=包名#行id）slot，宿主**不会**从 Config schema 自动生成表单；`dsh-client-ui-settings-plugin-inventory` 只读展示状态。0.8.2 引入 Config 起、直到 0.9.1，插件从未注册配置页 → 详情页一直没有设置项。与 0.9.1 更新无关，README 的「bundle 详情表单」说法自 0.8.2 起就是未验证的假设（0.9.1 UNVERIFIED 清单里挂着，本轮证实）。
+- **修复（0.9.2）**：`src/client.js` 增加 `setupConfigPage`——按官方伴生包模式（`configForms.whileServed(['dsh-structured'])` + `slots.inject('plugins.bundle.config')`）注册六字段配置卡；Switch/SegmentedControl 来自 `@deepseek-ai/dsh-client-ui-primitives`，写入走 `form.set`；`writable=false` 只读；primitives/require 缺失或命名空间未服务时静默不出现；配置页与主题/视觉联动分开挂 child inject，互不影响。host 侧无改动。
+- **门禁**：npm test 54/54（新增 test/client-config-page.test.mjs 5 项）；theme-contrast PASS 60；pack 45 文件 / 993,933 B；lib 与 src 一致。
+- **desktop 预览安装**：备份 package.json / pnpm-lock.yaml / cordis.patch.yml（*.bak-20261024-114141）后 `pnpm add G:/dsh-structured/dsh-structured-0.9.2.tgz`；dependency 变成 `file:` 路径（开发预览形态），lockfile 对比确认其他包零变动。**UNVERIFIED**：重启 Desktop 后详情页配置区可见/可改、六字段写入 Cordis patch、写入后主题即时切换。
+- **待决**：0.9.2 未发布（npm/Release/市场仍是 0.9.1）。发布后需 `pnpm add dsh-structured@0.9.2` 把 desktop 依赖从 file: 换回 registry；本次改动 push/publish 需 Boss 同意（机械闸门）。
