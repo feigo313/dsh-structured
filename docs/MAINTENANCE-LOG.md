@@ -132,3 +132,11 @@
 - **市场**：PR #9046（仍 OPEN 未合并）分支 `entry-v0.9.2` 上追加 commit `7693bef` 直接把条目推到 v0.9.3（同 0.8.3 先例：一个 PR 直达最新），并留言说明 supersede；checks 重跑中。
 - **desktop**：预览装 file: 0.9.3（Boss 已实机验收圆点效果）；registry 正规化挂后台任务，minimumReleaseAge 冷却期满自动重试，完成后补记。
 - **Boss 验收记录**：圆点样式通过（不改竖条）；`11-config-page.png` 换为 Boss 提供的 0.9.3 实机图（三色圆点 + DeepSeek 选中态蓝色强调可见，94,880 B）。
+
+## 2026-10-24 · 0.9.4：DSH 0.3.0-rc.1 兼容声明（Boss：无功能变化、直接做）
+
+- **背景**：DSH desktop 推送 0.3.0-rc.1（nightly feed），本机当前 0.2.1-rc.2（app 与内嵌 dsh runtime 同版本号）。旧 `engines.dsh <0.3.0-0` 会在升级后把插件挡在装配门禁外（semver 预发布序 `0.3.0-rc.1 >= 0.3.0-0`）。
+- **改动（无功能变化）**：`engines.dsh` → `>=0.1.7-rc.2 <0.4.0-0`；`dshReleases` 补 `0.2.1-rc.3`（npm 10-23 已发）、`0.3.0-rc.1` 均为 compatible；README 要求/门禁两段与 CHANGELOG 同步；测试断言更新（engines 精确串 + 两个新 release 条目）。
+- **口径**：0.2.1-rc.3 / 0.3.0-rc.1 为**声明性兼容**（依赖面 systemPrompt / commands / configForms / plugins.bundle.config 均为宿主稳定服务，未见破坏性变更公告，未逐项实测；实测后更新标注）。
+- **门禁**：npm test 55/55；desktop-check 全 PASS；pack 46 文件 / 1,082,575 B。
+- **运维**：已停掉上一轮挂的 0.9.3 冷却重试任务（防止把旧声明版本装回 desktop）。

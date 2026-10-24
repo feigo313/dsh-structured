@@ -1,6 +1,6 @@
 {
   "name": "dsh-structured",
-  "version": "0.9.3",
+  "version": "0.9.4",
   "description": "Structured output for DSH: no-label title card first, then tables/lists/steps; per-session switch and style.md override. 让 DSH 的每条实质回复默认结构化。",
   "type": "module",
   "main": "lib/index.js",
@@ -49,7 +49,9 @@
         "0.1.7-rc.2": "compatible",
         "0.2.0-rc.2": "compatible",
         "0.2.1-rc.1": "compatible",
-        "0.2.1-rc.2": "compatible"
+        "0.2.1-rc.2": "compatible",
+        "0.2.1-rc.3": "compatible",
+        "0.3.0-rc.1": "compatible"
       }
     }
   },
@@ -85,7 +87,7 @@
   },
   "engines": {
     "node": ">=22",
-    "dsh": ">=0.1.7-rc.2 <0.3.0-0"
+    "dsh": ">=0.1.7-rc.2 <0.4.0-0"
   },
   "peerDependencies": {
     "@deepseek-ai/schemastery": "^3.18.0"

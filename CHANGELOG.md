@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.9.4 — 2026-10-24
+
+- DSH 0.3.0-rc.1 兼容声明：`engines.dsh` 上限从 `<0.3.0-0` 放宽到 `<0.4.0-0`（否则 desktop 0.3.0-rc.1 的装配门禁会挡住本插件）；`dsh.compatibility.dshReleases` 补 `0.2.1-rc.3`、`0.3.0-rc.1` 为 compatible。
+- 无功能改动。0.2.1-rc.3 / 0.3.0-rc.1 为**声明性兼容**：插件依赖的 systemPrompt / commands / configForms / plugins.bundle.config 均为宿主稳定服务面，未见破坏性变更公告，未逐项实测；实测后如有差异再适配或收紧。
+
 ## 0.9.3 — 2026-10-24
 
 - 配置页主题分段：三个主题选项（DeepSeek / Codex / Anthropic）各带所代表主题的强调色——选项前 7px 圆点标识 + 选中态文字着色，明暗自适应（DeepSeek `#2563EB`/`#60A5FA`、Codex `#10A37F`/`#34D399`、Anthropic `#CC785C`/`#E8A087`，与视觉层三套 token 同源）。样式只作用于 `[data-dsh-structured-config]` 容器内，随配置页 slot 同生命周期注入/撤销。

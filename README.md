@@ -17,7 +17,7 @@
 
 ## 安装
 
-要求：DSH 0.2.x（`@deepseek-ai/cordis` 4.x），Node ≥ 22。
+要求：DSH 0.2.x – 0.3.x（`@deepseek-ai/cordis` 4.x），Node ≥ 22。
 
 **默认目标就是 desktop profile。** 插件只硬依赖 `systemPrompt`（desktop 由 `@deepseek-ai/dsh-base` 提供），`commands` 是可选服务；不依赖 Electron/headless 专有 API，也没有 profile 分支。安装前先跑一次预检：
 
@@ -81,7 +81,7 @@ pnpm add $tgz
 
 ### 兼容性门禁
 
-本包声明 `@deepseek-ai/schemastery` peer：`Config`（theme/visual/defaultEnabled/tailReminder/includeSubagents/genui）用它生成设置表单；这是 host 提供的服务，不是门禁。真正门禁是 `engines.dsh`（`>=0.1.7-rc.2 <0.3.0-0`），`dsh-app-boot` 在有 `engines.dsh` 时读取它；`dsh.compatibility.dshReleases` 是 advisory。实测 DSH CLI `0.1.7-rc.2` 与 desktop `0.2.1-rc.2`。
+本包声明 `@deepseek-ai/schemastery` peer：`Config`（theme/visual/defaultEnabled/tailReminder/includeSubagents/genui）用它生成设置表单；这是 host 提供的服务，不是门禁。真正门禁是 `engines.dsh`（`>=0.1.7-rc.2 <0.4.0-0`，0.9.4 起覆盖 0.3.x），`dsh-app-boot` 在有 `engines.dsh` 时读取它；`dsh.compatibility.dshReleases` 是 advisory。实测 DSH CLI `0.1.7-rc.2` 与 desktop `0.2.1-rc.2`；`0.2.1-rc.3` / `0.3.0-rc.1` 为声明性兼容（插件依赖的 systemPrompt / commands / configForms / plugins.bundle.config 均为宿主稳定服务面，未见破坏性变更公告；未逐项实测，实测后将更新标注）。
 
 ## 使用
 
