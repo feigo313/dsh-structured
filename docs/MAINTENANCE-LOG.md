@@ -111,3 +111,10 @@
 - **截图**：`assets/screenshots/11-config-page.png`（Boss 提供的设置界面实机图）入 screenshots.json + README（第 7 张）。
 - **门禁**：npm test 55/55；theme-contrast PASS 60；pack 46 文件 / 1,080,789 B；lib 与 src 一致。
 - **desktop 预览**：`pnpm add file:…0.9.3.tgz`（备份 package.json / pnpm-lock）；发布后换回 registry。
+
+## 2026-10-24 · 0.9.3 提交与 desktop 预览
+
+- **推送**：`main 80f7b13..9db4281`（eec67e6 日志收尾 + 9db4281 0.9.3）；首次 push 300s 超时（老网络问题），45s 短超时重试成功，未动用 gh api git-data 兜底。
+- **desktop 预览**：`pnpm add file:…0.9.3.tgz` 成功（备份 *.bak-*），实装 0.9.3，config CSS 已随 lib/client.js 分发；依赖暂为 file: 形态，正式发布 0.9.3 后换回 registry。
+- **未发布**：npm / Release / 市场仍是 0.9.2（市场 PR #9046 等合并中）。发布 0.9.3 需 Boss 明确同意。
+- **待 Boss 重启验证**：主题三分段按钮的强调色圆点与选中文字色（明暗两态）。
