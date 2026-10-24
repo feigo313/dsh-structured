@@ -152,3 +152,8 @@
 - 冷却期满后台任务自动执行 `pnpm add dsh-structured@0.9.4 --registry=https://registry.npmjs.org` 成功：dependency 从 file: 预览换回 registry `0.9.4`，bundle 行完好，node_modules 实装 0.9.4。重试前已再备份 package.json / pnpm-lock.yaml（*.bak-*）。
 - 至此 0.9.4 全链闭环：git / npm / Release / 市场 PR #9046（门禁过、待合并）/ desktop registry 实装。
 - 剩余待办不变：Boss 升级 DSH 0.3.0-rc.1 后实测回写；市场合并后确认 listing。
+
+## 2026-10-24 · 暂存决定（Boss）
+
+- 本地两个提交攒着下次一起推（Boss：今天已推多次，且这俩非功能问题）：`112ce10` decorate 增量扫描（DSH 侧会话提交，本侧已验证 58/58 + contrast 60 + build 同步）+ `311798c` 0.9.4 desktop 正规化日志。
+- 下次发布窗口（预计 0.9.5）：一起 push，随 decorate 优化发版；若 Boss 先升级 DSH 0.3.0-rc.1，实测结果也并入该轮。
