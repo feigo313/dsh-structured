@@ -87,3 +87,12 @@
 - **门禁**：npm test 54/54（新增 test/client-config-page.test.mjs 5 项）；theme-contrast PASS 60；pack 45 文件 / 993,933 B；lib 与 src 一致。
 - **desktop 预览安装**：备份 package.json / pnpm-lock.yaml / cordis.patch.yml（*.bak-20261024-114141）后 `pnpm add G:/dsh-structured/dsh-structured-0.9.2.tgz`；dependency 变成 `file:` 路径（开发预览形态），lockfile 对比确认其他包零变动。**UNVERIFIED**：重启 Desktop 后详情页配置区可见/可改、六字段写入 Cordis patch、写入后主题即时切换。
 - **待决**：0.9.2 未发布（npm/Release/市场仍是 0.9.1）。发布后需 `pnpm add dsh-structured@0.9.2` 把 desktop 依赖从 file: 换回 registry；本次改动 push/publish 需 Boss 同意（机械闸门）。
+
+## 2026-10-24 · 0.9.2 发布（Boss 批准）
+
+- **推送**：`main 6139142..e6587b6` + annotated tag `v0.9.2` 经 git push 直推成功（本轮 GitHub HTTPS 可用，未走 gh api 兜底）；提交含 0e0c765（配置页 + 文档修复 + eslint flat config）与 e6587b6（市场条目 → v0.9.2）。
+- **npm**：`npm publish dsh-structured-0.9.2.tgz`（直接发本地 tgz 保证与 Release 资产同字节）；45 文件，官方 registry 已生效（shasum `8fe0b67a…`），npmmirror 同步有延迟。
+- **Release**：`v0.9.2` 资产 `dsh-structured-0.9.2.tgz` 993,933 B，`gh api` digest `sha256:5449d052…` 与本地包逐字节一致；Release body 与仓库 CHANGELOG 同源。
+- **市场**：fork 同步 upstream → 分支 `entry-v0.9.2` → 条目 tarball 改 v0.9.2（gh api PUT，commit `a9fd07dc`）→ **PR #9046**。
+- **desktop 正规化**：`pnpm add dsh-structured@0.9.2` 被 profile 的供应链策略 `minimumReleaseAge` 拒绝（0.9.2 发布于 03:52Z，未满 ~1h 冷却；依赖仍为 file: 预览，功能与 0.9.2 字节一致）。已挂后台任务在发布满 1h 后自动重试（重试前再备份 package.json / pnpm-lock.yaml）；成功后补记。
+- **UNVERIFIED（等 Boss 重启 Desktop）**：详情页配置区可见/可改、六字段写入 Cordis patch、`writable=false` 只读提示、写入后主题即时切换。
