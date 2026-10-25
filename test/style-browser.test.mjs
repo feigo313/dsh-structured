@@ -4,7 +4,21 @@ import { readFileSync, rmSync } from 'node:fs'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import test from 'node:test'
 
-test('0.9.6 style：真实浏览器 computedStyle 与 800px 布局', { timeout: 120_000 }, () => {
+// CI runner 通常没有 ego-browser；缺失时跳过，不让环境差异把测试判成失败。
+function egoAvailable() {
+  try {
+    execSync(process.platform === 'win32' ? 'where ego-browser' : 'command -v ego-browser', { stdio: 'ignore' })
+    return true
+  } catch {
+    return false
+  }
+}
+
+test('0.9.6 style：真实浏览器 computedStyle 与 800px 布局', { timeout: 120_000 }, (t) => {
+  if (!egoAvailable()) {
+    t.skip('ego-browser 不可用，跳过真实浏览器样式检查')
+    return
+  }
   const source = readFileSync(new URL('../src/client.js', import.meta.url), 'utf8')
   assert.doesNotMatch(source, /--ds-card-icon/)
   const probe = fileURLToPath(new URL('./fixtures/style-probe.mjs', import.meta.url))
