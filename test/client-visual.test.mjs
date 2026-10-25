@@ -288,3 +288,12 @@ test('client：diff 表格不套插件表格样式', () => {
   assert.equal(table.attrs.get('data-dsh-structured-skip'), 'table')
   assert.equal(table.attrs.get('data-dsh-structured-status-table'), undefined)
 })
+
+test('client：标题图标使用悬挂缩进，换行行不顶回左边', () => {
+  const dom = makeDom()
+  loadClient(dom).apply(makeContext(null))
+  const css = dom.styles.get('dsh-structured-skin-style')?.textContent ?? ''
+  assert.match(css, /h2\[data-dsh-structured-icon\]\{padding-left:42px;text-indent:-30px\}/)
+  assert.match(css, /h3\[data-dsh-structured-icon\]\{padding-left:30px;text-indent:-30px\}/)
+  assert.match(css, /h2\[data-dsh-structured-icon\]::before,[^{]*\{[^}]*text-indent:0/)
+})
