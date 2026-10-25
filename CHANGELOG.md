@@ -1,9 +1,11 @@
 # Changelog
 
-## Unreleased
+## 0.9.6 — 2026-10-25
 
-- client 视觉层改为增量扫描：MutationObserver 只重扫变更所在的 markdown 容器或新增子树，不再每帧对整页做全量 `querySelectorAll`；长会话与流式输出的装饰成本从 O(整页) 降到 O(变更容器)，首次加载仍全量扫描。新增 `test/client-incremental.test.mjs` 3 项回归。
-- 标题图标悬挂缩进：h2/h3 的 `::before` 图标改为悬挂缩进（h2 `padding-left:42px`、h3 `30px`，`text-indent:-30px`；图标自身 `text-indent:0`），长标题换行后续行与首行文字对齐，不再顶回左边（issue #2 第一部分）。
+- first-glance 视觉层级：statement 标题 24px、去掉卡头灰色图标、表格行高与表头密度、`下一步` 无底色 + 橙色三角、标题/正文 1px 灰分隔线、表格结论去左边框；只改客户端 CSS，不改注入链路。
+- client 视觉层改为增量扫描：MutationObserver 只重扫变更所在的 markdown 容器或新增子树，长会话与流式输出从整页 `querySelectorAll` 降到变更容器；首次加载仍全量扫描。
+- 标题图标悬挂缩进：h2/h3 的 `::before` 图标改为悬挂缩进（h2 `padding-left:42px`、h3 `30px`，`text-indent:-30px`；图标自身 `text-indent:0`），长标题换行后续行与首行文字对齐（issue #2 第一部分）。
+- 截图：01/06/07/08 换成 0.9.6 真实界面裁图（web profile 渲染），09/10 主题对照按 0.9.6 token 重做（非桌面实机）。
 
 ## 0.9.4 — 2026-10-24
 
