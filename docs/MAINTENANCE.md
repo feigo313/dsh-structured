@@ -123,3 +123,15 @@ dsh plugin --profile <profile> add dsh-structured@x.y.z
 | 市场 PR 窗口 | 门禁 | 最早 2026-10-22 21:33 +08 |
 | peer 版本门禁 advisory | P2 | 未声明 `@deepseek-ai/*` peerDependencies，`evaluatePluginCompatibility` 不生效 |
 | 500 字上限未运行时强制 | P3 | 目前只是提示词约束 |
+
+## 12. 发布门槛（本项目自定）
+
+发版顺序固定，缺一项不发：
+
+1. **全量测试**：`npm test` 全绿；有 ego-browser 的机器必须跑真实浏览器测试，缺失时跳过并在报告里注明。
+2. **视觉与布局**：`theme-contrast` 60 项 PASS、`desktop-check` 全 PASS、`lib==src`、记录 `npm pack` 文件数与体积。
+3. **截图随版本走**：样式或布局有改动时，发版前必须重拍 `assets/screenshots/` 中受影响的图——实机图必须来自该版本的真实界面，token 渲染图必须标清“非实机”，同时更新 `screenshots.json` 与 README；旧版图不得继续冒充新版。
+4. **版本与发布物**：`package.json` bump、CHANGELOG、annotated tag、Release 资产与 npm tarball 同字节。
+5. **市场**：条目 tarball 指向新 Release；截图以仓库 `screenshots.json` 为准，发版后确认 listing 版本与图都已更新。
+
+外部流程（PR / CI / 第三方审计）只是辅助证据，不是门槛；本项目以上面五条为准。
