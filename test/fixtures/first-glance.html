@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>dsh-structured 0.9.6 fixture</title>
+<style>
+  html,body{margin:0;padding:0;background:#f4f6f8;color:#111827;font-family:system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif}
+  .stage{padding:40px 28px 64px;display:flex;justify-content:center}
+  .reply{width:980px;max-width:calc(100vw - 56px)}
+  .meta{font-size:12px;color:#6b7280;margin:0 0 16px 2px}
+  .surface{background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:28px}
+  .markdown{font-size:15px;line-height:1.72}
+  body[data-dsh-structured-theme="codex"]{background:#f7fbf9}
+  body[data-dsh-structured-theme="anthropic"]{background:#f5f1e8}
+  body[data-dsh-structured-theme="anthropic"] .surface{background:#faf9f5;border-color:#e5e0d5}
+  body[data-ds-dark-theme]{background:#0b1220;color:#e5e7eb}
+  body[data-ds-dark-theme] .surface{background:#111827;border-color:#374151}
+  body[data-ds-dark-theme][data-dsh-structured-theme="codex"]{background:#07100d}
+  body[data-ds-dark-theme][data-dsh-structured-theme="codex"] .surface{background:#0b1512;border-color:#233a31}
+  body[data-ds-dark-theme][data-dsh-structured-theme="anthropic"]{background:#141413}
+  body[data-ds-dark-theme][data-dsh-structured-theme="anthropic"] .surface{background:#1f1e1d;border-color:#3a3733}
+  html:has(body[data-ds-dark-theme]){background:#0b1220}
+  html:has(body[data-ds-dark-theme][data-dsh-structured-theme="codex"]){background:#07100d}
+  html:has(body[data-ds-dark-theme][data-dsh-structured-theme="anthropic"]){background:#141413}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="reply">
+    <div class="meta">助手回复</div>
+    <div class="surface">
+      <div class="_markdown_fixture markdown">
+        <blockquote data-dsh-structured-card="1" data-dsh-structured-card-type="statement" data-dsh-structured-tone="info">
+          <p><strong>这个方案可以推进，但先补一次真实用户验证</strong><br>方向、成本、排期都成立；真实用户验证是唯一缺口。</p>
+        </blockquote>
+        <p data-dsh-structured-lead="table"><strong>表格结论：</strong> 三项里两项成立，一项待验证。</p>
+        <table data-dsh-structured-status-table="1">
+          <thead><tr><th>项</th><th>状态</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr data-dsh-structured-row="success"><td>✅ 完成</td><td>方向</td><td>和现有目标一致</td></tr>
+            <tr data-dsh-structured-row="success"><td>✅ 完成</td><td>成本</td><td>不新增预算</td></tr>
+            <tr data-dsh-structured-row="warn"><td>⚠️ 待做</td><td>用户验证</td><td>需要 5 个真实用户</td></tr>
+          </tbody>
+        </table>
+        <blockquote data-dsh-structured-card="1" data-dsh-structured-card-type="risk" data-dsh-structured-tone="warn">
+          <p><strong>风险</strong><br>用户验证没做，直接推进会把假设当结论。</p>
+        </blockquote>
+        <blockquote data-dsh-structured-card="1" data-dsh-structured-card-type="next" data-dsh-structured-tone="info">
+          <p><strong>下一步</strong></p>
+          <ol>
+            <li>找 5 个真实用户，跑核心路径。</li>
+            <li>看他们卡在哪，不听他们说要什么。</li>
+            <li>验证过了再排期，没过就停。</li>
+          </ol>
+        </blockquote>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  window.__ModuleLoader__ = {
+    load(definition) {
+      window.__client = definition
+    },
+  }
+</script>
+<script src="../../src/client.js"></script>
+<script>
+  window.addEventListener('load', () => {
+    const module = window.__client.factory()
+    module.apply({
+      inject() {},
+      effect(fn) { fn() },
+    })
+    document.body.setAttribute('data-dsh-structured-theme', 'deepseek')
+  })
+</script>
+</body>
+</html>

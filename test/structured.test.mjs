@@ -525,7 +525,7 @@ test('client：卡片类型与归属标记存在', () => {
   const client = readFileSync('src/client.js', 'utf8')
   assert.match(client, /data-dsh-structured-card-type/)
   assert.match(client, /CARD_TYPES/)
-  assert.match(client, /--ds-card-icon/)
+  assert.doesNotMatch(client, /--ds-card-icon/)
   for (const label of ['判断', '指标', '风险', '下一步', '验收', '重点']) {
     assert.match(client, new RegExp(label))
   }
