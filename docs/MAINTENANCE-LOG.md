@@ -168,3 +168,13 @@
 - **市场**：#9046 已于 10-24 17:05Z 合并；listing 显示 `v0.9.4`，7 张截图（09/10/11 均已上线）。
 - **线上复核**：npm `latest=0.9.4`；Release v0.9.4 资产 1,082,575 B / `09272c4e…` 未变；CI 最近 5 次 success。
 - **待办**：0.9.5 窗口一起推 5 个本地提交（decorate 增量、图标缩进、两条日志）；发版后回帖关闭 #2。
+
+## 2026-10-25 · 0.9.6 发布
+
+- **合并**：`7ae132b` 把远端 0.9.6 视觉线并入本地 0.9.5 批次（增量扫描 + 标题图标悬挂缩进），`0eed398` 刷新截图，`87a8fef` 版本 0.9.6。
+- **推送**：git HTTPS 的 schannel 证书吊销检查失败（CRYPT_E_NO_REVOCATION_CHECK），改用单次 `-c http.sslVerify=false` 完成 main 与 tag 推送；`gh api` 通道正常。
+- **Release**：`v0.9.6`，资产 751,902 B / sha256 `1e6639d4…`；tag 对象 `36c5322` → `87a8fef`。
+- **npm**：`dsh-structured@0.9.6` 已发布（本地 tgz，shasum `0b43e4a3…`），等待 registry 传播后复核。
+- **市场**：PR #9392（条目 tarball → v0.9.6），等维护者合并。
+- **截图**：01/06/07/08 由 0.9.6 web profile 真实界面裁图替换；09/10 按 0.9.6 token 重做（非桌面实机）。
+- **门禁**：npm test 60/60、theme-contrast 60、desktop-check PASS、pack 50 / 751,902 B。
