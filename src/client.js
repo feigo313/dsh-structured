@@ -273,7 +273,7 @@ body[data-ds-dark-theme][data-dsh-structured-theme="anthropic"] [class*="_markdo
 }
 [class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="statement"]>p:first-child>strong:first-child::after{
   content:"";display:block;height:1px;margin:12px 0;
-  background:color-mix(in srgb,var(--ds-border) 72%,var(--ds-text) 28%);
+  background:var(--ds-border);
 }
 [class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="statement"]>p{font-size:13.5px;line-height:1.6;font-weight:400}
 [class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="statement"]>p:first-child{margin-bottom:0}
@@ -291,7 +291,8 @@ body[data-ds-dark-theme][data-dsh-structured-theme="anthropic"] [class*="_markdo
 [class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="next"]>p,
 [class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="next"] li{font-size:13px;line-height:1.6}
 [class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="next"] ol,
-[class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="next"] ul{padding-left:1.3em;margin:.4em 0 0}
+[class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="next"] ul{padding-left:0;margin:.4em 0 0;list-style-position:inside}
+[class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="next"] li{padding-left:0}
 body[data-ds-dark-theme] [class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="next"]::before{border-left-color:#FB923C}
 [class*="_markdown_"] blockquote[${CARD_ATTR}="1"]>p:first-child{margin-top:0}
 [class*="_markdown_"] blockquote[${CARD_ATTR}="1"]>p:last-child{margin-bottom:0}

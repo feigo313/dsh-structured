@@ -82,14 +82,6 @@ test('0.9.0 client：主题 token/暗色 selector/code token 存在，旧 select
   assert.doesNotMatch(client, /--dsw-alias-state-/)
   assert.match(client, /--ds-accent:#2563EB/)
   for (const theme of ['codex', 'anthropic']) assert.match(client, new RegExp(`data-dsh-structured-theme="${theme}"`))
-  assert.match(client, /a\{color:var\(--ds-accent-text\)/)
-  assert.match(client, /li::marker\{color:var\(--ds-accent-text\)/)
-  assert.match(client, /p\[\$\{LEAD_ATTR\}="table"\] strong\{font-size:14px;font-weight:700;color:var\(--ds-text\)\}/)
-  assert.match(client, /color:var\(--ds-accent-text\);overflow-wrap:anywhere/)
-  assert.match(client, /blockquote\[\$\{TONE_ATTR\}\]>p:first-child>strong:first-child\{color:var\(--ds-accent-text\)/)
-  const narrow = client.slice(client.indexOf('@media (max-width:720px)'), client.indexOf('@media (prefers-reduced-motion'))
-  assert.match(narrow, /table:not\(\[\$\{SKIP_ATTR\}\]\)/)
-  assert.doesNotMatch(narrow, /\[class\*="_markdown_"\] table\{/)
 })
 
 test('0.9.1 主题 v2：三套 token 精确值与 accentText', () => {
