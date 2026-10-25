@@ -525,10 +525,25 @@ test('client：卡片类型与归属标记存在', () => {
   const client = readFileSync('src/client.js', 'utf8')
   assert.match(client, /data-dsh-structured-card-type/)
   assert.match(client, /CARD_TYPES/)
-  assert.match(client, /--ds-card-icon/)
+  assert.doesNotMatch(client, /--ds-card-icon/)
   for (const label of ['判断', '指标', '风险', '下一步', '验收', '重点']) {
     assert.match(client, new RegExp(label))
   }
+})
+
+test('client：0.9.6 第一眼样式锚点', () => {
+  const client = readFileSync('src/client.js', 'utf8')
+  assert.match(client, /blockquote\[\$\{CARD_TYPE_ATTR\}="statement"\][^}]*strong:first-child\{[^}]*font-size:24px/s)
+  assert.match(client, /blockquote\[\$\{CARD_TYPE_ATTR\}="next"\][^}]*strong:first-child\{[^}]*font-size:16px/s)
+  assert.match(client, /font-size:12\.5px/)
+  assert.match(client, /font-size:13\.5px/)
+  assert.match(client, /font-size:10px/)
+  assert.match(client, /table:not\(\[\$\{SKIP_ATTR\}\]\) thead th\{[^}]*height:38px/s)
+  assert.match(client, /table:not\(\[\$\{SKIP_ATTR\}\]\) thead th\{[^}]*font-size:13px/s)
+  assert.match(client, /p\[\$\{LEAD_ATTR\}="table"\]\{[^}]*border:0;[^}]*font-size:13px/s)
+  assert.match(client, /blockquote\[\$\{CARD_TYPE_ATTR\}="next"\]\{[^}]*border-top:1px solid var\(--ds-border\)/s)
+  assert.match(client, /border-left:9px solid #C2410C/)
+  assert.match(client, /border-left-color:#FB923C/)
 })
 
 test('client：视觉层可由 configForms 的 visual 设置关闭', () => {
