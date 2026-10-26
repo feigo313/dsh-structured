@@ -130,12 +130,19 @@ test('PersonaEditor：表单↔JSON 同步与 invalid 只读', async () => {
   assert.ok(json)
   assert.match(json.props.value, /测试模板/)
   json.props.onChange({ target: { value: '{"schema":"wrong"}' } })
+  const invalidText = harness.findTextarea('"schema"')
+  assert.equal(invalidText.props.value, '{"schema":"wrong"}', 'invalid jsonText must be retained')
   const formTab = harness.findButton('表单')
   assert.equal(formTab.props.disabled, true)
   const save = harness.findButton('保存')
   assert.equal(save.props.disabled, true)
   const error = harness.nodes().find((item) => item.type === 'p' && String(textOf(item.props.children)).includes('/schema'))
   assert.ok(error)
+  await harness.click('恢复最后有效值')
+  assert.equal(harness.findButton('表单').props.disabled, false, 'form tab should recover after restore')
+  assert.ok(harness.inputByValue('鲸鱼娘·工作模式'), 'restore returns to last valid whale template')
+  await harness.click('JSON')
+  assert.match(harness.findTextarea('"schema"').props.value, /"schema": "dsh-structured\/persona@1"/)
 })
 
 test('PersonaEditor：readonly 下载可用、JSON pane 可打开、保存禁用', async () => {
@@ -144,10 +151,20 @@ test('PersonaEditor：readonly 下载可用、JSON pane 可打开、保存禁用
   const download = harness.findButton('下载 JSON')
   assert.ok(download)
   assert.equal(download.props.disabled, undefined)
+  const nameInput = harness.inputByValue('鲸鱼娘·工作模式')
+  assert.equal(nameInput.props.disabled, true)
+  for (const item of harness.nodes().filter((node) => node.type === 'input' && node.props.type !== 'file')) {
+    assert.equal(item.props.disabled, true, 'form input must be readonly')
+  }
+  const reset = harness.findButton('恢复默认')
+  assert.equal(reset.props.disabled, true)
   await harness.click('JSON')
   assert.ok(harness.findTextarea('"schema"'))
   const textarea = harness.findTextarea('"schema"')
   assert.equal(textarea.props.disabled, true)
+  const fileInput = harness.nodes().find((item) => item.type === 'input' && item.props.type === 'file')
+  assert.ok(fileInput)
+  assert.equal(fileInput.props.disabled, true)
   const save = harness.findButton('保存')
   assert.equal(save.props.disabled, true)
 })
@@ -174,6 +191,15 @@ test('PersonaEditor：上传有效待确认、应用导入；无效/超大表单
   await hugeInput.props.onChange({ target: { files: [{ size: 65537, text: async () => whale }] } })
   assert.equal(harness.findButton('表单').props.disabled, true)
   assert.equal(harness.findButton('保存').props.disabled, true)
+
+  const savedCalls = []
+  const unknown = JSON.stringify({ ...JSON.parse(whale), extra: 'keep-me' })
+  const unknownHarness = makeHarness(null, { status: 'ready', writable: true, value: { persona: unknown, personaEnabled: false } }, async (field, value) => { savedCalls.push([field, value]) })
+  unknownHarness.inputByValue('鲸鱼娘·工作模式').props.onChange({ target: { value: '未知字段模板' } })
+  await unknownHarness.click('保存')
+  const savedPersona = savedCalls.find(([field]) => field === 'persona')?.[1]
+  assert.ok(savedPersona, 'save must write persona JSON')
+  assert.equal(JSON.parse(savedPersona).extra, 'keep-me', 'unknown field must survive form edit/save')
 })
 
 test('PersonaEditor：saving 禁用、保存失败保留草稿、draftOff', async () => {
@@ -204,7 +230,21 @@ test('PersonaEditor：saving 中全部禁用、成功保存为 saved', async () 
   const savingPromise = saveButton.props.onClick()
   assert.equal(harness.findButton('保存').props.disabled, true)
   assert.equal(harness.nodes().find((item) => item.type?.name === 'Switch').props.disabled, true)
+  for (const item of harness.nodes().filter((node) => node.type === 'input')) {
+    assert.equal(item.props.disabled, true, 'form input must be disabled while saving')
+  }
+  for (const item of harness.nodes().filter((node) => node.type === 'select')) {
+    assert.equal(item.props.disabled, true, 'template select must be disabled while saving')
+  }
+  assert.equal(harness.findButton('恢复默认').props.disabled, true)
+  const pendingBeforeRepeat = pending.length
+  await harness.findButton('保存').props.onClick()
+  assert.equal(pending.length, pendingBeforeRepeat, 'save must not re-enter while saving')
   assert.ok(harness.nodes().some((item) => item.type === 'span' && String(textOf(item.props.children)).includes('保存中')))
+  await harness.click('JSON')
+  const upload = harness.nodes().find((item) => item.type === 'input' && item.props.type === 'file')
+  assert.equal(upload.props.disabled, true)
+  assert.equal(harness.findTextarea('"schema"').props.disabled, true)
   const flush = async () => { for (let i = 0; i < 20; i++) await Promise.resolve() }
   await flush()
   pending.shift()?.resolve(true)

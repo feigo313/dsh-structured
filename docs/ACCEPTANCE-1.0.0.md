@@ -1,3 +1,3 @@
-[1.0.0 · 代码/构建] `npm test` 75/75；`npm run build` 完成；`desktop-check` 全 PASS；`theme-contrast` 60；`theme-hue-distance` 12；`lib` 由 src 构建并注入鲸鱼娘 JSON；pack 61 文件 / 790996 B / unpacked 1123130 B。
+[1.0.0 · 代码/构建] `npm test` 75/75；`npm run build` 完成；`desktop-check` 全 PASS；`theme-contrast` 60；`theme-hue-distance` 12；`lib` 由 src 构建并注入鲸鱼娘 JSON；pack 61 文件 / 791508 B / unpacked 1125798 B。
 [1.0.0 · 功能/打包] Host Config 增加 `personaEnabled`/`persona`，独立 persona section（9950/wrapper/closing/fail-open）；Client 两个 tab、表单+可编辑 JSON、上传/下载/校验/只读/64KB/状态机；真实 PersonaEditor 事件测试覆盖 invalid/readonly/saving/importParsed/dirty；`docs/1.0-PERSONA-WHALE.json` + `LICENSE-WHALE` + `NOTICE-WHALE` 随包，草稿 1.0 md 与 P04/P07 baseline fixture 不随包。
 [1.0.0 · 未验] 桌面实机（默认关/开启鲸鱼娘/表单↔JSON/invalid/只读/保存失败/800px/暗色）未执行；隔离 temp cwd P01–P10 基线未跑；5–10 用户 beta/default-on gate 0 人，NO-GO/pending；未 push/publish/PR/安装 desktop。
