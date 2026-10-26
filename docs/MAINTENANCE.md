@@ -122,6 +122,7 @@ dsh plugin --profile <profile> add dsh-structured@x.y.z
 
 | 项 | 级别 | 说明 |
 | --- | --- | --- |
+| 行尾统一（v1.0.x 前必做） | P1 | 工作树 CRLF 会让 `npm pack` 体积与审计/CI 对不上（0.9.9 实测 packed −11 B、unpacked +1,795 B，内容逐字节相同）。修法：加 `.gitattributes`（`* text=auto eol=lf`）+ 重新 checkout，并在发版前复跑 `npm pack --dry-run --json --ignore-scripts` 对齐数字。 |
 | 市场 PR 窗口 | 门禁 | 最早 2026-10-22 21:33 +08 |
 | peer 版本门禁 advisory | P2 | 未声明 `@deepseek-ai/*` peerDependencies，`evaluatePluginCompatibility` 不生效 |
 | 500 字上限未运行时强制 | P3 | 目前只是提示词约束 |
