@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs'
 import test from 'node:test'
 import { Config, statusText, THEMES } from '../src/index.js'
 import { checkThemeContrast, THEME_TOKENS } from '../scripts/theme-contrast.mjs'
+import { checkHueSeparation } from '../scripts/theme-hue-distance.mjs'
 
 const value = (field) => (field && typeof field.get === 'function' ? field.get() : field)
 
@@ -14,7 +15,13 @@ test('0.9.0 Config：theme 默认 deepseek，三值可选', () => {
   assert.equal(value(Config({ defaultEnabled: false }).defaultEnabled), false)
 })
 
-test('0.9.1 Config：六个字段的默认值与显式值', () => {
+test('0.9.8 accent/status hue 分离：12 项通过', () => {
+  const { results, failures } = checkHueSeparation()
+  assert.equal(failures.length, 0, JSON.stringify(failures, null, 2))
+  assert.equal(results.length, 12)
+})
+
+test('0.9.8 Config：六个字段的默认值与显式值', () => {
   const defaults = Config({})
   assert.equal(value(defaults.theme), 'deepseek')
   assert.equal(value(defaults.visual), true)

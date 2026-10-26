@@ -1,6 +1,6 @@
 {
   "name": "dsh-structured",
-  "version": "0.9.7",
+  "version": "0.9.8",
   "description": "Structured output for DSH: no-label title card first, then tables/lists/steps; per-session switch and style.md override. 让 DSH 的每条实质回复默认结构化。",
   "type": "module",
   "main": "lib/index.js",
