@@ -879,7 +879,7 @@ body[data-ds-dark-theme] [class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="nex
       }
 
 
-      personaTestApi = { parsePersonaJson, emptyPersonaDoc, setPath, byteLength, statusLabels, personaUiFlags }
+      personaTestApi = { parsePersonaJson, emptyPersonaDoc, setPath, byteLength, statusLabels, personaUiFlags, PersonaEditor }
 
       const StructuredConfigCard = (props) => {
         if (props.view !== undefined && props.view !== 'page') return null
