@@ -271,4 +271,4 @@ ACCEPTANCE.md                3 行验收记录
 - 视觉层是渐进增强，只在 desktop 客户端生效（Web 客户端作为同源兼容面，不单独验收）；headless / CLI 不加载 client 半区，host 注入不受影响。
 - 视觉层依赖宿主内部 class 名（`[class*="_markdown_"]`、`.md-code-block`）；宿主升级后若改名，会自动退化为原生 markdown，需要按 `docs/VISUAL-PLAN.md` 跑一次视觉回归。
 - `style.md` 是整份覆盖，不做片段合并。
-- 裸 `$...$` 由宿主按 `singleDollarTextMath` 解析成行内公式；需要显示美元符号时用 `\$` 转义或放进反引号；插件不改写消息内容，也不替宿主决定公式语义。
+- 裸 `$...$` 由宿主按 `singleDollarTextMath` 解析成行内公式；需要显示美元符号时用 `\$` 转义或放进反引号；插件不改写消息内容，也不替宿主决定公式语义。0.9.7 起 `BUILTIN_STYLE_TEXT` 增加该规避规则；issue #2 已关闭。

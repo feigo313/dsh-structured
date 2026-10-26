@@ -28,6 +28,14 @@ import {
 } from '../src/index.js'
 import { classify, firstScreenStructured } from '../scripts/measure-prose.mjs'
 
+test('0.9.7 公式规避规则：金额用转义/反引号，不写裸 $...$', () => {
+  assert.match(BUILTIN_STYLE_TEXT, /金额\/美元符号/)
+  assert.match(BUILTIN_STYLE_TEXT, /\\\$/)
+  assert.match(BUILTIN_STYLE_TEXT, /反引号/)
+  assert.match(BUILTIN_STYLE_TEXT, /不要写裸 `\$\.\.\.\$`/)
+})
+
+
 function isolate() {
   const home = mkdtempSync(join(tmpdir(), 'dsh-structured-test-'))
   const saved = { dir: process.env.DSH_PROFILE_DIR, profile: process.env.DSH_PROFILE }
