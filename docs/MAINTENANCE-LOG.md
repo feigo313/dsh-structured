@@ -178,3 +178,11 @@
 - **市场**：PR #9392（条目 tarball → v0.9.6），等维护者合并。
 - **截图**：01/06/07/08 由 0.9.6 web profile 真实界面裁图替换；09/10 按 0.9.6 token 重做（非桌面实机）。
 - **门禁**：npm test 60/60、theme-contrast 60、desktop-check PASS、pack 50 / 751,902 B。
+
+## 2026-10-26 · 第 6 轮
+
+- **issue 水位**：0 open / 2 closed。#2 本轮回复并关闭：0.9.6 已修标题图标悬挂缩进；公式仍为宿主 `singleDollarTextMath`，非插件。
+- **线上复核**：npm `latest=0.9.6`；Release v0.9.6 资产 751,902 B / `1e6639d4…` 未变；CI 最近 4 次 success（merge、Release、日志）。
+- **市场**：PR #9392 OPEN / CLEAN，check 已过，等维护者合并；listing 仍 `v0.9.4` + 7 图，合并后的下一次构建再确认。
+- **仓库**：本地与远端同为 `a699cd2`，工作树 clean。
+- **本轮动作**：只做复核与关闭 #2，无代码改动。
