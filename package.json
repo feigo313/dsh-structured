@@ -72,6 +72,7 @@
     "!docs/ACCEPTANCE-0.9.9.md",
     "!docs/1.0-*.md",
     "docs/1.0-PERSONA-WHALE.json",
+    "!test/fixtures/baseline/P07-python.py",
     "LICENSE-WHALE",
     "NOTICE-WHALE",
     "assets/screenshots",

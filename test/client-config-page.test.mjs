@@ -360,3 +360,37 @@ test('config page：主题分段按钮带各主题强调色，随注册注入/�
   child.__disposeRegistration?.()
   assert.equal(dom.getElementById('dsh-structured-config-style'), null)
 })
+
+test('config page：persona 状态 flags 覆盖 invalid/readonly/saving/pending/download', () => {
+  served = true
+  const { require: fakeRequire } = fakeRuntime()
+  const module = loadClient(makeDom(), fakeRequire)
+  const form = {
+    set() { return Promise.resolve(true) },
+    getSnapshot() { return { status: 'ready', writable: true, value: {} } },
+    subscribe() { return () => {} },
+  }
+  const { slots } = collectRegistration()
+  module.__test.setupConfigPage(makeChild(form, slots), form)
+  const flags = module.__test.personaApi().personaUiFlags
+  const invalid = flags({ status: 'importInvalid' })
+  assert.equal(invalid.invalid, true)
+  assert.equal(invalid.formLocked, true)
+  assert.equal(invalid.canForm, false)
+  assert.equal(invalid.canSave, false)
+  assert.equal(invalid.canDownload, true)
+  assert.equal(invalid.showRestore, true)
+  const tooLarge = flags({ status: 'tooLarge' })
+  assert.equal(tooLarge.formLocked, true)
+  assert.equal(tooLarge.canSave, false)
+  const readonly = flags({ status: 'off', writable: false })
+  assert.equal(readonly.formLocked, true)
+  assert.equal(readonly.canSave, false)
+  assert.equal(readonly.canDownload, true)
+  const saving = flags({ status: 'saving' })
+  assert.equal(saving.busy, true)
+  assert.equal(saving.formLocked, true)
+  assert.equal(saving.canSave, false)
+  const pending = flags({ status: 'importParsed', view: 'json' })
+  assert.equal(pending.showPending, true)
+})
