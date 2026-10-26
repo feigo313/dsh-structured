@@ -66,6 +66,11 @@ function assertCard(document, id, type, tone) {
   assert.equal(element.getAttribute('data-dsh-structured-lead'), null, `${id} lead`)
 }
 
+test('0.9.7 client 不改写消息里的 $...$', () => {
+  const document = render('<p id="dollar">成本 $5，公式 $x^2$</p>')
+  assert.equal(document.getElementById('dollar').textContent, '成本 $5，公式 $x^2$')
+})
+
 test('严格卡片：复合标签、普通引用不升级，完整标签才成卡', () => {
   const document = render(`
     <div class="_markdown_q2"><blockquote id="q2"><p><strong>风险提示</strong><br>影响：宿主升级后可能失效。</p></blockquote></div>

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.7 — 2026-10-26
+
+- `BUILTIN_STYLE_TEXT` 新增金额/美元符号规则：用 `\$` 转义或反引号包裹，不写裸 `$...$`；避免被宿主 `singleDollarTextMath` 解析成公式。
+- README 保留宿主 `singleDollarTextMath` 已知限制并注明 issue #2 已关闭；不改 host、不 patch app.asar、不改消息内容、不引入公式依赖。
+- 测试断言规则存在，并用真实 DOM 确认 client 不改写 `$...$`。
+
 ## 0.9.6 — 2026-10-25
 
 - first-glance 视觉层级：statement 标题 24px、去掉卡头灰色图标、表格行高与表头密度、`下一步` 无底色 + 橙色三角、标题/正文 1px 灰分隔线、表格结论去左边框；只改客户端 CSS，不改注入链路。
