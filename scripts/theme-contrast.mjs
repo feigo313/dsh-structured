@@ -30,12 +30,12 @@ export const THEME_TOKENS = {
   anthropic: {
     light: {
       surface: '#FAF9F5', surface2: '#F5F1E8', text: '#141413', muted: '#6B6359',
-      border: '#E5E0D5', accent: '#CC785C', accentText: '#A14A2E', success: '#266B4D', warn: '#92400E', error: '#8C1D18',
+      border: '#E5E0D5', accent: '#CC785C', accentText: '#A14A2E', success: '#266B4D', warn: '#806000', error: '#8C1D18',
       codeBg: '#F5F1E8', codeText: '#141413',
     },
     dark: {
       surface: '#1F1E1D', surface2: '#2A2825', text: '#F5F1E8', muted: '#A8A29A',
-      border: '#3A3733', accent: '#E8A087', accentText: '#E8A087', success: '#6FBF9A', warn: '#E0A458', error: '#F28B82',
+      border: '#3A3733', accent: '#E8A087', accentText: '#E8A087', success: '#6FBF9A', warn: '#EAB308', error: '#F28B82',
       codeBg: '#171614', codeText: '#F5F1E8',
     },
   },

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.9.8 — 2026-10-26
+
+- 0.9.6 first-glance 视觉布局/字号/卡片结构冻结；只修复语义色冲突：Anthropic warn 从 `#92400E/#E0A458` 调整为 `#806000/#EAB308`，与 accent `#CC785C/#E8A087` 拉开 hue 距离；Codex 保持 `#10A37F/#34D399` 与 success `#116329/#3FB950`。
+- 新增 `scripts/theme-hue-distance.mjs`（阈值 25°）与 12 项 accent/status hue 检查；60 项对比度仍全过。
+- 新增 `docs/1.0-BASELINE.md`：10 条固定 prompt、注入 token 口径、首屏结构化率/散文率口径、`style.md` 整份覆盖迁移说明；实际 10-prompt 模型运行和 3×2 桌面截图未完成，明确标未验。
+- 版本 0.9.8；只修 P0/P1，不加新功能。
+
 ## 0.9.7 — 2026-10-26
 
 - `BUILTIN_STYLE_TEXT` 新增金额/美元符号规则：用 `\$` 转义或反引号包裹，不写裸 `$...$`；避免被宿主 `singleDollarTextMath` 解析成公式。
