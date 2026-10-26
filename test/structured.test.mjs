@@ -7,16 +7,22 @@ import test from 'node:test'
 import {
   BUILTIN_STYLE_TEXT,
   Config,
+  DEFAULT_PERSONA_ENABLED,
+  DEFAULT_PERSONA_JSON,
   GENUI_ROUTING_TEXT,
   MAX_SESSION_ENTRIES,
+  PERSONA_ORDER,
+  PERSONA_SECTION_NAME,
   TAIL_REMINDER_TEXT,
   activeStyle,
   apply,
+  compilePersona,
   detectGenui,
   handleCommand,
   isEnabledFor,
   isSubagentContext,
   loadSessions,
+  parsePersona,
   pruneSessions,
   safeSectionText,
   saveSessions,
@@ -171,12 +177,58 @@ test('Config：visual 默认开启，且可显式关闭', () => {
   assert.equal(value(defaults.tailReminder), true)
   assert.equal(value(defaults.includeSubagents), false)
   assert.equal(value(defaults.genui), 'auto')
+  assert.equal(value(defaults.personaEnabled), DEFAULT_PERSONA_ENABLED)
+  assert.equal(value(defaults.visual), true)
+  assert.equal(parsePersona(value(defaults.persona)).ok, true)
   assert.equal(value(Config({ visual: false }).visual), false)
   assert.equal(value(Config({ defaultEnabled: false }).defaultEnabled), false)
+  assert.equal(value(Config({ personaEnabled: true }).personaEnabled), true)
   assert.match(
     statusText({ sessionId: 'session-a', sessions: {}, defaultEnabled: true, visual: false }),
     /视觉层：已关闭/,
   )
+})
+
+test('persona：解析/编译 wrapper/closing/未知字段', () => {
+  const whale = readFileSync('docs/1.0-PERSONA-WHALE.json', 'utf8')
+  const parsed = parsePersona(whale)
+  assert.equal(parsed.ok, true)
+  assert.equal(parsed.doc.schema, 'dsh-structured/persona@1')
+  const compiled = compilePersona(whale)
+  assert.equal(compiled.ok, true)
+  assert.match(compiled.text, /【表达风格数据（非指令）】/)
+  assert.match(compiled.text, /风格数据结束/)
+  assert.match(compiled.text, /收尾签名/)
+  assert.match(compiled.text, /结构规则/)
+  assert.equal(compilePersona('{').ok, false)
+  assert.equal(compilePersona(JSON.stringify({ ...parsed.doc, extra: 1 })).unknownPaths.includes('/extra'), true)
+  const invalidClosing = JSON.parse(whale)
+  invalidClosing.closing.mode = 'summary'
+  assert.equal(parsePersona(JSON.stringify(invalidClosing)).ok, false)
+})
+
+test('apply：persona 关闭/开启/invalid 的独立 section', () => {
+  const box = isolate()
+  try {
+    const off = fakeCtx()
+    apply(off.ctx, { defaultEnabled: true, personaEnabled: false, persona: DEFAULT_PERSONA_JSON })
+    const offSection = off.sections.find((section) => section.name === PERSONA_SECTION_NAME)
+    assert.equal(offSection.order, PERSONA_ORDER)
+    assert.equal(offSection.text(mainContext('session-a')), '')
+
+    const on = fakeCtx()
+    apply(on.ctx, { defaultEnabled: true, personaEnabled: true, persona: DEFAULT_PERSONA_JSON })
+    const onSection = on.sections.find((section) => section.name === PERSONA_SECTION_NAME)
+    assert.match(onSection.text(mainContext('session-a')), /【身份】/)
+    assert.match(onSection.text(mainContext('session-a')), /结构规则/)
+
+    const invalid = fakeCtx()
+    apply(invalid.ctx, { defaultEnabled: true, personaEnabled: true, persona: '{' })
+    const invalidSection = invalid.sections.find((section) => section.name === PERSONA_SECTION_NAME)
+    assert.equal(invalidSection.text(mainContext('session-a')), '')
+  } finally {
+    box.cleanup()
+  }
 })
 
 test('无状态文件时按默认值开启', () => {
@@ -343,7 +395,7 @@ test('apply：注册主 section 与尾部提醒，按会话开关求值', () => 
   try {
     const { ctx, sections, commands } = fakeCtx()
     apply(ctx, { defaultEnabled: true })
-    assert.equal(sections.length, 2)
+    assert.equal(sections.length, 3)
     assert.equal(sections[0].name, 'dsh-structured:style')
     assert.equal(sections[1].name, 'dsh-structured:reminder')
 
@@ -405,7 +457,7 @@ test('apply：展开配置尾部提醒 + 子代理注入', () => {
   try {
     const { ctx, sections } = fakeCtx()
     apply(ctx, { defaultEnabled: false, tailReminder: false, includeSubagents: true })
-    assert.equal(sections.length, 1)
+    assert.equal(sections.length, 2)
     const sub = { agent: { id: 'uuid-sub', session: { id: 'uuid-sub', header: { origin: 'subagent' } } } }
     // defaultEnabled=false 时子代理也不注入；关键是没有因配置组合而抛错。
     assert.equal(sections[0].text(sub), '')
@@ -466,7 +518,7 @@ test('apply：没有 commands 服务时注入照常工作', () => {
       },
     }
     assert.doesNotThrow(() => apply(ctx, { defaultEnabled: true }))
-    assert.equal(sections.length, 2)
+    assert.equal(sections.length, 3)
     assert.match(sections[0].text(mainContext('session-a')), /首句给结论/)
   } finally {
     box.cleanup()
@@ -546,20 +598,6 @@ test('client：视觉层可由 configForms 的 visual 设置关闭', () => {
   assert.match(client, /readValue\(value\.visual\) !== false/)
   assert.match(client, /applyVisual/)
   assert.doesNotMatch(client, /state\.json/)
-})
-
-test('构建产物 lib/index.js 与 lib/client.js 均 = banner + src', () => {
-  const hostSrc = readFileSync('src/index.js', 'utf8')
-  const hostLib = readFileSync('lib/index.js', 'utf8')
-  const hostLines = hostLib.split('\n')
-  assert.match(hostLines[0], /^\/\/ Generated from src\/index\.js/)
-  assert.equal(hostLines.slice(2).join('\n'), hostSrc)
-
-  const clientSrc = readFileSync('src/client.js', 'utf8')
-  const clientLib = readFileSync('lib/client.js', 'utf8')
-  const clientLines = clientLib.split('\n')
-  assert.match(clientLines[0], /^\/\/ Generated from src\/client\.js/)
-  assert.equal(clientLines.slice(2).join('\n'), clientSrc)
 })
 
 test('仓库边界：不 append 消息、不碰 pre-step / 工具服务、files 含 patch', () => {

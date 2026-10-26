@@ -96,8 +96,15 @@ pnpm add $tgz
 - 新会话默认开启；`defaultEnabled: false` 可改默认值（见配置）。
 - 视觉层由插件设置 `visual` 控制（默认开启），不写 `state.json`；`/structured on|off` 只控制提示词注入，不影响视觉层。
 - 自定义规则：写 `$DSH_HOME/dsh-structured/style.md`，**非空即整份覆盖**内置文本，保存后下一轮生效；文件为空或删除时回落内置。
-- **用 `style.md` 承载人格 / 长期设定（可选）**：`style.md` 的内容会被原样放进每次请求的 section，所以也可以写人格、收尾格式或长期设定；代价是**整份覆盖**——内置结构化规则会消失。想同时保留两者，把 `src/index.js` 的 `BUILTIN_STYLE_TEXT` 全文抄进去，再在后面追加人格段。只当人格用、不需要结构化时，建议把 `tailReminder` 设为 `false`，否则尾部提醒仍会要求「首段 markdown 标题卡」。`style.md` 位于 `$DSH_HOME`，所有 profile 共用同一份。
+- **用 `style.md` 承载长期设定（可选）**：`style.md` 的内容会被原样放进每次请求的 section，代价是**整份覆盖**内置文本；想同时保留结构规则，把 `src/index.js` 的 `BUILTIN_STYLE_TEXT` 全文抄进去再追加。1.0 起表达风格请用下方 Persona 设置页，不建议把人格继续塞进 `style.md`；`style.md` 语义不变。
 - 内置文本与 `~/.dsh/AGENTS.md` 第 7 节同源：首句结论、组件化正文、一段一主题、禁过程叙事与复述、证据优先、短答不套卡；清晰优先，不设硬性篇幅上限。
+
+### 表达风格（Persona，1.0）
+
+- 插件详情页第二个 tab：**表单 + 可编辑 JSON** 双入口，共用同一份 canonical 数据；默认关闭，开启后使用鲸鱼娘模板。
+- 存储为 profile Config：`personaEnabled:boolean` + `persona:string`；不读 `persona.md`，不引入文件路径。保存显式生效；结构化 tab 六字段仍即时写入。
+- 鲸鱼娘是社区二创示例，非 DeepSeek 官方；模板单独 CC-BY-NC-SA-4.0（`LICENSE-WHALE` / `NOTICE-WHALE`），不打包美术。结构规则、工具权限、GenUI、代码/diff 隔离永远优先，persona 只影响表达。
+- 64KB 硬拒；JSON 无效/被上层覆盖时 fail-open/只读，不静默保存。1.0 beta 默认关闭；default-on 由 Boss 在用户 gate 后决定。
 
 ### 代码 / diff 例外
 

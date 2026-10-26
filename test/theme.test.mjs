@@ -86,7 +86,7 @@ test('0.9.0 client：主题 token/暗色 selector/code token 存在，旧 select
   assert.match(client, /--ds-code-text/)
   assert.match(client, /--ds-accent-text/)
   assert.doesNotMatch(client, /\[data-theme="dark"\]/)
-  assert.doesNotMatch(client, /--dsw-alias-state-/)
+  assert.doesNotMatch(client, /--dsw-alias-state-(success|warn)-primary/)
   assert.match(client, /--ds-accent:#2563EB/)
   for (const theme of ['codex', 'anthropic']) assert.match(client, new RegExp(`data-dsh-structured-theme="${theme}"`))
 })

@@ -66,6 +66,13 @@ function fakeRuntime() {
           },
         }
       }
+      if (spec === 'react') {
+        return {
+          useState(value) {
+            return [typeof value === 'function' ? value() : value, () => {}]
+          },
+        }
+      }
       throw new Error('unexpected require: ' + spec)
     },
     node,
@@ -85,6 +92,7 @@ function loadClient(dom, fakeRequire) {
   vm.runInNewContext(code, {
     window,
     document: dom,
+    TextEncoder,
     MutationObserver: class {
       observe() {}
       disconnect() {}
@@ -290,6 +298,31 @@ test('config page：插件未就绪与只读态的降级渲染', () => {
   const switches = flat.filter((element) => element.type?.name === 'Switch')
   assert.equal(switches.length, 4)
   for (const element of switches) assert.equal(element.props.disabled, true)
+})
+
+test('config page：persona helper 校验、未知字段、64KB 与路径写入', () => {
+  served = true
+  const { require: fakeRequire } = fakeRuntime()
+  const module = loadClient(makeDom(), fakeRequire)
+  const form = {
+    set() { return Promise.resolve(true) },
+    getSnapshot() { return { status: 'ready', writable: true, value: {} } },
+    subscribe() { return () => {} },
+  }
+  const { slots } = collectRegistration()
+  module.__test.setupConfigPage(makeChild(form, slots), form)
+  const api = module.__test.personaApi()
+  assert.ok(api)
+  const whale = readFileSync('docs/1.0-PERSONA-WHALE.json', 'utf8')
+  const parsed = api.parsePersonaJson(whale)
+  assert.equal(parsed.ok, true)
+  assert.equal(parsed.unknownPaths.length, 0)
+  assert.equal(api.parsePersonaJson('{').ok, false)
+  assert.equal(api.parsePersonaJson(whale.replace('"schema"', '"extra": 1, "schema"')).unknownPaths.includes('/extra'), true)
+  assert.equal(api.parsePersonaJson('x'.repeat(65537)).ok, false)
+  const next = api.setPath(parsed.doc, 'identity.role', '测试身份')
+  assert.equal(next.identity.role, '测试身份')
+  assert.equal(parsed.doc.identity.role !== '测试身份', true)
 })
 
 test('config page：主题分段按钮带各主题强调色，随注册注入/撤销移除', () => {

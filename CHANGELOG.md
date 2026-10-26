@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.0 — 2026-10-26
+
+- 1.0 人格设置页：插件详情页增加“结构化输出 / 表达风格（Persona）”两个 tab；Persona 表单与可编辑 JSON 共用同一份 canonical `PersonaDoc`，默认关闭，开启后使用鲸鱼娘模板。
+- Host：Config 增加 `personaEnabled`/`persona`；独立 persona section（order 9950；base 9900 → persona 9950 → 宿主 → tail 10300）；固定 wrapper、closing carve-out、64KB 硬拒、无效 JSON fail-open。
+- Client：表单↔JSON 同步、模板载入、上传/下载/格式化/校验、dirty/importInvalid/readonly/saving/failed/tooLarge 等状态；<1000px 单列，960 宿主宽度下用表单/JSON 子 tab，不做超出 slot 的左右双栏。
+- 鲸鱼娘模板随包：`docs/1.0-PERSONA-WHALE.json` + `LICENSE-WHALE` + `NOTICE-WHALE`；CC-BY-NC-SA-4.0，非官方，不打包美术；构建从 JSON 单一源注入 host/client。
+- 未完成：桌面实机、隔离 temp cwd P01–P10 基线、beta/default-on 用户 gate 均未验；不宣称 gate 通过。
+
 ## 0.9.9 — 2026-10-26
 
 - 1.0 人格化 spec/schema：`persona.md` 追加层、结构规则始终由 base 注入、`style.md` 保留整份覆盖、profile 级、fail-open、读取顺序/优先级/长度建议/失败回退/迁移/隐私写入 `docs/1.0-PERSONA-SPEC.md`。

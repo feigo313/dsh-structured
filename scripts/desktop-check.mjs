@@ -105,7 +105,7 @@ try {
   check('lib/client.js 存在', false, clientFile)
 }
 check('client 模块 id 与包名一致', /id:\s*'dsh-structured'/.test(clientText), '')
-check('client 模块是纯 DOM 增强（无 React 强依赖）', !/require\(['"]react['"]\)/.test(clientText), '')
+check('client 模块无 ReactDOM / 自建 bundler 依赖（配置页允许宿主 React）', !/require\(['"]react-dom['"]\)|createRoot/.test(clientText), '')
 const imports = [...libText.matchAll(/from\s+['"]([^'"]+)['"]/g)].map((match) => match[1])
 const allowedRuntimeImports = new Set(['@deepseek-ai/schemastery'])
 const nonNodeImports = imports.filter((spec) => !spec.startsWith('node:') && !allowedRuntimeImports.has(spec))

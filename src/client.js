@@ -31,6 +31,8 @@ window.__ModuleLoader__.load({
     /** 配置页常量：宿主插件详情页的 bundle 配置 slot（键 = 包名）。 */
     const CONFIG_NS = 'dsh-structured'
     const BUNDLE_CONFIG_SLOT = 'plugins.bundle.config'
+    let personaTestApi = null
+    const PERSONA_WHALE_JSON = '__DSH_STRUCTURED_WHALE_JSON__'
 
     /** 六个配置字段的界面文案；field 与 host Config schema 对齐，fallback 为 schema 默认值。 */
     const CONFIG_FIELDS = [
@@ -510,12 +512,15 @@ body[data-ds-dark-theme] [class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="nex
       let jsx
       let jsxs
       let ui
+      let react
       try {
         const runtime = require('react/jsx-runtime')
         jsx = runtime.jsx
         jsxs = runtime.jsxs
+        react = require('react')
         ui = require('@deepseek-ai/dsh-client-ui-primitives')
         if (typeof ui?.Switch !== 'function' || typeof ui?.SegmentedControl !== 'function') return
+        if (typeof react?.useState !== 'function') return
       } catch {
         // primitives 不可用（非 desktop 表层）：不出配置页。
         return
@@ -525,6 +530,12 @@ body[data-ds-dark-theme] [class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="nex
       const hintStyle = { fontSize: '12.5px', lineHeight: '18px', color: 'var(--dsw-alias-label-tertiary, inherit)', marginTop: '2px' }
       const rowStyle = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', padding: '10px 0', borderBottom: '1px solid var(--dsw-alias-border-l2, rgba(127,127,127,.18))' }
       const noteStyle = { fontSize: '12.5px', lineHeight: '18px', color: 'var(--dsw-alias-label-tertiary, inherit)', margin: '6px 0 2px' }
+      const inputStyle = { width: '100%', boxSizing: 'border-box', border: '0.5px solid var(--dsw-alias-border-l4, rgba(127,127,127,.3))', borderRadius: '7px', background: 'var(--dsw-alias-bg-layer-3, transparent)', color: 'var(--dsw-alias-label-primary, inherit)', padding: '7px 9px', fontSize: '13px', lineHeight: '18px' }
+      const fieldStyle = { display: 'flex', flexDirection: 'column', gap: '5px', minWidth: 0 }
+      const tabButtonStyle = { border: '0', background: 'transparent', color: 'var(--dsw-alias-label-secondary, inherit)', padding: '7px 2px 8px', fontSize: '13px', fontWeight: 500, cursor: 'pointer', borderBottom: '2px solid transparent' }
+      const tabActiveStyle = { color: 'var(--dsw-alias-state-business-primary, #2563eb)', borderBottomColor: 'var(--dsw-alias-state-business-primary, #2563eb)' }
+      const secondaryButtonStyle = { border: '0.5px solid var(--dsw-alias-border-l4, rgba(127,127,127,.3))', borderRadius: '7px', background: 'var(--dsw-alias-bg-layer-3, transparent)', color: 'var(--dsw-alias-label-primary, inherit)', padding: '6px 10px', fontSize: '12.5px', cursor: 'pointer' }
+      const primaryButtonStyle = { border: '0', borderRadius: '7px', background: 'var(--dsw-alias-state-business-primary, #2563eb)', color: '#fff', padding: '6px 12px', fontSize: '12.5px', cursor: 'pointer' }
 
       const fieldValue = (value, spec) => {
         const raw = value?.[spec.field]
@@ -561,6 +572,275 @@ body[data-ds-dark-theme] [class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="nex
         })
       }
 
+      const PERSONA_SCHEMA = 'dsh-structured/persona@1'
+      const PERSONA_MAX = 64 * 1024
+      const PERSONA_FIELDS = [
+        ['meta.name', '模板名', 'text'],
+        ['identity.role', '身份', 'textarea'],
+        ['identity.selfReference', '自称（、分隔）', 'text'],
+        ['identity.worldview', '世界观', 'textarea'],
+        ['address.user', '称呼用户', 'text'],
+        ['address.forbidden', '禁用称呼（、分隔）', 'text'],
+        ['tone.style', '语气', 'textarea'],
+        ['tone.professionalScenes', '专业场景（、分隔）', 'text'],
+        ['tone.forbidden', '语气禁区（、分隔）', 'text'],
+        ['habits.catchphrases', '口头禅（、分隔）', 'text'],
+        ['habits.motifs', '意象（、分隔）', 'text'],
+        ['habits.taboos', '禁忌（、分隔）', 'text'],
+        ['closing.maxChars', '收尾字数上限', 'number'],
+        ['closing.skipIn', '收尾跳过场景（、分隔）', 'text'],
+        ['examples', '示例（每行一条，1–3 条）', 'textarea'],
+        ['meta.author', '作者', 'text'],
+        ['meta.license', '许可', 'text'],
+        ['meta.source', '来源', 'text'],
+        ['meta.attribution', '署名链', 'text'],
+      ]
+
+      const cloneDoc = (doc) => JSON.parse(JSON.stringify(doc))
+      const emptyPersonaDoc = () => ({
+        schema: PERSONA_SCHEMA,
+        meta: { name: '自定义模板', author: '', license: '', official: false, source: '', attribution: '' },
+        identity: { role: '', selfReference: [], worldview: '' },
+        address: { user: 'Boss', forbidden: [] },
+        tone: { style: '', professionalScenes: [], forbidden: [] },
+        habits: { catchphrases: [], motifs: [], taboos: [] },
+        closing: { enabled: false, mode: 'signature', maxChars: 20, skipIn: ['code', 'diff', 'error'] },
+        examples: [],
+        render: { intensity: 'standard', language: 'follow_user', audience: 'general' },
+      })
+      const pathParts = (path) => path.split('.')
+      const getPath = (doc, path) => pathParts(path).reduce((value, key) => value?.[key], doc)
+      const setPath = (doc, path, value) => {
+        const next = cloneDoc(doc)
+        const parts = pathParts(path)
+        let cursor = next
+        for (const key of parts.slice(0, -1)) {
+          if (!cursor[key] || typeof cursor[key] !== 'object') cursor[key] = {}
+          cursor = cursor[key]
+        }
+        cursor[parts[parts.length - 1]] = value
+        return next
+      }
+      const asText = (value) => Array.isArray(value) ? value.join('、') : value === undefined || value === null ? '' : String(value)
+      const fromText = (value) => String(value).split(/[、,]/).map((item) => item.trim()).filter(Boolean)
+      const byteLength = (text) => new TextEncoder().encode(text).length
+      const personaUnknownPaths = (doc) => {
+        const out = []
+        const known = {
+          '': ['schema', 'meta', 'identity', 'address', 'tone', 'habits', 'closing', 'examples', 'render'],
+          meta: ['name', 'version', 'author', 'license', 'official', 'source', 'attribution'],
+          identity: ['role', 'selfReference', 'worldview'],
+          address: ['user', 'forbidden'],
+          tone: ['style', 'professionalScenes', 'forbidden'],
+          habits: ['catchphrases', 'motifs', 'taboos'],
+          closing: ['enabled', 'mode', 'maxChars', 'skipIn'],
+          render: ['intensity', 'language', 'audience'],
+        }
+        for (const [prefix, keys] of Object.entries(known)) {
+          const object = prefix === '' ? doc : doc?.[prefix]
+          if (!object || typeof object !== 'object') continue
+          for (const key of Object.keys(object)) if (!keys.includes(key)) out.push((prefix ? '/' + prefix : '') + '/' + key)
+        }
+        return out
+      }
+      const parsePersonaJson = (text) => {
+        if (typeof text !== 'string' || text.trim() === '') return { ok: false, error: '空 JSON', pointer: '/' }
+        if (byteLength(text) > PERSONA_MAX) return { ok: false, error: '超过 64KB', pointer: '/' }
+        let doc
+        try { doc = JSON.parse(text) } catch (error) { return { ok: false, error: 'JSON 解析失败：' + String(error.message ?? error), pointer: '/' } }
+        if (!doc || typeof doc !== 'object' || Array.isArray(doc)) return { ok: false, error: '顶层必须是对象', pointer: '/' }
+        if (doc.schema !== PERSONA_SCHEMA) return { ok: false, error: 'schema 必须是 ' + PERSONA_SCHEMA, pointer: '/schema' }
+        for (const field of ['name', 'author', 'license', 'source', 'attribution']) {
+          if (typeof doc.meta?.[field] !== 'string' || doc.meta[field].trim() === '') return { ok: false, error: 'meta.' + field + ' 必填', pointer: '/meta/' + field }
+        }
+        if (doc.meta?.official !== false) return { ok: false, error: 'meta.official 必须为 false', pointer: '/meta/official' }
+        for (const field of ['role']) if (typeof doc.identity?.[field] !== 'string' || doc.identity[field].trim() === '') return { ok: false, error: 'identity.' + field + ' 必填', pointer: '/identity/' + field }
+        if (typeof doc.address?.user !== 'string' || doc.address.user.trim() === '') return { ok: false, error: 'address.user 必填', pointer: '/address/user' }
+        if (typeof doc.tone?.style !== 'string' || doc.tone.style.trim() === '') return { ok: false, error: 'tone.style 必填', pointer: '/tone/style' }
+        if (doc.render?.intensity !== undefined && doc.render.intensity !== 'standard') return { ok: false, error: 'intensity 只支持 standard', pointer: '/render/intensity' }
+        if (doc.examples !== undefined && (!Array.isArray(doc.examples) || doc.examples.length < 1 || doc.examples.length > 3)) return { ok: false, error: 'examples 需要 1–3 条', pointer: '/examples' }
+        return { ok: true, doc, unknownPaths: personaUnknownPaths(doc) }
+      }
+
+      const statusLabels = {
+        loading: '加载中', unavailable: '不可用', readonly: '被上层配置覆盖（只读）', clean: '未修改',
+        dirty: '有未保存修改', jsonEditing: 'JSON 编辑中', importParsed: '待确认导入', importInvalid: 'JSON 无效',
+        saving: '保存中', saved: '已保存并启用', failed: '保存失败', tooLarge: '超过 64KB', draftOff: '草稿已关闭', off: '已关闭',
+      }
+
+      const PersonaEditor = ({ state, setField }) => {
+        const initialRaw = fieldValue(state.value, { field: 'persona', fallback: PERSONA_WHALE_JSON })
+        const initialParsed = parsePersonaJson(initialRaw)
+        const [doc, setDoc] = react.useState(initialParsed.ok ? initialParsed.doc : emptyPersonaDoc())
+        const [jsonText, setJsonText] = react.useState(initialParsed.ok ? JSON.stringify(initialParsed.doc, null, 2) : String(initialRaw ?? ''))
+        const [enabled, setEnabled] = react.useState(fieldValue(state.value, { field: 'personaEnabled', fallback: false }) === true)
+        const [template, setTemplate] = react.useState('whale')
+        const [status, setStatus] = react.useState(initialParsed.ok ? (enabled ? 'saved' : 'off') : 'importInvalid')
+        const [error, setError] = react.useState(initialParsed.ok ? '' : initialParsed.error + ' (' + initialParsed.pointer + ')')
+        const [lastValid, setLastValid] = react.useState(initialParsed.ok ? initialParsed.doc : emptyPersonaDoc())
+        const [pendingImport, setPendingImport] = react.useState(null)
+        const readonly = state.writable === false
+        const dirty = ['dirty', 'jsonEditing', 'importParsed', 'failed', 'draftOff'].includes(status)
+        const bytes = byteLength(jsonText)
+        const warn1200 = JSON.stringify(doc).length > 1200
+        const warn4000 = JSON.stringify(doc).length > 4000
+        const updateDoc = (next) => {
+          setDoc(next)
+          setJsonText(JSON.stringify(next, null, 2))
+          setStatus('dirty')
+          setError('')
+        }
+        const onField = (path, value) => {
+          if (readonly) return
+          let next = setPath(doc, path, value)
+          if (path === 'closing.enabled') next = setPath(next, 'closing.mode', 'signature')
+          updateDoc(next)
+        }
+        const onJson = (text) => {
+          setJsonText(text)
+          const parsed = parsePersonaJson(text)
+          if (parsed.ok) {
+            setDoc(parsed.doc)
+            setLastValid(parsed.doc)
+            setStatus('jsonEditing')
+            setError(parsed.unknownPaths.length ? '未知字段：' + parsed.unknownPaths.join(', ') : '')
+          } else {
+            setStatus('importInvalid')
+            setError(parsed.error + ' (' + parsed.pointer + ')')
+          }
+        }
+        const confirmDirty = () => !dirty || typeof window === 'undefined' || typeof window.confirm !== 'function' || window.confirm('有未保存修改，确认丢弃？')
+        const loadWhale = () => {
+          if (!confirmDirty()) return
+          const parsed = parsePersonaJson(PERSONA_WHALE_JSON)
+          if (!parsed.ok) { setStatus('importInvalid'); setError(parsed.error); return }
+          setDoc(parsed.doc); setJsonText(JSON.stringify(parsed.doc, null, 2)); setLastValid(parsed.doc); setStatus('dirty'); setError('')
+        }
+        const resetDefault = () => {
+          if (!confirmDirty()) return
+          const parsed = parsePersonaJson(PERSONA_WHALE_JSON)
+          if (!parsed.ok) return
+          setDoc(parsed.doc); setJsonText(JSON.stringify(parsed.doc, null, 2)); setLastValid(parsed.doc); setEnabled(false); setStatus('dirty'); setError('')
+        }
+        const save = async () => {
+          if (readonly || status === 'importInvalid' || status === 'tooLarge') return
+          const parsed = parsePersonaJson(jsonText)
+          if (!parsed.ok) { setStatus('importInvalid'); setError(parsed.error + ' (' + parsed.pointer + ')'); return }
+          if (parsed.unknownPaths.length && typeof window !== 'undefined' && typeof window.confirm === 'function' && !window.confirm('JSON 含未知字段，保存会原样保留：' + parsed.unknownPaths.join(', ') + '。继续？')) return
+          setStatus('saving')
+          try {
+            const enabledResult = await setField('personaEnabled', enabled)
+            if (enabledResult === false) throw new Error('personaEnabled write rejected')
+            const personaResult = await setField('persona', JSON.stringify(parsed.doc, null, 2))
+            if (personaResult === false) throw new Error('persona write rejected')
+            setDoc(parsed.doc); setLastValid(parsed.doc); setStatus(enabled ? 'saved' : 'off'); setError('')
+          } catch (saveError) {
+            setStatus('failed'); setError(String(saveError.message ?? saveError))
+          }
+        }
+        const upload = async (event) => {
+          if (readonly) return
+          const file = event?.target?.files?.[0]
+          if (!file) return
+          if (file.size > PERSONA_MAX) { setStatus('tooLarge'); setError('文件超过 64KB'); return }
+          if (!confirmDirty()) return
+          try {
+            const text = await file.text()
+            if (byteLength(text) > PERSONA_MAX) { setStatus('tooLarge'); setError('文件超过 64KB'); return }
+            const parsed = parsePersonaJson(text)
+            if (!parsed.ok) { setStatus('importInvalid'); setError(parsed.error + ' (' + parsed.pointer + ')'); return }
+            setPendingImport(parsed.doc)
+            setStatus('importParsed')
+            setError(parsed.unknownPaths.length ? '未知字段：' + parsed.unknownPaths.join(', ') : '')
+          } catch (readError) { setStatus('importInvalid'); setError(String(readError.message ?? readError)) }
+        }
+        const applyImport = () => {
+          if (!pendingImport) return
+          setDoc(pendingImport); setJsonText(JSON.stringify(pendingImport, null, 2)); setLastValid(pendingImport); setPendingImport(null); setStatus('dirty')
+        }
+        const restoreLast = () => { setDoc(lastValid); setJsonText(JSON.stringify(lastValid, null, 2)); setStatus('dirty'); setError('') }
+        const formatJson = () => {
+          const parsed = parsePersonaJson(jsonText)
+          if (parsed.ok) { setDoc(parsed.doc); setJsonText(JSON.stringify(parsed.doc, null, 2)); setStatus('dirty'); setError('') }
+          else { setStatus('importInvalid'); setError(parsed.error + ' (' + parsed.pointer + ')') }
+        }
+        const download = () => {
+          try {
+            const blob = new Blob([jsonText], { type: 'application/json' })
+            const url = URL.createObjectURL(blob)
+            const anchor = document.createElement('a')
+            anchor.href = url; anchor.download = 'dsh-structured-persona.json'; anchor.click()
+            setTimeout(() => URL.revokeObjectURL(url), 0)
+          } catch (downloadError) { setError(String(downloadError.message ?? downloadError)) }
+        }
+        const row = (path, label, kind) => {
+          const value = getPath(doc, path)
+          const text = kind === 'textarea' && path === 'examples' ? (value ?? []).join('\n') : asText(value)
+          const common = { disabled: readonly, style: inputStyle }
+          const control = kind === 'textarea'
+            ? jsx('textarea', { ...common, rows: path === 'examples' ? 3 : 2, value: text, onChange: (event) => onField(path, path === 'examples' ? event.target.value.split('\n').filter(Boolean) : event.target.value) })
+            : jsx('input', { ...common, type: kind === 'number' ? 'number' : 'text', min: kind === 'number' ? 10 : undefined, max: kind === 'number' ? 40 : undefined, value: text, onChange: (event) => onField(path, kind === 'number' ? Number(event.target.value) : path.endsWith('skipIn') || path.endsWith('forbidden') || path.endsWith('professionalScenes') || path.endsWith('catchphrases') || path.endsWith('motifs') || path.endsWith('taboos') || path.endsWith('selfReference') ? fromText(event.target.value) : event.target.value) })
+          return jsxs('label', { style: fieldStyle, children: [jsx('span', { style: labelStyle, children: label }), control] })
+        }
+        const tabButton = (id, label) => jsx('button', {
+          type: 'button', role: 'tab', 'aria-selected': status === id, disabled: readonly,
+          onClick: () => { if (status !== id && confirmDirty()) setStatus(id) },
+          style: { ...tabButtonStyle, ...(status === id ? tabActiveStyle : {}) }, children: label,
+        })
+        return jsxs('div', { 'data-dsh-persona': '1', style: { display: 'flex', flexDirection: 'column', gap: '14px' }, children: [
+          jsxs('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }, children: [
+            jsx('div', { style: labelStyle, children: '启用表达风格' }),
+            jsx(ui.Switch, { checked: enabled, disabled: readonly, label: '启用表达风格', onChange: (next) => { setEnabled(next); setStatus(next ? 'dirty' : 'draftOff') } }),
+          ] }),
+          jsxs('div', { style: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }, children: [
+            jsx('select', { disabled: readonly, value: template, onChange: (event) => setTemplate(event.target.value), style: { ...inputStyle, width: '180px' }, children: [jsx('option', { value: 'whale', children: '鲸鱼娘（示例）' }), jsx('option', { value: 'custom', children: '自定义' })] }),
+            jsx('button', { type: 'button', disabled: readonly, onClick: loadWhale, style: secondaryButtonStyle, children: '载入基础模板' }),
+            jsx('span', { style: noteStyle, children: '非官方 · 社区二创 · 不打包美术' }),
+          ] }),
+          jsxs('div', { role: 'tablist', style: { display: 'flex', gap: '6px' }, children: [tabButton('dirty', '表单'), tabButton('jsonEditing', 'JSON')] }),
+          status === 'jsonEditing' || (status === 'importInvalid' && jsonText) ? jsxs('div', { style: { display: 'flex', flexDirection: 'column', gap: '8px' }, children: [
+            jsx('textarea', { value: jsonText, disabled: readonly, onChange: (event) => onJson(event.target.value), spellCheck: false, style: { ...inputStyle, minHeight: '360px', fontFamily: 'var(--ds-font-family-code, monospace)', fontSize: '12px', whiteSpace: 'pre' } }),
+            jsxs('div', { style: { display: 'flex', gap: '8px', flexWrap: 'wrap' }, children: [
+              jsx('button', { type: 'button', disabled: readonly, onClick: formatJson, style: secondaryButtonStyle, children: '格式化' }),
+              jsx('button', { type: 'button', disabled: readonly, onClick: () => { const parsed = parsePersonaJson(jsonText); if (!parsed.ok) { setStatus('importInvalid'); setError(parsed.error); } else { setStatus('dirty'); setError('') } }, style: secondaryButtonStyle, children: '校验' }),
+              jsx('label', { style: { ...secondaryButtonStyle, display: 'inline-block' }, children: ['上传 JSON', jsx('input', { type: 'file', accept: 'application/json,.json', disabled: readonly, onChange: upload, style: { display: 'none' } })] }),
+              jsx('button', { type: 'button', onClick: download, style: secondaryButtonStyle, children: '下载' }),
+              pendingImport ? jsx('button', { type: 'button', disabled: readonly, onClick: applyImport, style: primaryButtonStyle, children: '应用导入' }) : null,
+            ] }),
+            error ? jsx('p', { style: { color: 'var(--dsw-alias-state-error-primary, #b91c1c)', fontSize: '12px', margin: 0 }, children: error }) : null,
+          ] }) : jsxs('div', { style: { display: 'grid', gridTemplateColumns: '1fr', gap: '10px 16px' }, children: [
+            ...PERSONA_FIELDS.map(([path, label, kind]) => row(path, label, kind)),
+            jsxs('label', { style: fieldStyle, children: [
+              jsx('span', { style: labelStyle, children: '强度' }),
+              jsx('select', { disabled: readonly, value: doc.render?.intensity ?? 'standard', onChange: (event) => onField('render.intensity', event.target.value), style: inputStyle, children: [jsx('option', { value: 'standard', children: 'standard' })] }),
+            ] }),
+            jsxs('label', { style: fieldStyle, children: [
+              jsx('span', { style: labelStyle, children: '语言' }),
+              jsx('select', { disabled: readonly, value: doc.render?.language ?? 'follow_user', onChange: (event) => onField('render.language', event.target.value), style: inputStyle, children: [['follow_user', '跟随用户'], ['zh-CN', '中文'], ['en', 'English']].map(([value, text]) => jsx('option', { value, children: text })) }),
+            ] }),
+            jsxs('label', { style: fieldStyle, children: [
+              jsx('span', { style: labelStyle, children: '受众' }),
+              jsx('select', { disabled: readonly, value: doc.render?.audience ?? 'general', onChange: (event) => onField('render.audience', event.target.value), style: inputStyle, children: [['general', '通用'], ['developer', '开发者'], ['external', '外部']].map(([value, text]) => jsx('option', { value, children: text })) }),
+            ] }),
+            jsxs('label', { style: fieldStyle, children: [
+              jsx('span', { style: labelStyle, children: '收尾签名' }),
+              jsx(ui.Switch, { checked: doc.closing?.enabled === true, disabled: readonly, label: '收尾签名', onChange: (next) => onField('closing.enabled', next) }),
+            ] }),
+          ] }),
+          jsxs('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }, children: [
+            jsx('span', { style: { ...noteStyle, color: status === 'importInvalid' || status === 'tooLarge' ? 'var(--dsw-alias-state-error-primary, #b91c1c)' : 'var(--dsw-alias-label-tertiary, inherit)' }, children: (statusLabels[status] ?? status) + (bytes ? ' · ' + bytes + ' B / 64KB' : '') + (warn1200 ? ' · 超过 1200 字符建议' : '') + (warn4000 ? ' · 超过 4000 字符强警告' : '') }),
+            jsxs('div', { style: { display: 'flex', gap: '8px' }, children: [
+              jsx('button', { type: 'button', disabled: readonly, onClick: resetDefault, style: secondaryButtonStyle, children: '恢复默认' }),
+              jsx('button', { type: 'button', disabled: readonly || status === 'importInvalid' || status === 'tooLarge', onClick: save, style: primaryButtonStyle, children: '保存' }),
+            ] }),
+          ] }),
+          jsx('p', { style: noteStyle, children: '保存到当前 profile；不写日志、不上传。示例只作风格参考，不是实时输出。' }),
+        ] })
+      }
+
+
+      personaTestApi = { parsePersonaJson, emptyPersonaDoc, setPath, byteLength, statusLabels }
+
       const StructuredConfigCard = (props) => {
         if (props.view !== undefined && props.view !== 'page') return null
         const read = props.useStructuredConfig ?? props.structuredConfig
@@ -569,14 +849,31 @@ body[data-ds-dark-theme] [class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="nex
           return jsx('p', { style: noteStyle, children: '插件未加载或配置暂不可用。' })
         }
         const setField = typeof props.setField === 'function' ? props.setField : () => {}
+        const [tab, setTab] = react.useState('structured')
+        const tabs = [
+          ['structured', '结构化输出'],
+          ['persona', '表达风格（Persona）'],
+        ]
         return jsxs('div', {
           'data-dsh-structured-config': '1',
           children: [
             state.writable === false
               ? jsx('p', { style: noteStyle, children: '当前配置被更高层覆盖（home patch / CLI overlay），此处只读。' })
               : null,
-            jsx('div', { children: CONFIG_FIELDS.map((spec) => renderRow(state, setField, spec)) }),
-            jsx('p', { style: noteStyle, children: '会话级开关请用 /structured on | off（按会话生效，不写入这里）。' }),
+            jsx('div', { role: 'tablist', style: { display: 'flex', gap: '18px', borderBottom: '1px solid var(--dsw-alias-border-l2, rgba(127,127,127,.18))', marginBottom: '12px' }, children: tabs.map(([id, label]) => jsx('button', {
+              type: 'button',
+              role: 'tab',
+              'aria-selected': tab === id,
+              onClick: () => setTab(id),
+              style: { ...tabButtonStyle, ...(tab === id ? tabActiveStyle : {}) },
+              children: label,
+            })) }),
+            tab === 'structured'
+              ? jsxs('div', { children: [
+                  jsx('div', { children: CONFIG_FIELDS.map((spec) => renderRow(state, setField, spec)) }),
+                  jsx('p', { style: noteStyle, children: '会话级开关请用 /structured on | off（按会话生效，不写入这里）。' }),
+                ] })
+              : jsx(PersonaEditor, { state, setField }),
           ],
         })
       }
@@ -594,9 +891,9 @@ body[data-ds-dark-theme] [class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="nex
                   hooks: { structuredConfig: form },
                   setField: (field, value) => {
                     try {
-                      form.set(field, value)
-                    } catch {
-                      // 写入失败不打断页面；快照未变化即用户可见的反馈。
+                      return form.set(field, value)
+                    } catch (error) {
+                      return Promise.reject(error)
                     }
                   },
                 }),
@@ -749,7 +1046,7 @@ body[data-ds-dark-theme] [class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="nex
 
     return {
       inject: [],
-      __test: { inDiff, isDiffCode, decorate, setupConfigPage },
+      __test: { inDiff, isDiffCode, decorate, setupConfigPage, personaApi: () => personaTestApi },
       apply(ctx) {
         // 默认主题/视觉先启用；随后由 profile Config 的 theme/visual 覆盖。
         enable()
