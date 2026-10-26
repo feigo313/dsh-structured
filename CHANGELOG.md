@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.9 — 2026-10-26
+
+- 1.0 人格化 spec/schema：`persona.md` 追加层、结构规则始终由 base 注入、`style.md` 保留整份覆盖、profile 级、fail-open、读取顺序/优先级/长度建议/失败回退/迁移/隐私写入 `docs/1.0-PERSONA-SPEC.md`。
+- 0.9.x 不实现人格：不加用户入口、不改设置页、不做人格市场/编辑器/预设包；只加三组 gate 夹具与 `docs/1.0-GATE.md`。
+- Gate 未执行（0 名用户），0.9.9 标 **NO-GO / pending**；不排 0.9.10。最终 0.9 记录见 `docs/0.9-FINAL-RELEASE.md`。
+
 ## 0.9.8 — 2026-10-26
 
 - 0.9.6 first-glance 视觉布局/字号/卡片结构冻结；只修复语义色冲突：Anthropic warn 从 `#92400E/#E0A458` 调整为 `#806000/#EAB308`，与 accent `#CC785C/#E8A087` 拉开 hue 距离；Codex 保持 `#10A37F/#34D399` 与 success `#116329/#3FB950`。
