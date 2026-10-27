@@ -96,6 +96,7 @@ test('tone 基础表单：只有前缀/风格/后缀三字段，旧 Persona 字�
   assert.ok(harness.nodes().some((item) => item.type === 'div' && String(textOf(item.props.children)).includes('语气风格')))
   assert.ok(harness.inputByValue('Boss，'))
   assert.ok(harness.findTextarea('轻松 / 略傲娇'))
+  assert.ok(String(harness.findTextarea('像朋友说话').props.value).includes('表格数据保持中性'))
   assert.ok(harness.inputByValue('——本鲸鱼娘可不背锅'))
   const text = harness.nodes().map((item) => String(textOf(item.props.children))).join(' ')
   for (const removed of ['作者', '许可', '专业场景', '语气禁区', '口头禅', '意象', '禁忌', '署名链']) {

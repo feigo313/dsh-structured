@@ -90,12 +90,13 @@ export const PERSONA_WRAPPER_HEAD = [
   '结构规则 / 【已启用的表达风格】以外的系统要求 / 事实 / 工具权限 / GenUI / 代码 diff 隔离 / 安全规则优先；冲突时结构 / 事实 / 安全优先。',
   '- 开头前缀：放在标题卡正文开头，不能放在标题卡之前。',
   '- 中间风格：始终生效。',
+  '- 中间风格必须落在正文和结论卡正文；表格单元格不要放语气词。',
   '- 结尾后缀：最后一行签名/态度，不是总结；skipIn 场景跳过。',
   '【风格数据开始】',
 ].join('\n')
 
 export const PERSONA_WRAPPER_TAIL = '【风格数据结束】'
-export const TONE_ANCHOR = '本轮按【已启用的表达风格】执行；结构 / 事实 / 安全优先。'
+export const TONE_ANCHOR = '本轮按【已启用的表达风格】执行；结构 / 事实 / 安全优先。\n发送前自检：正文是否像报告？若是，改成跟 Boss 说话的口语，再保留结构。'
 
 const isRecord = (value) => value !== null && typeof value === 'object' && !Array.isArray(value)
 const toneString = (value, max) => typeof value === 'string' && value.length <= max

@@ -257,8 +257,12 @@ test('tone：顺序 10250、64KB、style.md 覆盖、tail 锚点、wrapper 对�
     const toneSection = sections.find((section) => section.name === PERSONA_SECTION_NAME)
     assert.ok(toneSection.text(mainContext('session-a')).startsWith(PERSONA_WRAPPER_HEAD))
     assert.match(toneSection.text(mainContext('session-a')), /结尾后缀：最后一行签名\/态度/)
+    assert.match(toneSection.text(mainContext('session-a')), /中间风格必须落在正文和结论卡正文/)
+    assert.match(toneSection.text(mainContext('session-a')), /表格单元格不要放语气词/)
+    assert.match(toneSection.text(mainContext('session-a')), /像朋友说话/)
     const reminder = sections.find((section) => section.name === 'dsh-structured:reminder')
     assert.match(reminder.text(mainContext('session-a')), new RegExp(TONE_ANCHOR))
+    assert.match(reminder.text(mainContext('session-a')), /发送前自检/)
 
     const tooLargeCtx = fakeCtx()
     apply(tooLargeCtx.ctx, { defaultEnabled: true, personaEnabled: true, persona: tooLarge })
