@@ -193,3 +193,11 @@
 - **根因**：工作树换行符不同（审计为 LF，本地 checkout 为 CRLF）。58 个文件路径完全一致，逐文件差值等于行数（README +274、lib/index +518、src/index +516、package.json +102…），unpacked 合计 +1,795 B；gzip 后 packed 反而 −11 B，内容逐字节相同。
 - **流程教训**：发布前复跑 gate 若数字对不上，必须先定位原因再决定；不得以“口径差异”跳过。
 - **待办（v1.0.x 发布前）**：加 `.gitattributes`（`* text=auto eol=lf`）并重新 checkout，复跑 pack 使数字可复现；已发布的 0.9.9 不能覆盖，包内文本为 CRLF（功能无差异）。
+
+## 2026-10-27 · 第 7 轮
+
+- **issue 水位**：0 open / 2 closed。
+- **线上**：npm `latest=0.9.9`；Release v0.9.9 资产 758,096 B / `05ccf744…` 未变；tag 只有 `v0.9.9`（无 0.9.7/0.9.8 独立 tag）；CI 最近 3 次 main success。
+- **市场**：#9522 被维护者关闭——与 main 冲突后他把 tarball 手工应用到 main（已指向 v0.9.9，资产实测 200）；listing 已显示 `v0.9.9` + 7 图。
+- **仓库**：当前在 `feat/1.0-persona`（881704c，1.0 人格 WIP，含未跟踪审计文档）；本地 main 与远端 gh-api 重建历史仍待对齐。
+- **本轮动作**：仅复核与记录，无代码改动。
