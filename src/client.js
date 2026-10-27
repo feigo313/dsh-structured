@@ -572,77 +572,7 @@ body[data-ds-dark-theme] [class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="nex
         })
       }
 
-      const PERSONA_SCHEMA = 'dsh-structured/persona@1'
-      const PERSONA_MAX = 64 * 1024
-      const PERSONA_FIELDS = [
-        ['meta.name', '模板名', 'text'],
-        ['identity.role', '身份', 'textarea'],
-        ['identity.selfReference', '自称（、分隔）', 'text'],
-        ['identity.worldview', '世界观', 'textarea'],
-        ['address.user', '称呼用户', 'text'],
-        ['address.forbidden', '禁用称呼（、分隔）', 'text'],
-        ['tone.style', '语气', 'textarea'],
-        ['tone.professionalScenes', '专业场景（、分隔）', 'text'],
-        ['tone.forbidden', '语气禁区（、分隔）', 'text'],
-        ['habits.catchphrases', '口头禅（、分隔）', 'text'],
-        ['habits.motifs', '意象（、分隔）', 'text'],
-        ['habits.taboos', '禁忌（、分隔）', 'text'],
-        ['closing.maxChars', '收尾字数上限', 'number'],
-        ['closing.skipIn', '收尾跳过场景（、分隔）', 'text'],
-        ['examples', '示例（每行一条，1–3 条）', 'textarea'],
-        ['meta.author', '作者', 'text'],
-        ['meta.license', '许可', 'text'],
-        ['meta.source', '来源', 'text'],
-        ['meta.attribution', '署名链', 'text'],
-      ]
-
-      const cloneDoc = (doc) => JSON.parse(JSON.stringify(doc))
-      const emptyPersonaDoc = () => ({
-        schema: PERSONA_SCHEMA,
-        meta: { name: '自定义模板', author: '', license: '', official: false, source: '', attribution: '' },
-        identity: { role: '', selfReference: [], worldview: '' },
-        address: { user: 'Boss', forbidden: [] },
-        tone: { style: '', professionalScenes: [], forbidden: [] },
-        habits: { catchphrases: [], motifs: [], taboos: [] },
-        closing: { enabled: false, mode: 'signature', maxChars: 20, skipIn: ['code', 'diff', 'error'] },
-        examples: [],
-        render: { intensity: 'standard', language: 'follow_user', audience: 'general' },
-      })
-      const pathParts = (path) => path.split('.')
-      const getPath = (doc, path) => pathParts(path).reduce((value, key) => value?.[key], doc)
-      const setPath = (doc, path, value) => {
-        const next = cloneDoc(doc)
-        const parts = pathParts(path)
-        let cursor = next
-        for (const key of parts.slice(0, -1)) {
-          if (!cursor[key] || typeof cursor[key] !== 'object') cursor[key] = {}
-          cursor = cursor[key]
-        }
-        cursor[parts[parts.length - 1]] = value
-        return next
-      }
-      const asText = (value) => Array.isArray(value) ? value.join('、') : value === undefined || value === null ? '' : String(value)
-      const fromText = (value) => String(value).split(/[、,]/).map((item) => item.trim()).filter(Boolean)
       const byteLength = (text) => new TextEncoder().encode(text).length
-      const personaUnknownPaths = (doc) => {
-        const out = []
-        const known = {
-          '': ['schema', 'meta', 'identity', 'address', 'tone', 'habits', 'closing', 'examples', 'render'],
-          meta: ['name', 'version', 'author', 'license', 'official', 'source', 'attribution'],
-          identity: ['role', 'selfReference', 'worldview'],
-          address: ['user', 'forbidden'],
-          tone: ['style', 'professionalScenes', 'forbidden'],
-          habits: ['catchphrases', 'motifs', 'taboos'],
-          closing: ['enabled', 'mode', 'maxChars', 'skipIn'],
-          render: ['intensity', 'language', 'audience'],
-        }
-        for (const [prefix, keys] of Object.entries(known)) {
-          const object = prefix === '' ? doc : doc?.[prefix]
-          if (!object || typeof object !== 'object') continue
-          for (const key of Object.keys(object)) if (!keys.includes(key)) out.push((prefix ? '/' + prefix : '') + '/' + key)
-        }
-        return out
-      }
       const TONE_SCHEMA = 'dsh-structured/tone@1'
       const TONE_SKIP_DEFAULT = ['code', 'diff', 'error', 'short', 'table']
       const TONE_MAX = 64 * 1024

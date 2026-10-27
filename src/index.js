@@ -537,23 +537,25 @@ export function apply(ctx, config = {}) {
     }
   }
 
-  const personaSectionText = (context) => {
+  const toneCompiledNow = (context, logError = false) => {
     try {
-      if (!personaEnabledNow()) return ''
-      if (!eligible(context) || !enabledFor(context)) return ''
+      if (!personaEnabledNow() || !eligible(context) || !enabledFor(context)) return null
       const compiled = compilePersona(personaRawNow())
       if (!compiled.ok) {
-        warn('persona 未注入：' + compiled.error)
-        return ''
+        if (logError) warn('persona 未注入：' + compiled.error)
+        return null
       }
-      if (compiled.unknownPaths.length > 0) warn('persona 含未知字段，已保留 raw：' + compiled.unknownPaths.join(', '))
-      if (compiled.text.length > 4000) warn('persona 渲染正文超过 4000 字符强警告')
-      else if (compiled.text.length > 1200) warn('persona 渲染正文超过 1200 字符建议')
-      return compiled.text
+      return compiled
     } catch (error) {
-      warn('persona section 求值失败，已回退为空 section', error)
-      return ''
+      if (logError) warn('persona section 求值失败，已回退为空 section', error)
+      return null
     }
+  }
+
+  const personaSectionText = (context) => {
+    const compiled = toneCompiledNow(context, true)
+    if (!compiled) return ''
+    return compiled.text
   }
 
   try {
@@ -588,7 +590,7 @@ export function apply(ctx, config = {}) {
             order: REMINDER_ORDER,
             interpolate: false,
             text: (context) =>
-              sectionText(context, () => TAIL_REMINDER_TEXT + (personaEnabledNow() ? '\n\n' + TONE_ANCHOR : ''), '尾部提醒求值失败，已回退为空 section'),
+              sectionText(context, () => TAIL_REMINDER_TEXT + (toneCompiledNow(context) ? '\n\n' + TONE_ANCHOR : ''), '尾部提醒求值失败，已回退为空 section'),
           }),
         'dsh-structured: tail reminder',
       )
