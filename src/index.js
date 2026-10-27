@@ -55,167 +55,101 @@ const readConfig = (x) => (x && typeof x.get === 'function' ? x.get() : x)
 /** 主题白名单：host 与 client 共用同一组值。 */
 export const THEMES = ['deepseek', 'codex', 'anthropic']
 
-/** 1.0 persona 发布默认值；正式是否开启由 Boss 拍板，代码不写死。 */
+/** 1.0 语气风格发布默认值；正式是否开启由 Boss 拍板，代码不写死。 */
 export const DEFAULT_PERSONA_ENABLED = false
 
 /** 构建脚本替换此常量；源码直接运行时使用中性 FALLBACK，避免未构建就崩溃。 */
 const PERSONA_WHALE_JSON = '__DSH_STRUCTURED_WHALE_JSON__'
 
+/** tone schema：只保留生效字段，署名/许可不进 JSON。 */
+export const TONE_SCHEMA = 'dsh-structured/tone@1'
+export const TONE_SKIP_DEFAULT = ['code', 'diff', 'error', 'short', 'table']
+export const TONE_MAX_BYTES = 64 * 1024
+
 /** host 侧中性兜底；不进 client 模板选择器。 */
 export const FALLBACK_PERSONA_JSON = JSON.stringify({
-  schema: 'dsh-structured/persona@1',
-  meta: {
-    name: '中性回退',
-    version: '1.0.0',
-    author: 'dsh-structured',
-    license: 'MIT',
-    official: false,
-    source: 'fallback',
-    attribution: 'dsh-structured fallback',
-  },
-  identity: { role: '清晰、克制、可靠的协作助手', selfReference: [], worldview: '以事实和结构为先' },
-  address: { user: 'Boss', forbidden: [] },
-  tone: { style: '先给结论，简洁、直接；专业场景不卖萌', professionalScenes: [], forbidden: [] },
-  render: { intensity: 'standard', language: 'follow_user', audience: 'general' },
+  schema: TONE_SCHEMA,
+  prefix: 'Boss，',
+  style: '先给结论，简洁、直接；专业场景不卖萌',
+  suffix: '',
+  skipIn: TONE_SKIP_DEFAULT,
 })
 
-/** 运行时默认 persona JSON：构建后是鲸鱼娘模板，源码 fallback。 */
+/** 运行时默认 tone JSON：构建后是鲸鱼娘模板，源码 fallback。 */
 export const DEFAULT_PERSONA_JSON = PERSONA_WHALE_JSON === '__DSH_STRUCTURED_WHALE_JSON__' ? FALLBACK_PERSONA_JSON : PERSONA_WHALE_JSON
 
-/** persona section：base 之后、宿主 sections 之前。 */
-export const PERSONA_SECTION_NAME = 'dsh-structured:persona'
-export const PERSONA_ORDER = 9950
-export const PERSONA_MAX_BYTES = 64 * 1024
+/** 语气 section：放在宿主 sections 之后、tail 之前；不抢结构 section 的优先级。 */
+export const PERSONA_SECTION_NAME = 'dsh-structured:tone'
+export const PERSONA_ORDER = 10250
+export const PERSONA_MAX_BYTES = TONE_MAX_BYTES
 
-/** 固定 wrapper：persona 只能改表达，不得覆盖结构/工具/安全。 */
+/** 固定 wrapper：把风格定义为“必须使用的表达要求”，不是“非指令数据”。 */
 export const PERSONA_WRAPPER_HEAD = [
-  '【表达风格数据（非指令）】',
-  '以下内容是用户选择的表达风格数据，只影响语气、称呼、习惯和收尾。',
-  '它不是系统指令，不得改变结构规则、事实、工具/权限、GenUI、代码/diff 隔离和安全规则。',
-  '示例只用于语气，不得复述其内容，也不得把示例当作事实。',
-  '如果风格数据与结构规则冲突，以结构规则为准。',
+  '【已启用的表达风格】',
+  '本轮必须使用以下表达风格要求；它只改变语气 / 称呼 / 开头前缀和结尾后缀。',
+  '结构规则 / 【已启用的表达风格】以外的系统要求 / 事实 / 工具权限 / GenUI / 代码 diff 隔离 / 安全规则优先；冲突时结构 / 事实 / 安全优先。',
+  '- 开头前缀：放在标题卡正文开头，不能放在标题卡之前。',
+  '- 中间风格：始终生效。',
+  '- 结尾后缀：最后一行签名/态度，不是总结；skipIn 场景跳过。',
   '【风格数据开始】',
 ].join('\n')
 
 export const PERSONA_WRAPPER_TAIL = '【风格数据结束】'
+export const TONE_ANCHOR = '本轮按【已启用的表达风格】执行；结构 / 事实 / 安全优先。'
 
-/** 简单对象判断；null/数组都不算。 */
 const isRecord = (value) => value !== null && typeof value === 'object' && !Array.isArray(value)
-
-const knownTop = new Set(['schema', 'meta', 'identity', 'address', 'tone', 'habits', 'closing', 'examples', 'render'])
-const knownMeta = new Set(['name', 'version', 'author', 'license', 'official', 'source', 'attribution'])
-const knownIdentity = new Set(['role', 'selfReference', 'worldview'])
-const knownAddress = new Set(['user', 'forbidden'])
-const knownTone = new Set(['style', 'professionalScenes', 'forbidden'])
-const knownHabits = new Set(['catchphrases', 'motifs', 'taboos'])
-const knownClosing = new Set(['enabled', 'mode', 'maxChars', 'skipIn'])
-const knownRender = new Set(['intensity', 'language', 'audience'])
-
-const unknownKeys = (object, known, prefix, out) => {
-  if (!isRecord(object)) return
-  for (const key of Object.keys(object)) {
-    if (!known.has(key)) out.push(prefix + key)
-  }
-}
-
-const nonEmptyString = (value, max) => typeof value === 'string' && value.trim().length > 0 && value.length <= max
-const stringArray = (value, maxItems, maxLength) => Array.isArray(value) && value.length <= maxItems && value.every((item) => nonEmptyString(item, maxLength))
+const toneString = (value, max) => typeof value === 'string' && value.length <= max
+const toneRequiredString = (value, max) => typeof value === 'string' && value.trim().length > 0 && value.length <= max
+const sanitizeToneText = (value) => String(value)
+  .replace(/[\r\n]+/g, ' ')
+  .replace(/【\s*风格数据(开始|结束)\s*】/g, '［风格数据$1］')
 
 /**
- * 严格解析 persona JSON；未知字段只记录路径，不静默丢弃 raw。
+ * 严格解析 tone JSON；只接受 tone@1，不把旧 persona/meta 字段带进 1.0。
  * @param {string} raw
  * @returns {{ok: true, doc: object, unknownPaths: string[]} | {ok: false, error: string, pointer?: string}}
  */
 export function parsePersona(raw) {
-  if (typeof raw !== 'string' || raw.trim() === '') return { ok: false, error: 'persona is empty' }
-  if (Buffer.byteLength(raw, 'utf8') > PERSONA_MAX_BYTES) return { ok: false, error: 'persona exceeds 64KB' }
+  if (typeof raw !== 'string' || raw.trim() === '') return { ok: false, error: 'tone is empty', pointer: '/' }
+  if (Buffer.byteLength(raw, 'utf8') > TONE_MAX_BYTES) return { ok: false, error: 'tone exceeds 64KB', pointer: '/' }
   let doc
   try {
     doc = JSON.parse(raw)
   } catch (error) {
-    return { ok: false, error: 'invalid JSON: ' + String(error.message ?? error) }
+    return { ok: false, error: 'invalid JSON: ' + String(error.message ?? error), pointer: '/' }
   }
-  if (!isRecord(doc)) return { ok: false, error: 'persona must be an object' }
-  if (doc.schema !== 'dsh-structured/persona@1') return { ok: false, error: 'schema must be dsh-structured/persona@1', pointer: '/schema' }
-  if (!isRecord(doc.meta)) return { ok: false, error: 'meta is required', pointer: '/meta' }
-  for (const field of ['name', 'author', 'license', 'source', 'attribution']) {
-    if (!nonEmptyString(doc.meta[field], field === 'name' ? 40 : field === 'attribution' ? 300 : 200)) return { ok: false, error: `meta.${field} is required or too long`, pointer: `/meta/${field}` }
-  }
-  if (doc.meta.version !== undefined && !nonEmptyString(doc.meta.version, 20)) return { ok: false, error: 'meta.version is too long', pointer: '/meta/version' }
-  if (doc.meta.official !== false) return { ok: false, error: 'meta.official must be false', pointer: '/meta/official' }
-  if (!isRecord(doc.identity) || !nonEmptyString(doc.identity.role, 120)) return { ok: false, error: 'identity.role is required', pointer: '/identity/role' }
-  if (!isRecord(doc.address) || !nonEmptyString(doc.address.user, 20)) return { ok: false, error: 'address.user is required', pointer: '/address/user' }
-  if (!isRecord(doc.tone) || !nonEmptyString(doc.tone.style, 160)) return { ok: false, error: 'tone.style is required', pointer: '/tone/style' }
-  if (doc.identity.selfReference !== undefined && !stringArray(doc.identity.selfReference, 3, 20)) return { ok: false, error: 'identity.selfReference must be up to 3 strings', pointer: '/identity/selfReference' }
-  if (doc.identity.worldview !== undefined && !nonEmptyString(doc.identity.worldview, 120)) return { ok: false, error: 'identity.worldview is too long', pointer: '/identity/worldview' }
-  if (doc.address.forbidden !== undefined && !stringArray(doc.address.forbidden, 5, 20)) return { ok: false, error: 'address.forbidden must be up to 5 strings', pointer: '/address/forbidden' }
-  if (doc.tone.professionalScenes !== undefined && !stringArray(doc.tone.professionalScenes, 6, 20)) return { ok: false, error: 'tone.professionalScenes must be up to 6 strings', pointer: '/tone/professionalScenes' }
-  if (doc.tone.forbidden !== undefined && !stringArray(doc.tone.forbidden, 5, 30)) return { ok: false, error: 'tone.forbidden must be up to 5 strings', pointer: '/tone/forbidden' }
-  if (doc.habits !== undefined) {
-    if (!isRecord(doc.habits)) return { ok: false, error: 'habits must be an object', pointer: '/habits' }
-    for (const key of ['catchphrases', 'motifs', 'taboos']) {
-      if (doc.habits[key] !== undefined && !stringArray(doc.habits[key], 5, 20)) return { ok: false, error: `habits.${key} must be up to 5 strings`, pointer: `/habits/${key}` }
-    }
-  }
-  if (doc.closing !== undefined) {
-    if (!isRecord(doc.closing)) return { ok: false, error: 'closing must be an object', pointer: '/closing' }
-    if (typeof doc.closing.enabled !== 'boolean') return { ok: false, error: 'closing.enabled is required', pointer: '/closing/enabled' }
-    if (doc.closing.mode !== 'signature') return { ok: false, error: 'closing.mode must be signature', pointer: '/closing/mode' }
-    if (doc.closing.maxChars !== undefined && (!Number.isInteger(doc.closing.maxChars) || doc.closing.maxChars < 10 || doc.closing.maxChars > 40)) return { ok: false, error: 'closing.maxChars must be 10–40', pointer: '/closing/maxChars' }
-    if (doc.closing.skipIn !== undefined && (!Array.isArray(doc.closing.skipIn) || doc.closing.skipIn.length > 6 || !doc.closing.skipIn.every((item) => ['code', 'diff', 'error', 'short', 'table'].includes(item)))) return { ok: false, error: 'closing.skipIn invalid', pointer: '/closing/skipIn' }
-  }
-  if (doc.examples !== undefined && (!Array.isArray(doc.examples) || doc.examples.length < 1 || doc.examples.length > 3 || !doc.examples.every((item) => nonEmptyString(item, 120)))) return { ok: false, error: 'examples must be 1–3 strings of ≤120 chars', pointer: '/examples' }
-  if (doc.render !== undefined) {
-    if (!isRecord(doc.render)) return { ok: false, error: 'render must be an object', pointer: '/render' }
-    if (doc.render.intensity !== undefined && doc.render.intensity !== 'standard') return { ok: false, error: 'render.intensity must be standard', pointer: '/render/intensity' }
-    if (doc.render.language !== undefined && !['follow_user', 'zh-CN', 'en'].includes(doc.render.language)) return { ok: false, error: 'render.language invalid', pointer: '/render/language' }
-    if (doc.render.audience !== undefined && !['general', 'developer', 'external'].includes(doc.render.audience)) return { ok: false, error: 'render.audience invalid', pointer: '/render/audience' }
-  }
-  const unknownPaths = []
-  unknownKeys(doc, knownTop, '/', unknownPaths)
-  unknownKeys(doc.meta, knownMeta, '/meta/', unknownPaths)
-  unknownKeys(doc.identity, knownIdentity, '/identity/', unknownPaths)
-  unknownKeys(doc.address, knownAddress, '/address/', unknownPaths)
-  unknownKeys(doc.tone, knownTone, '/tone/', unknownPaths)
-  unknownKeys(doc.habits, knownHabits, '/habits/', unknownPaths)
-  unknownKeys(doc.closing, knownClosing, '/closing/', unknownPaths)
-  unknownKeys(doc.render, knownRender, '/render/', unknownPaths)
-  return { ok: true, doc, unknownPaths }
+  if (!isRecord(doc)) return { ok: false, error: 'tone must be an object', pointer: '/' }
+  if (doc.schema !== TONE_SCHEMA) return { ok: false, error: 'schema must be ' + TONE_SCHEMA, pointer: '/schema' }
+  const unknownPaths = Object.keys(doc).filter((key) => !['schema', 'prefix', 'style', 'suffix', 'skipIn'].includes(key)).map((key) => '/' + key)
+  if (unknownPaths.length > 0) return { ok: false, error: 'unknown field: ' + unknownPaths[0], pointer: unknownPaths[0] }
+  if (!toneString(doc.prefix, 80)) return { ok: false, error: 'prefix must be a string of ≤80 chars', pointer: '/prefix' }
+  if (!toneRequiredString(doc.style, 1200)) return { ok: false, error: 'style must be a non-empty string of ≤1200 chars', pointer: '/style' }
+  if (!toneString(doc.suffix, 80)) return { ok: false, error: 'suffix must be a string of ≤80 chars', pointer: '/suffix' }
+  if (doc.skipIn !== undefined && (!Array.isArray(doc.skipIn) || doc.skipIn.length > TONE_SKIP_DEFAULT.length || !doc.skipIn.every((item) => TONE_SKIP_DEFAULT.includes(item)))) return { ok: false, error: 'skipIn invalid', pointer: '/skipIn' }
+  return { ok: true, doc, unknownPaths: [] }
 }
 
-/** 用户文本进入固定 wrapper 前去换行/伪哨兵，防止提前闭合数据区。 */
-const sanitizePersonaText = (value) => String(value)
-  .replace(/[\r\n]+/g, ' ')
-  .replace(/【\s*风格数据(开始|结束)\s*】/g, '［风格数据$1］')
-const joinPersonaText = (value) => Array.isArray(value) ? value.map(sanitizePersonaText).join('、') : sanitizePersonaText(value)
-
-/** 把已校验 PersonaDoc 编译为带固定 wrapper 的 section 文本。 */
+/** 把 tone 编译成带固定 wrapper 的 section 文本。 */
 export function compilePersona(raw) {
   const parsed = parsePersona(raw)
   if (!parsed.ok) return parsed
   const doc = parsed.doc
+  const skipIn = doc.skipIn ?? TONE_SKIP_DEFAULT
   const lines = [
-    `【身份】${sanitizePersonaText(doc.identity.role)}`,
-    doc.identity.selfReference?.length ? `【自称】${joinPersonaText(doc.identity.selfReference)}` : '',
-    doc.identity.worldview ? `【世界观】${sanitizePersonaText(doc.identity.worldview)}` : '',
-    `【称呼】称呼用户为“${sanitizePersonaText(doc.address.user)}”${doc.address.forbidden?.length ? `；禁用：${joinPersonaText(doc.address.forbidden)}` : ''}`,
-    `【语气】${sanitizePersonaText(doc.tone.style)}`,
-    doc.tone.professionalScenes?.length ? `【专业场景收敛】${joinPersonaText(doc.tone.professionalScenes)}` : '',
-    doc.tone.forbidden?.length ? `【语气禁区】${joinPersonaText(doc.tone.forbidden)}` : '',
-    doc.habits?.catchphrases?.length ? `【口头禅】${joinPersonaText(doc.habits.catchphrases)}` : '',
-    doc.habits?.motifs?.length ? `【意象】${joinPersonaText(doc.habits.motifs)}` : '',
-    doc.habits?.taboos?.length ? `【禁忌】${joinPersonaText(doc.habits.taboos)}` : '',
-    doc.closing?.enabled ? `【收尾签名】只用 ${doc.closing.maxChars ?? 20} 字以内的动作/态度，不复述结论；跳过场景：${joinPersonaText(doc.closing.skipIn ?? []) || '无'}` : '',
-    doc.examples?.length ? `【示例（只作语气，不得复述或当作事实）】${doc.examples.map(sanitizePersonaText).join(' / ')}` : '',
-    doc.render?.language ? `【语言】${doc.render.language}` : '',
-    doc.render?.audience ? `【受众】${doc.render.audience}` : '',
-  ].filter(Boolean)
+    '【开头前缀】' + (sanitizeToneText(doc.prefix) || '（无）'),
+    '【中间风格】' + sanitizeToneText(doc.style),
+    '【结尾后缀】' + (sanitizeToneText(doc.suffix) || '（无）'),
+    '【跳过场景】' + skipIn.join(' / '),
+  ]
   return {
     ...parsed,
-    text: `${PERSONA_WRAPPER_HEAD}\n${lines.join('\n')}\n${PERSONA_WRAPPER_TAIL}`,
+    text: PERSONA_WRAPPER_HEAD + '\n' + lines.join('\n') + '\n' + PERSONA_WRAPPER_TAIL,
   }
 }
 
+/** 兼容旧测试/调用名；语义已是 tone。 */
+export const parseTone = parsePersona
+export const compileTone = compilePersona
 /**
  * DSH 插件配置 schema：设置表单据此渲染，并持久化到 active profile 的 Cordis patch。
  * 不把主题/视觉写进 state.json，避免 structured-test 与 desktop 共享同一状态文件。
@@ -227,8 +161,8 @@ export const Config = Schema.object({
   tailReminder: k(Schema.boolean().default(true).description('尾部提醒 / Tail reminder: 每轮追加一句结构化提醒')),
   includeSubagents: k(Schema.boolean().default(false).description('子代理注入 / Include subagents: 默认关闭')),
   genui: k(Schema.union(['auto', 'on', 'off']).default('auto').description('GenUI 联动 / GenUI routing: auto | on | off').loose()),
-  personaEnabled: k(Schema.boolean().default(DEFAULT_PERSONA_ENABLED).description('表达风格 / Persona: 默认关闭，开启后注入鲸鱼娘模板')),
-  persona: k(Schema.string().default(DEFAULT_PERSONA_JSON).description('人格模板 JSON / Persona JSON: 与表单同一份 canonical 数据')),
+  personaEnabled: k(Schema.boolean().default(DEFAULT_PERSONA_ENABLED).description('语气风格 / Tone: 默认关闭，开启后注入鲸鱼娘语气模板')),
+  persona: k(Schema.string().default(DEFAULT_PERSONA_JSON).description('语气风格 JSON / tone@1 JSON: 与基础/进阶表单同一份 canonical 数据')),
 })
 
 /**
@@ -654,7 +588,7 @@ export function apply(ctx, config = {}) {
             order: REMINDER_ORDER,
             interpolate: false,
             text: (context) =>
-              sectionText(context, () => TAIL_REMINDER_TEXT, '尾部提醒求值失败，已回退为空 section'),
+              sectionText(context, () => TAIL_REMINDER_TEXT + (personaEnabledNow() ? '\n\n' + TONE_ANCHOR : ''), '尾部提醒求值失败，已回退为空 section'),
           }),
         'dsh-structured: tail reminder',
       )

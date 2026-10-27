@@ -96,15 +96,16 @@ pnpm add $tgz
 - 新会话默认开启；`defaultEnabled: false` 可改默认值（见配置）。
 - 视觉层由插件设置 `visual` 控制（默认开启），不写 `state.json`；`/structured on|off` 只控制提示词注入，不影响视觉层。
 - 自定义规则：写 `$DSH_HOME/dsh-structured/style.md`，**非空即整份覆盖**内置文本，保存后下一轮生效；文件为空或删除时回落内置。
-- **用 `style.md` 承载长期设定（可选）**：`style.md` 的内容会被原样放进每次请求的 section，代价是**整份覆盖**内置文本；想同时保留结构规则，把 `src/index.js` 的 `BUILTIN_STYLE_TEXT` 全文抄进去再追加。1.0 起表达风格请用下方 Persona 设置页，不建议把人格继续塞进 `style.md`；`style.md` 语义不变。
+- **用 `style.md` 承载长期设定（可选）**：`style.md` 的内容会被原样放进每次请求的 section，代价是**整份覆盖**内置文本；想同时保留结构规则，把 `src/index.js` 的 `BUILTIN_STYLE_TEXT` 全文抄进去再追加。1.0 起输出语气请用下方“语气风格”设置页；`style.md` 语义不变。
 - 内置文本与 `~/.dsh/AGENTS.md` 第 7 节同源：首句结论、组件化正文、一段一主题、禁过程叙事与复述、证据优先、短答不套卡；清晰优先，不设硬性篇幅上限。
 
-### 表达风格（Persona，1.0）
+### 语气风格（Tone，1.0）
 
-- 插件详情页第二个 tab：**表单 + 可编辑 JSON** 双入口，共用同一份 canonical 数据；默认关闭，开启后使用鲸鱼娘模板。
-- 存储为 profile Config：`personaEnabled:boolean` + `persona:string`；不读 `persona.md`，不引入文件路径。保存显式生效；结构化 tab 六字段仍即时写入。
-- 鲸鱼娘是社区二创示例，非 DeepSeek 官方；模板单独 CC-BY-NC-SA-4.0（`LICENSE-WHALE` / `NOTICE-WHALE`），不打包美术。结构规则、工具权限、GenUI、代码/diff 隔离永远优先，persona 只影响表达。
-- 64KB 硬拒；JSON 无效/被上层覆盖时 fail-open/只读，不静默保存。1.0 beta 默认关闭；default-on 由 Boss 在用户 gate 后决定。
+- 插件详情页第二个 tab：**基础 / 进阶**。基础只保留开头前缀、中间风格、结尾后缀；进阶是可编辑 JSON + 上传 + 校验 + 保存。
+- 存储为 profile Config：`personaEnabled:boolean` + `persona:string`；不读 `persona.md`，不引入文件路径。保存后下一轮生效，不需要每次重启；**安装/升级 1.0 后完整重启 Desktop 一次**。
+- tone JSON 只有 `schema / prefix / style / suffix / skipIn`；`schema` 必须是 `dsh-structured/tone@1`。作者/许可/来源/署名链不在 JSON，见 `NOTICE-WHALE` / `LICENSE-WHALE`。
+- 开头前缀放在标题卡正文开头；中间风格始终生效；结尾后缀是最后一行签名/态度，不是总结，`code / diff / error / short / table` 按 `skipIn` 跳过。结构 / 事实 / 安全永远优先。
+- 鲸鱼娘是社区二创示例，非 DeepSeek 官方；模板单独 CC-BY-NC-SA-4.0，不打包美术。64KB 硬拒；非法 JSON 拒绝保存。
 
 ### 代码 / diff 例外
 
@@ -277,5 +278,5 @@ ACCEPTANCE.md                3 行验收记录
 - 状态目录按 `DSH_HOME` 共享，不区分 profile；测试 profile 的开关会落到同一个 `state.json`。
 - 视觉层是渐进增强，只在 desktop 客户端生效（Web 客户端作为同源兼容面，不单独验收）；headless / CLI 不加载 client 半区，host 注入不受影响。
 - 视觉层依赖宿主内部 class 名（`[class*="_markdown_"]`、`.md-code-block`）；宿主升级后若改名，会自动退化为原生 markdown，需要按 `docs/VISUAL-PLAN.md` 跑一次视觉回归。
-- `style.md` 是整份覆盖，不做片段合并。1.0 人格使用 Persona 设置页（profile Config JSON），**不读 `persona.md`**；旧 `1.0-PERSONA-SPEC.md` 已标 SUPERSEDED。不碰 AGENTS/soul，不开放文件路径入口。
+- `style.md` 是整份覆盖，不做片段合并。1.0 输出语气使用“语气风格”设置页（profile Config JSON，`dsh-structured/tone@1`），**不读 `persona.md`**；旧 `1.0-PERSONA-SPEC.md` 已标 SUPERSEDED。不碰 AGENTS/soul，不开放文件路径入口。
 - 裸 `$...$` 由宿主按 `singleDollarTextMath` 解析成行内公式；需要显示美元符号时用 `\$` 转义或放进反引号；插件不改写消息内容，也不替宿主决定公式语义。0.9.7 起 `BUILTIN_STYLE_TEXT` 增加该规避规则；issue #2 已关闭。

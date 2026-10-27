@@ -7,20 +7,13 @@ import { parsePersona } from '../src/index.js'
 const whale = readFileSync('docs/1.0-PERSONA-WHALE.json', 'utf8')
 
 function makeDom() {
-  const element = () => ({
-    children: [], appendChild() {}, remove() {}, setAttribute() {}, removeAttribute() {},
-    querySelectorAll() { return [] }, closest() { return null },
-  })
+  const element = () => ({ children: [], appendChild() {}, remove() {}, setAttribute() {}, removeAttribute() {}, querySelectorAll() { return [] }, closest() { return null } })
   const styles = new Map()
-  const styleElement = () => {
-    const style = element(); style.id = ''; style.textContent = ''
-    style.remove = () => { if (style.id) styles.delete(style.id) }
-    return style
-  }
+  const style = () => { const item = element(); item.id = ''; item.textContent = ''; item.remove = () => { if (item.id) styles.delete(item.id) }; return item }
   return {
     body: element(), documentElement: { setAttribute() {}, removeAttribute() {} },
-    head: { appendChild(style) { if (style.id) styles.set(style.id, style) } },
-    createElement: (tag) => tag === 'style' ? styleElement() : element(),
+    head: { appendChild(item) { if (item.id) styles.set(item.id, item) } },
+    createElement: (tag) => tag === 'style' ? style() : element(),
     getElementById: (id) => styles.get(id) ?? null,
     querySelectorAll: () => [],
   }
@@ -45,62 +38,41 @@ function allNodes(tree) {
   return out
 }
 
-function makeHarness(module, state, setField, extraProps = {}) {
+function makeHarness(state, setField, extraProps = {}) {
   const node = (type, props) => ({ type, props: props ?? {} })
   const hooks = []
   let hookIndex = 0
   let tree = null
   let current = null
-  const render = () => {
-    hookIndex = 0
-    tree = current({ state, setField, ...extraProps })
-    return tree
-  }
+  const render = () => { hookIndex = 0; tree = current({ state, setField, ...extraProps }); return tree }
   const react = {
     useState(initial) {
       const index = hookIndex++
       if (!(index in hooks)) hooks[index] = typeof initial === 'function' ? initial() : initial
-      return [hooks[index], (next) => {
-        hooks[index] = typeof next === 'function' ? next(hooks[index]) : next
-        render()
-      }]
+      return [hooks[index], (next) => { hooks[index] = typeof next === 'function' ? next(hooks[index]) : next; render() }]
     },
   }
   const fakeRequire = (spec) => {
     if (spec === 'react/jsx-runtime') return { jsx: node, jsxs: node }
     if (spec === 'react') return react
     if (spec === '@deepseek-ai/dsh-client-ui-primitives') {
-      return {
-        Switch: function Switch(props) { return { type: 'Switch', props } },
-        SegmentedControl: function SegmentedControl(props) { return { type: 'SegmentedControl', props } },
-      }
+      return { Switch: function Switch(props) { return { type: 'Switch', props } }, SegmentedControl: function SegmentedControl(props) { return { type: 'SegmentedControl', props } } }
     }
     throw new Error('unexpected require ' + spec)
   }
-  const code = readFileSync('lib/client.js', 'utf8')
   let definition = null
-  const window = {
-    __ModuleLoader__: { load(value) { definition = value } },
-    confirm: () => true,
-  }
-  vm.runInNewContext(code, {
+  const window = { __ModuleLoader__: { load(value) { definition = value } }, confirm: () => true }
+  vm.runInNewContext(readFileSync('lib/client.js', 'utf8'), {
     window, document: makeDom(), TextEncoder,
     MutationObserver: class { observe() {} disconnect() {} },
-    requestAnimationFrame: (fn) => fn(), cancelAnimationFrame() {},
-    setTimeout: (fn) => fn(), clearTimeout() {},
+    requestAnimationFrame: (fn) => fn(), cancelAnimationFrame() {}, setTimeout: (fn) => fn(), clearTimeout() {},
     console: { info() {}, warn() {}, error() {} },
-  }, { filename: 'src/client.js' })
+  }, { filename: 'lib/client.js' })
   const plugin = definition.factory(fakeRequire)
   const form = { set() { return Promise.resolve(true) }, getSnapshot() { return null }, subscribe() { return () => {} } }
   const child = {
-    configForms: {
-      get() { return form },
-      whileServed(_namespaces, register) { register(); return () => {} },
-    },
-    slots: {
-      inject(_name, factory) { factory(); return () => {} },
-      register() { return () => {} },
-    },
+    configForms: { get() { return form }, whileServed(_ns, register) { register(); return () => {} } },
+    slots: { inject(_name, factory) { factory(); return () => {} }, register() { return () => {} } },
     effect(fn) { return fn() },
   }
   plugin.__test.setupConfigPage(child, form)
@@ -113,204 +85,127 @@ function makeHarness(module, state, setField, extraProps = {}) {
   const click = async (label) => { const button = findButton(label); assert.ok(button, 'missing button ' + label); await button.props.onClick?.() }
   return {
     api,
-    get tree() { return tree },
     nodes, findButton, findTextarea, click,
     inputByValue(value) { return nodes().find((item) => item.type === 'input' && item.props.value === value) },
     setWindowConfirm(value) { window.confirm = () => value },
   }
 }
 
-test('PersonaEditor：表单↔JSON 同步与 invalid 只读', async () => {
+test('tone 基础表单：只有前缀/风格/后缀三字段，旧 Persona 字段不出现', () => {
+  const harness = makeHarness({ status: 'ready', writable: true, value: { persona: whale, personaEnabled: false } }, async () => true)
+  assert.ok(harness.nodes().some((item) => item.type === 'div' && String(textOf(item.props.children)).includes('语气风格')))
+  assert.ok(harness.inputByValue('Boss，'))
+  assert.ok(harness.findTextarea('轻松 / 略傲娇'))
+  assert.ok(harness.inputByValue('——本鲸鱼娘可不背锅'))
+  const text = harness.nodes().map((item) => String(textOf(item.props.children))).join(' ')
+  for (const removed of ['作者', '许可', '专业场景', '语气禁区', '口头禅', '意象', '禁忌', '署名链']) {
+    assert.doesNotMatch(text, new RegExp(removed), 'removed field must not appear: ' + removed)
+  }
+})
+
+test('tone 基础编辑 → JSON 同步 → 保存 persona 先于 enabled', async () => {
   const calls = []
-  const state = { status: 'ready', writable: true, value: { persona: whale, personaEnabled: false } }
-  const harness = makeHarness(null, state, async (field, value) => { calls.push([field, value]) })
-  const nameInput = harness.inputByValue('鲸鱼娘·工作模式')
-  assert.ok(nameInput)
-  nameInput.props.onChange({ target: { value: '测试模板' } })
-  await harness.click('JSON')
-  const json = harness.findTextarea('"schema"')
-  assert.ok(json)
-  assert.match(json.props.value, /测试模板/)
-  json.props.onChange({ target: { value: '{"schema":"wrong"}' } })
-  const invalidText = harness.findTextarea('"schema"')
-  assert.equal(invalidText.props.value, '{"schema":"wrong"}', 'invalid jsonText must be retained')
-  const formTab = harness.findButton('表单')
-  assert.equal(formTab.props.disabled, true)
-  const save = harness.findButton('保存')
-  assert.equal(save.props.disabled, true)
-  const error = harness.nodes().find((item) => item.type === 'p' && String(textOf(item.props.children)).includes('/schema'))
-  assert.ok(error)
-  await harness.click('恢复最后有效值')
-  assert.equal(harness.findButton('表单').props.disabled, false, 'form tab should recover after restore')
-  assert.ok(harness.inputByValue('鲸鱼娘·工作模式'), 'restore returns to last valid whale template')
-  await harness.click('JSON')
-  assert.match(harness.findTextarea('"schema"').props.value, /"schema": "dsh-structured\/persona@1"/)
-})
-
-test('PersonaEditor：readonly 下载可用、JSON pane 可打开、保存禁用', async () => {
-  const state = { status: 'ready', writable: false, value: { persona: whale, personaEnabled: true } }
-  const harness = makeHarness(null, state, async () => true)
-  const download = harness.findButton('下载 JSON')
-  assert.ok(download)
-  assert.equal(download.props.disabled, undefined)
-  const nameInput = harness.inputByValue('鲸鱼娘·工作模式')
-  assert.equal(nameInput.props.disabled, true)
-  for (const item of harness.nodes().filter((node) => node.type === 'input' && node.props.type !== 'file')) {
-    assert.equal(item.props.disabled, true, 'form input must be readonly')
-  }
-  const reset = harness.findButton('恢复默认')
-  assert.equal(reset.props.disabled, true)
-  await harness.click('JSON')
-  assert.ok(harness.findTextarea('"schema"'))
-  const textarea = harness.findTextarea('"schema"')
-  assert.equal(textarea.props.disabled, true)
-  const fileInput = harness.nodes().find((item) => item.type === 'input' && item.props.type === 'file')
-  assert.ok(fileInput)
-  assert.equal(fileInput.props.disabled, true)
-  const save = harness.findButton('保存')
-  assert.equal(save.props.disabled, true)
-})
-
-test('PersonaEditor：上传有效待确认、取消/应用导入；无效/超大表单锁定', async () => {
-  const state = { status: 'ready', writable: true, value: { persona: whale, personaEnabled: false } }
-  const harness = makeHarness(null, state, async () => true)
-  const alternate = JSON.stringify({ ...JSON.parse(whale), meta: { ...JSON.parse(whale).meta, name: '导入模板' } })
-  await harness.click('JSON')
-  const fileInput = harness.nodes().find((item) => item.type === 'input' && item.props.type === 'file')
-  assert.ok(fileInput)
-  await fileInput.props.onChange({ target: { files: [{ size: 100, text: async () => alternate }] } })
-  assert.ok(harness.findButton('应用导入'))
-  assert.ok(harness.findButton('取消导入'))
-  assert.equal(harness.findButton('保存').props.disabled, true, 'importParsed must disable save')
-  assert.ok(harness.nodes().some((item) => item.type === 'span' && String(textOf(item.props.children)).includes('字段变更')))
-  await harness.click('取消导入')
-  assert.equal(harness.findButton('应用导入'), undefined)
-  await harness.click('JSON')
-  assert.match(harness.findTextarea('"schema"').props.value, /鲸鱼娘·工作模式/)
-
-  const uploadAgain = harness.nodes().find((item) => item.type === 'input' && item.props.type === 'file')
-  await uploadAgain.props.onChange({ target: { files: [{ size: 100, text: async () => alternate }] } })
-  assert.ok(harness.findButton('应用导入'))
-  await harness.click('应用导入')
-  assert.equal(harness.findButton('应用导入'), undefined)
-
-  await harness.click('JSON')
-  const invalidInput = harness.nodes().find((item) => item.type === 'input' && item.props.type === 'file')
-  await invalidInput.props.onChange({ target: { files: [{ size: 100, text: async () => '{"schema":"bad"}' }] } })
-  assert.equal(harness.findButton('表单').props.disabled, true)
-  assert.ok(harness.findButton('恢复最后有效值'))
-
-  const hugeInput = harness.nodes().find((item) => item.type === 'input' && item.props.type === 'file')
-  await hugeInput.props.onChange({ target: { files: [{ size: 65537, text: async () => whale }] } })
-  assert.equal(harness.findButton('表单').props.disabled, true)
-  assert.equal(harness.findButton('保存').props.disabled, true)
-
-  const savedCalls = []
-  const unknown = JSON.stringify({ ...JSON.parse(whale), extra: 'keep-me' })
-  const unknownHarness = makeHarness(null, { status: 'ready', writable: true, value: { persona: unknown, personaEnabled: false } }, async (field, value) => { savedCalls.push([field, value]) })
-  unknownHarness.inputByValue('鲸鱼娘·工作模式').props.onChange({ target: { value: '未知字段模板' } })
-  await unknownHarness.click('保存')
-  assert.equal(savedCalls[0]?.[0], 'persona', 'persona must be written before personaEnabled')
-  const savedPersona = savedCalls.find(([field]) => field === 'persona')?.[1]
-  assert.ok(savedPersona, 'save must write persona JSON')
-  assert.equal(JSON.parse(savedPersona).extra, 'keep-me', 'unknown field must survive form edit/save')
-})
-
-test('PersonaEditor：saving 禁用、保存失败保留草稿、draftOff', async () => {
-  let reject = false
-  const state = { status: 'ready', writable: true, value: { persona: whale, personaEnabled: false } }
-  const harness = makeHarness(null, state, async () => { if (reject) throw new Error('write failed'); return true })
-  const nameInput = harness.inputByValue('鲸鱼娘·工作模式')
-  nameInput.props.onChange({ target: { value: '保留草稿' } })
-  reject = true
+  const harness = makeHarness({ status: 'ready', writable: true, value: { persona: whale, personaEnabled: false } }, async (field, value) => calls.push([field, value]))
+  harness.inputByValue('Boss，').props.onChange({ target: { value: '老板，' } })
+  harness.findTextarea('轻松 / 略傲娇').props.onChange({ target: { value: '直接 / 克制' } })
+  harness.inputByValue('——本鲸鱼娘可不背锅').props.onChange({ target: { value: '——收工' } })
   await harness.click('保存')
-  assert.equal(harness.findButton('保存').props.disabled, false)
-  const toggle = harness.nodes().find((item) => item.type?.name === 'Switch')
-  toggle.props.onChange(false)
-  assert.ok(harness.nodes().some((item) => item.type === 'span' && String(textOf(item.props.children)).includes('草稿已关闭')))
-  await harness.click('JSON')
-  assert.match(harness.findTextarea('"schema"').props.value, /保留草稿/)
+  assert.equal(calls[0][0], 'persona')
+  assert.equal(calls[1][0], 'personaEnabled')
+  const saved = JSON.parse(calls[0][1])
+  assert.equal(saved.schema, 'dsh-structured/tone@1')
+  assert.equal(saved.prefix, '老板，')
+  assert.equal(saved.style, '直接 / 克制')
+  assert.equal(saved.suffix, '——收工')
+  assert.ok(harness.nodes().some((item) => item.type === 'span' && String(textOf(item.props.children)).includes('已保存，未启用')))
 })
 
-test('PersonaEditor：saving 中全部禁用、成功保存为 saved', async () => {
-  const pending = []
-  const state = { status: 'ready', writable: true, value: { persona: whale, personaEnabled: false } }
-  const harness = makeHarness(null, state, (field, value) => new Promise((resolve) => pending.push({ field, value, resolve })))
-  const nameInput = harness.inputByValue('鲸鱼娘·工作模式')
-  nameInput.props.onChange({ target: { value: '保存中模板' } })
-  const enabledSwitch = harness.nodes().find((item) => item.type?.name === 'Switch')
-  enabledSwitch.props.onChange(true)
-  const saveButton = harness.findButton('保存')
-  const savingPromise = saveButton.props.onClick()
+test('tone 进阶：有效 JSON 可保存，invalid JSON 禁用保存并保留文本', async () => {
+  const calls = []
+  const harness = makeHarness({ status: 'ready', writable: true, value: { persona: whale, personaEnabled: false } }, async (field, value) => calls.push([field, value]))
+  await harness.click('进阶')
+  const textarea = harness.findTextarea('"schema"')
+  assert.ok(textarea)
+  textarea.props.onChange({ target: { value: '{"schema":"wrong"}' } })
   assert.equal(harness.findButton('保存').props.disabled, true)
-  assert.equal(harness.nodes().find((item) => item.type?.name === 'Switch').props.disabled, true)
-  for (const item of harness.nodes().filter((node) => node.type === 'input')) {
-    assert.equal(item.props.disabled, true, 'form input must be disabled while saving')
-  }
-  for (const item of harness.nodes().filter((node) => node.type === 'select')) {
-    assert.equal(item.props.disabled, true, 'template select must be disabled while saving')
-  }
+  assert.equal(harness.findButton('基础').props.disabled, true)
+  assert.ok(harness.nodes().some((item) => item.type === 'span' && String(textOf(item.props.children)).includes('/schema')))
+  assert.equal(harness.findTextarea('"schema"').props.value, '{"schema":"wrong"}')
+
+  const valid = JSON.stringify({ schema: 'dsh-structured/tone@1', prefix: 'Boss / ', style: '冷静 / 直接', suffix: '——完毕', skipIn: ['code', 'diff'] })
+  harness.findTextarea('"schema"').props.onChange({ target: { value: valid } })
+  assert.equal(harness.findButton('保存').props.disabled, false)
+  await harness.click('保存')
+  assert.equal(JSON.parse(calls[0][1]).schema, 'dsh-structured/tone@1')
+  assert.equal(JSON.parse(calls[0][1]).style, '冷静 / 直接')
+})
+
+test('tone 进阶：上传有效/无效/超大，64KB 硬拒', async () => {
+  const harness = makeHarness({ status: 'ready', writable: true, value: { persona: whale, personaEnabled: false } }, async () => true)
+  await harness.click('进阶')
+  const fileInput = () => harness.nodes().find((item) => item.type === 'input' && item.props.type === 'file')
+  const a = JSON.stringify({ schema: 'dsh-structured/tone@1', prefix: 'A', style: 'B', suffix: 'C' })
+  await fileInput().props.onChange({ target: { files: [{ size: 100, text: async () => a }] } })
+  assert.ok(harness.findTextarea('"schema"').props.value.includes('"prefix":"A"'))
+  await fileInput().props.onChange({ target: { files: [{ size: 100, text: async () => '{"schema":false}' }] } })
+  assert.equal(harness.findButton('保存').props.disabled, true)
+  await fileInput().props.onChange({ target: { files: [{ size: 65537, text: async () => whale }] } })
+  assert.equal(harness.findButton('保存').props.disabled, true)
+  assert.equal(harness.findButton('基础').props.disabled, true)
+})
+
+test('tone readonly：基础字段/上传/保存禁用，下载可用', async () => {
+  const harness = makeHarness({ status: 'ready', writable: false, value: { persona: whale, personaEnabled: true } }, async () => true)
+  assert.equal(harness.inputByValue('Boss，').props.disabled, true)
+  assert.equal(harness.findTextarea('轻松 / 略傲娇').props.disabled, true)
+  assert.equal(harness.findButton('保存').props.disabled, true)
   assert.equal(harness.findButton('恢复默认').props.disabled, true)
-  const pendingBeforeRepeat = pending.length
-  await harness.findButton('保存').props.onClick()
-  assert.equal(pending.length, pendingBeforeRepeat, 'save must not re-enter while saving')
-  assert.ok(harness.nodes().some((item) => item.type === 'span' && String(textOf(item.props.children)).includes('保存中')))
-  await harness.click('JSON')
-  const upload = harness.nodes().find((item) => item.type === 'input' && item.props.type === 'file')
-  assert.equal(upload.props.disabled, true)
+  assert.equal(harness.findButton('下载 JSON').props.disabled, undefined)
+  await harness.click('进阶')
+  const fileInput = harness.nodes().find((item) => item.type === 'input' && item.props.type === 'file')
+  assert.equal(fileInput.props.disabled, true)
   assert.equal(harness.findTextarea('"schema"').props.disabled, true)
-  const flush = async () => { for (let i = 0; i < 20; i++) await Promise.resolve() }
-  await flush()
-  pending.shift()?.resolve(true)
-  await flush()
-  pending.shift()?.resolve(true)
-  await savingPromise
-  assert.ok(harness.nodes().some((item) => item.type === 'span' && String(textOf(item.props.children)).includes('已保存并启用')))
 })
 
-test('PersonaEditor：dirty 时载入模板先确认，取消不覆盖草稿', async () => {
-  const state = { status: 'ready', writable: true, value: { persona: whale, personaEnabled: false } }
-  const harness = makeHarness(null, state, async () => true)
-  const nameInput = harness.inputByValue('鲸鱼娘·工作模式')
-  nameInput.props.onChange({ target: { value: '未保存草稿' } })
+test('tone dirty：切换模板先确认，取消不覆盖基础草稿', async () => {
+  const harness = makeHarness({ status: 'ready', writable: true, value: { persona: whale, personaEnabled: false } }, async () => true)
+  harness.inputByValue('Boss，').props.onChange({ target: { value: '未保存前缀' } })
   harness.setWindowConfirm(false)
-  await harness.click('载入基础模板')
-  assert.ok(harness.nodes().some((item) => item.type === 'input' && item.props.value === '未保存草稿'))
+  harness.nodes().find((item) => item.type === 'select').props.onChange({ target: { value: 'custom' } })
+  assert.ok(harness.inputByValue('未保存前缀'))
   harness.setWindowConfirm(true)
-  await harness.click('载入基础模板')
-  assert.ok(harness.nodes().some((item) => item.type === 'input' && item.props.value === '鲸鱼娘·工作模式'))
+  harness.nodes().find((item) => item.type === 'select').props.onChange({ target: { value: 'custom' } })
+  assert.equal(harness.inputByValue('Boss，'), undefined)
+  assert.ok(harness.inputByValue(''))
 })
 
-test('PersonaEditor：Client/Host 校验 parity（hostile JSON 同一结果）', () => {
-  const harness = makeHarness(null, { status: 'ready', writable: true, value: { persona: whale, personaEnabled: false } }, async () => true)
-  const clientParse = harness.api.parsePersonaJson
-  const base = JSON.parse(whale)
-  const cases = [
-    ['valid', base],
-    ['role-too-long', { ...base, identity: { ...base.identity, role: 'x'.repeat(200) } }],
-    ['closing-mode', { ...base, closing: { ...base.closing, mode: 'summary' } }],
-    ['render-string', { ...base, render: 'not-an-object' }],
-    ['name-too-long', { ...base, meta: { ...base.meta, name: 'x'.repeat(41) } }],
-    ['version-too-long', { ...base, meta: { ...base.meta, version: 'x'.repeat(21) } }],
-    ['closing-empty', { ...base, closing: {} }],
-    ['unknown-extra', { ...base, extra: 'keep' }],
-  ]
-  for (const [label, doc] of cases) {
-    const raw = JSON.stringify(doc)
-    const client = clientParse(raw)
-    const host = parsePersona(raw)
-    assert.equal(client.ok, host.ok, label + ' ok parity')
-    if (!client.ok && !host.ok) assert.equal(client.pointer, host.pointer, label + ' pointer parity')
-  }
-})
-
-test('PersonaEditor：tabGuard 在 dirty 时确认、clean 时直接放行', () => {
+test('tone tabGuard：dirty 时确认，clean 时放行', () => {
   const guard = {}
-  const harness = makeHarness(null, { status: 'ready', writable: true, value: { persona: whale, personaEnabled: false } }, async () => true, { tabGuard: guard })
+  const harness = makeHarness({ status: 'ready', writable: true, value: { persona: whale, personaEnabled: false } }, async () => true, { tabGuard: guard })
   assert.equal(guard.confirm(), true)
-  harness.inputByValue('鲸鱼娘·工作模式').props.onChange({ target: { value: '跨 tab 草稿' } })
+  harness.inputByValue('Boss，').props.onChange({ target: { value: '草稿' } })
   harness.setWindowConfirm(false)
   assert.equal(guard.confirm(), false)
   harness.setWindowConfirm(true)
   assert.equal(guard.confirm(), true)
+})
+
+test('tone Client/Host parity：同一无害/恶意 JSON 结果一致', () => {
+  const harness = makeHarness({ status: 'ready', writable: true, value: { persona: whale, personaEnabled: false } }, async () => true)
+  const base = JSON.parse(whale)
+  const cases = [
+    base,
+    { ...base, schema: 'dsh-structured/persona@1' },
+    { ...base, extra: 1 },
+    { ...base, style: '' },
+    { ...base, prefix: 'x'.repeat(81) },
+    { ...base, skipIn: ['bogus'] },
+  ]
+  for (const [index, doc] of cases.entries()) {
+    const raw = JSON.stringify(doc)
+    const client = harness.api.parseToneJson(raw)
+    const host = parsePersona(raw)
+    assert.equal(client.ok, host.ok, 'case ' + index)
+    if (!client.ok && !host.ok) assert.equal(client.pointer, host.pointer, 'pointer case ' + index)
+  }
 })

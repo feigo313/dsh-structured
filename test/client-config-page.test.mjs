@@ -300,7 +300,7 @@ test('config page：插件未就绪与只读态的降级渲染', () => {
   for (const element of switches) assert.equal(element.props.disabled, true)
 })
 
-test('config page：persona helper 校验、未知字段、64KB 与路径写入', () => {
+test('config page：tone helper 校验、未知字段与 64KB', () => {
   served = true
   const { require: fakeRequire } = fakeRuntime()
   const module = loadClient(makeDom(), fakeRequire)
@@ -314,15 +314,13 @@ test('config page：persona helper 校验、未知字段、64KB 与路径写入'
   const api = module.__test.personaApi()
   assert.ok(api)
   const whale = readFileSync('docs/1.0-PERSONA-WHALE.json', 'utf8')
-  const parsed = api.parsePersonaJson(whale)
+  const parsed = api.parseToneJson(whale)
   assert.equal(parsed.ok, true)
-  assert.equal(parsed.unknownPaths.length, 0)
-  assert.equal(api.parsePersonaJson('{').ok, false)
-  assert.equal(api.parsePersonaJson(whale.replace('"schema"', '"extra": 1, "schema"')).unknownPaths.includes('/extra'), true)
-  assert.equal(api.parsePersonaJson('x'.repeat(65537)).ok, false)
-  const next = api.setPath(parsed.doc, 'identity.role', '测试身份')
-  assert.equal(next.identity.role, '测试身份')
-  assert.equal(parsed.doc.identity.role !== '测试身份', true)
+  assert.equal(parsed.doc.schema, 'dsh-structured/tone@1')
+  assert.equal(api.parseToneJson('{').ok, false)
+  assert.equal(api.parseToneJson(whale.replace('"schema"', '"extra": 1, "schema"')).pointer, '/extra')
+  assert.equal(api.parseToneJson('x'.repeat(65537)).ok, false)
+  assert.equal(api.emptyTone().schema, 'dsh-structured/tone@1')
 })
 
 test('config page：主题分段按钮带各主题强调色，随注册注入/撤销移除', () => {
@@ -361,7 +359,7 @@ test('config page：主题分段按钮带各主题强调色，随注册注入/�
   assert.equal(dom.getElementById('dsh-structured-config-style'), null)
 })
 
-test('config page：persona 状态 flags 覆盖 invalid/readonly/saving/pending/download', () => {
+test('config page：tone flags 覆盖 invalid/readonly/saving/download', () => {
   served = true
   const { require: fakeRequire } = fakeRuntime()
   const module = loadClient(makeDom(), fakeRequire)
@@ -376,10 +374,9 @@ test('config page：persona 状态 flags 覆盖 invalid/readonly/saving/pending/
   const invalid = flags({ status: 'importInvalid' })
   assert.equal(invalid.invalid, true)
   assert.equal(invalid.formLocked, true)
-  assert.equal(invalid.canForm, false)
+  assert.equal(invalid.canBasic, false)
   assert.equal(invalid.canSave, false)
   assert.equal(invalid.canDownload, true)
-  assert.equal(invalid.showRestore, true)
   const tooLarge = flags({ status: 'tooLarge' })
   assert.equal(tooLarge.formLocked, true)
   assert.equal(tooLarge.canSave, false)
@@ -391,8 +388,9 @@ test('config page：persona 状态 flags 覆盖 invalid/readonly/saving/pending/
   assert.equal(saving.busy, true)
   assert.equal(saving.formLocked, true)
   assert.equal(saving.canSave, false)
-  const pending = flags({ status: 'importParsed', view: 'json' })
-  assert.equal(pending.showPending, true)
+  const clean = flags({ status: 'off' })
+  assert.equal(clean.canSave, true)
+  assert.equal(clean.canBasic, true)
 })
 
 test('config page：结构化 tab 下 PersonaEditor 仍挂载，跨 tab 不丢草稿', () => {

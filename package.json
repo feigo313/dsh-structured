@@ -70,6 +70,7 @@
     "!docs/ACCEPTANCE-0.9.7.md",
     "!docs/ACCEPTANCE-0.9.8.md",
     "!docs/ACCEPTANCE-0.9.9.md",
+    "!docs/ACCEPTANCE-1.0.0.md",
     "!docs/1.0-*.md",
     "docs/1.0-PERSONA-WHALE.json",
     "!test/fixtures/baseline/P04-meeting.md",
