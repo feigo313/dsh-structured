@@ -91,12 +91,13 @@ export const PERSONA_WRAPPER_HEAD = [
   '- 开头前缀：放在标题卡正文开头，不能放在标题卡之前。',
   '- 中间风格：始终生效。',
   '- 中间风格必须落在正文和结论卡正文；表格单元格不要放语气词。',
-  '- 结尾后缀：最后一行签名/态度，不是总结；skipIn 场景跳过。',
+  '- 结尾后缀：只在未命中 skipIn 的普通实质回复最后一行出现，不是总结；未命中时不得省略。',
+  '- 硬规则：回复含表格 / 代码块 / diff / 报错 / 短答，或本轮是代码 / 补丁任务时，结尾不得输出 suffix / 签名 / 态度句；不得用“已收工”“先这样”等替代；直接结束。',
   '【风格数据开始】',
 ].join('\n')
 
 export const PERSONA_WRAPPER_TAIL = '【风格数据结束】'
-export const TONE_ANCHOR = '本轮按【已启用的表达风格】执行；结构 / 事实 / 安全优先。\n发送前自检：正文是否像报告？若是，改成跟 Boss 说话的口语，再保留结构。'
+export const TONE_ANCHOR = '本轮按【已启用的表达风格】执行；结构 / 事实 / 安全优先。\n发送前自检：正文是否像报告？若是，改成跟 Boss 说话的口语，再保留结构。本轮是否含表格 / 代码 / diff / 报错 / 短答？若是，删除结尾签名，不要替换；若否，最后一行保留 suffix。'
 
 const isRecord = (value) => value !== null && typeof value === 'object' && !Array.isArray(value)
 const toneString = (value, max) => typeof value === 'string' && value.length <= max
