@@ -102,7 +102,7 @@ pnpm add $tgz
 ### 语气风格（Tone，1.0）
 
 - 插件详情页第二个 tab：**基础 / 进阶**。基础只保留开头前缀、中间风格、结尾后缀；进阶是可编辑 JSON + 上传 + 校验 + 保存。
-- 存储为 profile Config：`personaEnabled:boolean` + `persona:string`；不读 `persona.md`，不引入文件路径。保存后下一轮生效，不需要每次重启；**安装/升级 1.0 后完整重启 Desktop 一次**。
+- 存储为 profile Config：`personaEnabled:boolean` + `persona:string`；不读 `persona.md`，不引入文件路径。保存时同时写 persona/enabled/revision，失败回滚；保存后全局生效（新消息使用），不需要每次重启；**安装/升级 1.0 后完整重启 Desktop 一次**。
 - tone JSON 只有 `schema / prefix / style / suffix / skipIn`；`schema` 必须是 `dsh-structured/tone@1`。作者/许可/来源/署名链不在 JSON，见 `NOTICE-WHALE` / `LICENSE-WHALE`。
 - 开头前缀放在标题卡正文开头；中间风格始终生效；结尾后缀是最后一行签名/态度，不是总结，`code / diff / error / short / table` 按 `skipIn` 跳过。结构 / 事实 / 安全永远优先。
 - 鲸鱼娘是社区二创示例，非 DeepSeek 官方；模板单独 CC-BY-NC-SA-4.0，不打包美术。64KB 硬拒；非法 JSON 拒绝保存。

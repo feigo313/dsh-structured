@@ -97,7 +97,6 @@ test('tone 基础表单：只有前缀/风格/后缀三字段，旧 Persona 字�
   assert.ok(harness.inputByValue('Boss，'))
   assert.ok(harness.findTextarea('轻松 / 略傲娇'))
   assert.ok(String(harness.findTextarea('像朋友说话').props.value).includes('表格数据保持中性'))
-  assert.ok(String(harness.findTextarea('不写结尾签名').props.value).includes('未命中时保留结尾签名'))
   assert.ok(harness.inputByValue('——本鲸鱼娘可不背锅'))
   const text = harness.nodes().map((item) => String(textOf(item.props.children))).join(' ')
   for (const removed of ['作者', '许可', '专业场景', '语气禁区', '口头禅', '意象', '禁忌', '署名链']) {
@@ -105,21 +104,36 @@ test('tone 基础表单：只有前缀/风格/后缀三字段，旧 Persona 字�
   }
 })
 
-test('tone 基础编辑 → JSON 同步 → 保存 persona 先于 enabled', async () => {
+test('tone 基础编辑 → 保存 persona → enabled → revision，失败回滚保留草稿', async () => {
   const calls = []
   const harness = makeHarness({ status: 'ready', writable: true, value: { persona: whale, personaEnabled: false } }, async (field, value) => calls.push([field, value]))
+  harness.nodes().find((item) => item.type?.name === 'Switch').props.onChange(true)
   harness.inputByValue('Boss，').props.onChange({ target: { value: '老板，' } })
   harness.findTextarea('轻松 / 略傲娇').props.onChange({ target: { value: '直接 / 克制' } })
   harness.inputByValue('——本鲸鱼娘可不背锅').props.onChange({ target: { value: '——收工' } })
   await harness.click('保存')
   assert.equal(calls[0][0], 'persona')
   assert.equal(calls[1][0], 'personaEnabled')
+  assert.equal(calls[2][0], 'personaRevision')
+  assert.equal(calls[2][1], 1)
   const saved = JSON.parse(calls[0][1])
   assert.equal(saved.schema, 'dsh-structured/tone@1')
   assert.equal(saved.prefix, '老板，')
   assert.equal(saved.style, '直接 / 克制')
   assert.equal(saved.suffix, '——收工')
-  assert.ok(harness.nodes().some((item) => item.type === 'span' && String(textOf(item.props.children)).includes('已保存，未启用')))
+  assert.ok(harness.nodes().some((item) => item.type === 'span' && String(textOf(item.props.children)).includes('已保存，全局生效（新消息使用）')))
+
+  const rollback = []
+  const failHarness = makeHarness({ status: 'ready', writable: true, value: { persona: whale, personaEnabled: false } }, async (field, value) => {
+    rollback.push([field, value])
+    if (field === 'personaEnabled') throw new Error('write failed')
+    return true
+  })
+  failHarness.inputByValue('Boss，').props.onChange({ target: { value: '回滚前草稿' } })
+  await failHarness.click('保存')
+  assert.ok(failHarness.inputByValue('回滚前草稿'))
+  assert.ok(failHarness.nodes().some((item) => item.type === 'span' && String(textOf(item.props.children)).includes('保存失败')))
+  assert.ok(rollback.some(([field, value]) => field === 'persona' && value.includes('Boss，')))
 })
 
 test('tone 进阶：有效 JSON 可保存，invalid JSON 禁用保存并保留文本', async () => {
@@ -133,6 +147,10 @@ test('tone 进阶：有效 JSON 可保存，invalid JSON 禁用保存并保留�
   assert.equal(harness.findButton('基础').props.disabled, true)
   assert.ok(harness.nodes().some((item) => item.type === 'span' && String(textOf(item.props.children)).includes('/schema')))
   assert.equal(harness.findTextarea('"schema"').props.value, '{"schema":"wrong"}')
+
+  harness.findTextarea('"schema"').props.onChange({ target: { value: '{"schema":"dsh-structured/persona@1","meta":{},"style":"旧格式"}' } })
+  assert.ok(harness.nodes().some((item) => item.type === 'span' && String(textOf(item.props.children)).includes('旧格式')))
+  assert.equal(harness.findButton('保存').props.disabled, true)
 
   const valid = JSON.stringify({ schema: 'dsh-structured/tone@1', prefix: 'Boss / ', style: '冷静 / 直接', suffix: '——完毕', skipIn: ['code', 'diff'] })
   harness.findTextarea('"schema"').props.onChange({ target: { value: valid } })

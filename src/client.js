@@ -596,8 +596,21 @@ body[data-ds-dark-theme] [class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="nex
         if (doc.skipIn !== undefined && (!Array.isArray(doc.skipIn) || doc.skipIn.length > 5 || !doc.skipIn.every((item) => TONE_SKIP_DEFAULT.includes(item)))) return { ok: false, error: 'skipIn 无效', pointer: '/skipIn' }
         return { ok: true, doc }
       }
+      const isLegacyToneText = (text) => {
+        try {
+          const doc = JSON.parse(text)
+          if (!isToneObject(doc)) return false
+          return doc.schema === 'dsh-structured/persona@1' || ['meta', 'identity', 'address', 'tone', 'habits', 'closing', 'examples', 'render'].some((key) => key in doc)
+        } catch {
+          return false
+        }
+      }
+      const describeInvalidTone = (text, parsed) => {
+        if (isLegacyToneText(text)) return '旧格式：只接受 tone@1（schema/prefix/style/suffix/skipIn），文本已保留，请迁移后再保存'
+        return parsed.error + ' (' + parsed.pointer + ')'
+      }
       const statusLabels = {
-        off: '已关闭', saved: '已保存并启用', dirty: '有未保存修改', saving: '保存中',
+        off: '已关闭', saved: '已保存，全局生效（新消息使用）', dirty: '有未保存修改', saving: '保存中',
         savedOff: '已保存，未启用', failed: '保存失败', importInvalid: 'JSON 无效', tooLarge: '超过 64KB', readonly: '只读',
       }
       const personaUiFlags = ({ status, writable = true, mode = 'basic' }) => {
@@ -653,7 +666,7 @@ body[data-ds-dark-theme] [class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="nex
             setError('')
           } else {
             setStatus('importInvalid')
-            setError(parsed.error + ' (' + parsed.pointer + ')')
+            setError(describeInvalidTone(text, parsed))
           }
         }
         const loadTemplate = (value) => {
@@ -690,22 +703,36 @@ body[data-ds-dark-theme] [class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="nex
             const text = await file.text()
             if (byteLength(text) > TONE_MAX) { setStatus('tooLarge'); setError('文件超过 64KB'); return }
             const parsed = parseToneJson(text)
-            if (!parsed.ok) { setStatus('importInvalid'); setError(parsed.error + ' (' + parsed.pointer + ')'); return }
+            if (!parsed.ok) { setStatus('importInvalid'); setError(describeInvalidTone(text, parsed)); return }
             setDoc(parsed.doc); setJsonText(text); setStatus('dirty'); setError('')
           } catch (readError) { setStatus('importInvalid'); setError(String(readError.message ?? readError)) }
         }
         const save = async () => {
           if (readonly || busy || invalid) return
           const parsed = parseToneJson(jsonText)
-          if (!parsed.ok) { setStatus('importInvalid'); setError(parsed.error + ' (' + parsed.pointer + ')'); return }
+          if (!parsed.ok) { setStatus('importInvalid'); setError(describeInvalidTone(jsonText, parsed)); return }
+          const previousRaw = String(fieldValue(state.value, { field: 'persona', fallback: PERSONA_WHALE_JSON }) ?? '')
+          const previousEnabled = fieldValue(state.value, { field: 'personaEnabled', fallback: false }) === true
+          const previousRevision = Number(fieldValue(state.value, { field: 'personaRevision', fallback: 0 })) || 0
+          let personaWritten = false
+          let enabledWritten = false
+          let revisionWritten = false
           setStatus('saving')
           try {
             const personaResult = await setField('persona', JSON.stringify(parsed.doc, null, 2))
             if (personaResult === false) throw new Error('persona write rejected')
+            personaWritten = true
             const enabledResult = await setField('personaEnabled', enabled)
             if (enabledResult === false) throw new Error('personaEnabled write rejected')
+            enabledWritten = true
+            const revisionResult = await setField('personaRevision', previousRevision + 1)
+            if (revisionResult === false) throw new Error('personaRevision write rejected')
+            revisionWritten = true
             setDoc(parsed.doc); setJsonText(toneJson(parsed.doc)); setStatus(enabled ? 'saved' : 'savedOff'); setError('')
           } catch (saveError) {
+            if (revisionWritten) { try { await setField('personaRevision', previousRevision) } catch {} }
+            if (enabledWritten) { try { await setField('personaEnabled', previousEnabled) } catch {} }
+            if (personaWritten) { try { await setField('persona', previousRaw) } catch {} }
             setStatus('failed'); setError(String(saveError.message ?? saveError))
           }
         }
@@ -735,7 +762,7 @@ body[data-ds-dark-theme] [class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="nex
             jsx('div', { style: { ...labelStyle, fontSize: '15px', fontWeight: 600 }, children: '语气风格' }),
             jsx(ui.Switch, { checked: enabled, disabled: readonly || busy || invalid, label: '启用语气风格', onChange: (next) => { if (readonly || busy || invalid) return; setEnabled(next); setStatus(next ? 'dirty' : 'savedOff') } }),
           ] }),
-          jsx('p', { style: noteStyle, children: '安装/升级 1.0 后完整重启 Desktop 一次；此后开关保存后下一轮生效，不用重启。' }),
+          jsx('p', { style: noteStyle, children: '保存后全局生效（新消息使用）；当前正在生成的回合不回溯。' }),
           jsxs('div', { style: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }, children: [
             jsx('select', { disabled: readonly || busy, value: template, onChange: (event) => { setTemplate(event.target.value); loadTemplate(event.target.value) }, style: { ...inputStyle, width: '180px' }, children: [jsx('option', { value: 'whale', children: '鲸鱼娘（示例）' }), jsx('option', { value: 'custom', children: '自定义' })] }),
             jsx('button', { type: 'button', onClick: download, style: secondaryButtonStyle, children: '下载 JSON' }),

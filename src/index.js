@@ -88,16 +88,15 @@ export const PERSONA_WRAPPER_HEAD = [
   '【已启用的表达风格】',
   '本轮必须使用以下表达风格要求；它只改变语气 / 称呼 / 开头前缀和结尾后缀。',
   '结构规则 / 【已启用的表达风格】以外的系统要求 / 事实 / 工具权限 / GenUI / 代码 diff 隔离 / 安全规则优先；冲突时结构 / 事实 / 安全优先。',
-  '- 开头前缀：放在标题卡正文开头，不能放在标题卡之前。',
-  '- 中间风格：始终生效。',
-  '- 中间风格必须落在正文和结论卡正文；表格单元格不要放语气词。',
-  '- 结尾后缀：只在未命中 skipIn 的普通实质回复最后一行出现，不是总结；未命中时不得省略。',
-  '- 硬规则：回复含表格 / 代码块 / diff / 报错 / 短答，或本轮是代码 / 补丁任务时，结尾不得输出 suffix / 签名 / 态度句；不得用“已收工”“先这样”等替代；直接结束。',
+  '- 开头前缀 + 中间风格：除代码 / diff / 报错外始终生效；短答 / 表格也有前缀与风格；前缀放在标题卡正文开头，风格落在正文 / 结论卡正文 / 吐槽句；表格单元格保持中性。',
+  '- 结尾后缀：只在普通实质回复最后一行出现，不是总结；short / table / code / diff / error 跳过。',
+  '- skipIn 只控制结尾后缀：short / table 仍保留前缀与中间风格；代码 / diff / 报错则前缀 / 中间风格 / 后缀全部跳过。',
+  '- 不允许只靠“Boss，/ 本鲸鱼娘 / 后缀”交差；正文至少两处自然体现风格。',
   '【风格数据开始】',
 ].join('\n')
 
 export const PERSONA_WRAPPER_TAIL = '【风格数据结束】'
-export const TONE_ANCHOR = '本轮按【已启用的表达风格】执行；结构 / 事实 / 安全优先。\n发送前自检：正文是否像报告？若是，改成跟 Boss 说话的口语，再保留结构。本轮是否含表格 / 代码 / diff / 报错 / 短答？若是，删除结尾签名，不要替换；若否，最后一行保留 suffix。'
+export const TONE_ANCHOR = '本轮按【已启用的表达风格】执行；结构 / 事实 / 安全优先。\n发送前自检：正文是否像报告？若是，改成跟 Boss 说话的口语，再保留结构。本轮是否含代码 / diff / 报错？若是，前缀 / 风格 / 后缀全部跳过。是否含表格 / 短答？若是，保留前缀 / 风格，不加结尾后缀。否则最后一行保留 suffix。'
 
 const isRecord = (value) => value !== null && typeof value === 'object' && !Array.isArray(value)
 const toneString = (value, max) => typeof value === 'string' && value.length <= max
@@ -165,6 +164,7 @@ export const Config = Schema.object({
   genui: k(Schema.union(['auto', 'on', 'off']).default('auto').description('GenUI 联动 / GenUI routing: auto | on | off').loose()),
   personaEnabled: k(Schema.boolean().default(DEFAULT_PERSONA_ENABLED).description('语气风格 / Tone: 默认关闭，开启后注入鲸鱼娘语气模板')),
   persona: k(Schema.string().default(DEFAULT_PERSONA_JSON).description('语气风格 JSON / tone@1 JSON: 与基础/进阶表单同一份 canonical 数据')),
+  personaRevision: k(Schema.number().default(0).description('语气风格全局修订号 / 内部：保存时递增，供所有会话重建 prompt')),
 })
 
 /**
@@ -465,6 +465,7 @@ export function apply(ctx, config = {}) {
   const defaultEnabled = readConfig(config?.defaultEnabled) !== false
   const personaEnabledNow = () => readConfig(config?.personaEnabled) === true
   const personaRawNow = () => readConfig(config?.persona)
+  const personaRevisionNow = () => Number(readConfig(config?.personaRevision)) || 0
   const themeNow = () => {
     const theme = readConfig(config?.theme)
     return THEMES.includes(theme) ? theme : 'deepseek'
@@ -542,6 +543,7 @@ export function apply(ctx, config = {}) {
   const toneCompiledNow = (context, logError = false) => {
     try {
       if (!personaEnabledNow() || !eligible(context) || !enabledFor(context)) return null
+      void personaRevisionNow()
       const compiled = compilePersona(personaRawNow())
       if (!compiled.ok) {
         if (logError) warn('persona 未注入：' + compiled.error)
