@@ -394,3 +394,28 @@ test('config page：persona 状态 flags 覆盖 invalid/readonly/saving/pending/
   const pending = flags({ status: 'importParsed', view: 'json' })
   assert.equal(pending.showPending, true)
 })
+
+test('config page：结构化 tab 下 PersonaEditor 仍挂载，跨 tab 不丢草稿', () => {
+  served = true
+  const { require: fakeRequire } = fakeRuntime()
+  const module = loadClient(makeDom(), fakeRequire)
+  const snapshot = { status: 'ready', writable: true, value: { theme: 'deepseek' } }
+  const form = {
+    set() { return Promise.resolve(true) },
+    getSnapshot() { return snapshot },
+    subscribe() { return () => {} },
+  }
+  const { slots, get } = collectRegistration()
+  module.__test.setupConfigPage(makeChild(form, slots), form)
+  const { component } = get()
+  const tree = component({ view: 'page', useStructuredConfig: (selector) => selector(snapshot), setField: () => {} })
+  const flat = []
+  const walk = (value) => {
+    if (!value || typeof value !== 'object') return
+    flat.push(value)
+    if (Array.isArray(value.props?.children)) value.props.children.forEach((child) => walk(child))
+    else walk(value.props?.children)
+  }
+  walk(tree)
+  assert.ok(flat.some((element) => typeof element.type === 'function' && element.type.name === 'PersonaEditor'), 'PersonaEditor must stay mounted while structured tab is active')
+})

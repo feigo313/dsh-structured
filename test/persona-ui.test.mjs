@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
 import vm from 'node:vm'
+import { parsePersona } from '../src/index.js'
 
 const whale = readFileSync('docs/1.0-PERSONA-WHALE.json', 'utf8')
 
@@ -44,7 +45,7 @@ function allNodes(tree) {
   return out
 }
 
-function makeHarness(module, state, setField) {
+function makeHarness(module, state, setField, extraProps = {}) {
   const node = (type, props) => ({ type, props: props ?? {} })
   const hooks = []
   let hookIndex = 0
@@ -52,7 +53,7 @@ function makeHarness(module, state, setField) {
   let current = null
   const render = () => {
     hookIndex = 0
-    tree = current({ state, setField })
+    tree = current({ state, setField, ...extraProps })
     return tree
   }
   const react = {
@@ -111,6 +112,7 @@ function makeHarness(module, state, setField) {
   const findTextarea = (needle = '') => nodes().find((item) => item.type === 'textarea' && String(item.props.value ?? '').includes(needle))
   const click = async (label) => { const button = findButton(label); assert.ok(button, 'missing button ' + label); await button.props.onClick?.() }
   return {
+    api,
     get tree() { return tree },
     nodes, findButton, findTextarea, click,
     inputByValue(value) { return nodes().find((item) => item.type === 'input' && item.props.value === value) },
@@ -169,15 +171,26 @@ test('PersonaEditor：readonly 下载可用、JSON pane 可打开、保存禁用
   assert.equal(save.props.disabled, true)
 })
 
-test('PersonaEditor：上传有效待确认、应用导入；无效/超大表单锁定', async () => {
+test('PersonaEditor：上传有效待确认、取消/应用导入；无效/超大表单锁定', async () => {
   const state = { status: 'ready', writable: true, value: { persona: whale, personaEnabled: false } }
   const harness = makeHarness(null, state, async () => true)
+  const alternate = JSON.stringify({ ...JSON.parse(whale), meta: { ...JSON.parse(whale).meta, name: '导入模板' } })
   await harness.click('JSON')
   const fileInput = harness.nodes().find((item) => item.type === 'input' && item.props.type === 'file')
   assert.ok(fileInput)
-  await fileInput.props.onChange({ target: { files: [{ size: 100, text: async () => whale }] } })
+  await fileInput.props.onChange({ target: { files: [{ size: 100, text: async () => alternate }] } })
   assert.ok(harness.findButton('应用导入'))
   assert.ok(harness.findButton('取消导入'))
+  assert.equal(harness.findButton('保存').props.disabled, true, 'importParsed must disable save')
+  assert.ok(harness.nodes().some((item) => item.type === 'span' && String(textOf(item.props.children)).includes('字段变更')))
+  await harness.click('取消导入')
+  assert.equal(harness.findButton('应用导入'), undefined)
+  await harness.click('JSON')
+  assert.match(harness.findTextarea('"schema"').props.value, /鲸鱼娘·工作模式/)
+
+  const uploadAgain = harness.nodes().find((item) => item.type === 'input' && item.props.type === 'file')
+  await uploadAgain.props.onChange({ target: { files: [{ size: 100, text: async () => alternate }] } })
+  assert.ok(harness.findButton('应用导入'))
   await harness.click('应用导入')
   assert.equal(harness.findButton('应用导入'), undefined)
 
@@ -197,6 +210,7 @@ test('PersonaEditor：上传有效待确认、应用导入；无效/超大表单
   const unknownHarness = makeHarness(null, { status: 'ready', writable: true, value: { persona: unknown, personaEnabled: false } }, async (field, value) => { savedCalls.push([field, value]) })
   unknownHarness.inputByValue('鲸鱼娘·工作模式').props.onChange({ target: { value: '未知字段模板' } })
   await unknownHarness.click('保存')
+  assert.equal(savedCalls[0]?.[0], 'persona', 'persona must be written before personaEnabled')
   const savedPersona = savedCalls.find(([field]) => field === 'persona')?.[1]
   assert.ok(savedPersona, 'save must write persona JSON')
   assert.equal(JSON.parse(savedPersona).extra, 'keep-me', 'unknown field must survive form edit/save')
@@ -265,4 +279,38 @@ test('PersonaEditor：dirty 时载入模板先确认，取消不覆盖草稿', a
   harness.setWindowConfirm(true)
   await harness.click('载入基础模板')
   assert.ok(harness.nodes().some((item) => item.type === 'input' && item.props.value === '鲸鱼娘·工作模式'))
+})
+
+test('PersonaEditor：Client/Host 校验 parity（hostile JSON 同一结果）', () => {
+  const harness = makeHarness(null, { status: 'ready', writable: true, value: { persona: whale, personaEnabled: false } }, async () => true)
+  const clientParse = harness.api.parsePersonaJson
+  const base = JSON.parse(whale)
+  const cases = [
+    ['valid', base],
+    ['role-too-long', { ...base, identity: { ...base.identity, role: 'x'.repeat(200) } }],
+    ['closing-mode', { ...base, closing: { ...base.closing, mode: 'summary' } }],
+    ['render-string', { ...base, render: 'not-an-object' }],
+    ['name-too-long', { ...base, meta: { ...base.meta, name: 'x'.repeat(41) } }],
+    ['version-too-long', { ...base, meta: { ...base.meta, version: 'x'.repeat(21) } }],
+    ['closing-empty', { ...base, closing: {} }],
+    ['unknown-extra', { ...base, extra: 'keep' }],
+  ]
+  for (const [label, doc] of cases) {
+    const raw = JSON.stringify(doc)
+    const client = clientParse(raw)
+    const host = parsePersona(raw)
+    assert.equal(client.ok, host.ok, label + ' ok parity')
+    if (!client.ok && !host.ok) assert.equal(client.pointer, host.pointer, label + ' pointer parity')
+  }
+})
+
+test('PersonaEditor：tabGuard 在 dirty 时确认、clean 时直接放行', () => {
+  const guard = {}
+  const harness = makeHarness(null, { status: 'ready', writable: true, value: { persona: whale, personaEnabled: false } }, async () => true, { tabGuard: guard })
+  assert.equal(guard.confirm(), true)
+  harness.inputByValue('鲸鱼娘·工作模式').props.onChange({ target: { value: '跨 tab 草稿' } })
+  harness.setWindowConfirm(false)
+  assert.equal(guard.confirm(), false)
+  harness.setWindowConfirm(true)
+  assert.equal(guard.confirm(), true)
 })

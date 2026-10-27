@@ -643,23 +643,77 @@ body[data-ds-dark-theme] [class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="nex
         }
         return out
       }
+      const isPersonaObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value)
+      const personaString = (value, max) => typeof value === 'string' && value.trim() !== '' && value.length <= max
+      const personaStringArray = (value, maxItems, maxLength) => Array.isArray(value) && value.length <= maxItems && value.every((item) => personaString(item, maxLength))
       const parsePersonaJson = (text) => {
         if (typeof text !== 'string' || text.trim() === '') return { ok: false, error: '空 JSON', pointer: '/' }
         if (byteLength(text) > PERSONA_MAX) return { ok: false, error: '超过 64KB', pointer: '/' }
         let doc
         try { doc = JSON.parse(text) } catch (error) { return { ok: false, error: 'JSON 解析失败：' + String(error.message ?? error), pointer: '/' } }
-        if (!doc || typeof doc !== 'object' || Array.isArray(doc)) return { ok: false, error: '顶层必须是对象', pointer: '/' }
+        if (!isPersonaObject(doc)) return { ok: false, error: '顶层必须是对象', pointer: '/' }
         if (doc.schema !== PERSONA_SCHEMA) return { ok: false, error: 'schema 必须是 ' + PERSONA_SCHEMA, pointer: '/schema' }
+        if (!isPersonaObject(doc.meta)) return { ok: false, error: 'meta 必填', pointer: '/meta' }
         for (const field of ['name', 'author', 'license', 'source', 'attribution']) {
-          if (typeof doc.meta?.[field] !== 'string' || doc.meta[field].trim() === '') return { ok: false, error: 'meta.' + field + ' 必填', pointer: '/meta/' + field }
+          if (!personaString(doc.meta[field], field === 'name' ? 40 : field === 'attribution' ? 300 : 200)) return { ok: false, error: 'meta.' + field + ' 必填或超长', pointer: '/meta/' + field }
         }
-        if (doc.meta?.official !== false) return { ok: false, error: 'meta.official 必须为 false', pointer: '/meta/official' }
-        for (const field of ['role']) if (typeof doc.identity?.[field] !== 'string' || doc.identity[field].trim() === '') return { ok: false, error: 'identity.' + field + ' 必填', pointer: '/identity/' + field }
-        if (typeof doc.address?.user !== 'string' || doc.address.user.trim() === '') return { ok: false, error: 'address.user 必填', pointer: '/address/user' }
-        if (typeof doc.tone?.style !== 'string' || doc.tone.style.trim() === '') return { ok: false, error: 'tone.style 必填', pointer: '/tone/style' }
-        if (doc.render?.intensity !== undefined && doc.render.intensity !== 'standard') return { ok: false, error: 'intensity 只支持 standard', pointer: '/render/intensity' }
-        if (doc.examples !== undefined && (!Array.isArray(doc.examples) || doc.examples.length < 1 || doc.examples.length > 3)) return { ok: false, error: 'examples 需要 1–3 条', pointer: '/examples' }
+        if (doc.meta.version !== undefined && !personaString(doc.meta.version, 20)) return { ok: false, error: 'meta.version 超长', pointer: '/meta/version' }
+        if (doc.meta.official !== false) return { ok: false, error: 'meta.official 必须为 false', pointer: '/meta/official' }
+        if (!isPersonaObject(doc.identity) || !personaString(doc.identity.role, 120)) return { ok: false, error: 'identity.role 必填或超长', pointer: '/identity/role' }
+        if (doc.identity.selfReference !== undefined && !personaStringArray(doc.identity.selfReference, 3, 20)) return { ok: false, error: 'identity.selfReference 需 ≤3 条、每条 ≤20 字', pointer: '/identity/selfReference' }
+        if (doc.identity.worldview !== undefined && !personaString(doc.identity.worldview, 120)) return { ok: false, error: 'identity.worldview 超长', pointer: '/identity/worldview' }
+        if (!isPersonaObject(doc.address) || !personaString(doc.address.user, 20)) return { ok: false, error: 'address.user 必填或超长', pointer: '/address/user' }
+        if (doc.address.forbidden !== undefined && !personaStringArray(doc.address.forbidden, 5, 20)) return { ok: false, error: 'address.forbidden 需 ≤5 条、每条 ≤20 字', pointer: '/address/forbidden' }
+        if (!isPersonaObject(doc.tone) || !personaString(doc.tone.style, 160)) return { ok: false, error: 'tone.style 必填或超长', pointer: '/tone/style' }
+        if (doc.tone.professionalScenes !== undefined && !personaStringArray(doc.tone.professionalScenes, 6, 20)) return { ok: false, error: 'tone.professionalScenes 需 ≤6 条、每条 ≤20 字', pointer: '/tone/professionalScenes' }
+        if (doc.tone.forbidden !== undefined && !personaStringArray(doc.tone.forbidden, 5, 30)) return { ok: false, error: 'tone.forbidden 需 ≤5 条、每条 ≤30 字', pointer: '/tone/forbidden' }
+        if (doc.habits !== undefined) {
+          if (!isPersonaObject(doc.habits)) return { ok: false, error: 'habits 必须是对象', pointer: '/habits' }
+          for (const key of ['catchphrases', 'motifs', 'taboos']) if (doc.habits[key] !== undefined && !personaStringArray(doc.habits[key], 5, 20)) return { ok: false, error: 'habits.' + key + ' 需 ≤5 条、每条 ≤20 字', pointer: '/habits/' + key }
+        }
+        if (doc.closing !== undefined) {
+          if (!isPersonaObject(doc.closing)) return { ok: false, error: 'closing 必须是对象', pointer: '/closing' }
+          if (typeof doc.closing.enabled !== 'boolean') return { ok: false, error: 'closing.enabled 必填', pointer: '/closing/enabled' }
+          if (doc.closing.mode !== 'signature') return { ok: false, error: 'closing.mode 必须为 signature', pointer: '/closing/mode' }
+          if (doc.closing.maxChars !== undefined && (!Number.isInteger(doc.closing.maxChars) || doc.closing.maxChars < 10 || doc.closing.maxChars > 40)) return { ok: false, error: 'closing.maxChars 需 10–40', pointer: '/closing/maxChars' }
+          if (doc.closing.skipIn !== undefined && (!Array.isArray(doc.closing.skipIn) || doc.closing.skipIn.length > 6 || !doc.closing.skipIn.every((item) => ['code', 'diff', 'error', 'short', 'table'].includes(item)))) return { ok: false, error: 'closing.skipIn 无效', pointer: '/closing/skipIn' }
+        }
+        if (doc.examples !== undefined && (!Array.isArray(doc.examples) || doc.examples.length < 1 || doc.examples.length > 3 || !doc.examples.every((item) => personaString(item, 120)))) return { ok: false, error: 'examples 需 1–3 条、每条 ≤120 字', pointer: '/examples' }
+        if (doc.render !== undefined) {
+          if (!isPersonaObject(doc.render)) return { ok: false, error: 'render 必须是对象', pointer: '/render' }
+          if (doc.render.intensity !== undefined && doc.render.intensity !== 'standard') return { ok: false, error: 'intensity 只支持 standard', pointer: '/render/intensity' }
+          if (doc.render.language !== undefined && !['follow_user', 'zh-CN', 'en'].includes(doc.render.language)) return { ok: false, error: 'render.language 无效', pointer: '/render/language' }
+          if (doc.render.audience !== undefined && !['general', 'developer', 'external'].includes(doc.render.audience)) return { ok: false, error: 'render.audience 无效', pointer: '/render/audience' }
+        }
         return { ok: true, doc, unknownPaths: personaUnknownPaths(doc) }
+      }
+      const personaRenderedBody = (doc) => [
+        `【身份】${doc.identity?.role ?? ''}`,
+        doc.identity?.selfReference?.length ? `【自称】${doc.identity.selfReference.join('、')}` : '',
+        doc.identity?.worldview ? `【世界观】${doc.identity.worldview}` : '',
+        `【称呼】称呼用户为“${doc.address?.user ?? ''}”`,
+        `【语气】${doc.tone?.style ?? ''}`,
+        doc.tone?.professionalScenes?.length ? `【专业场景收敛】${doc.tone.professionalScenes.join('、')}` : '',
+        doc.tone?.forbidden?.length ? `【语气禁区】${doc.tone.forbidden.join('、')}` : '',
+        doc.habits?.catchphrases?.length ? `【口头禅】${doc.habits.catchphrases.join('、')}` : '',
+        doc.habits?.motifs?.length ? `【意象】${doc.habits.motifs.join('、')}` : '',
+        doc.habits?.taboos?.length ? `【禁忌】${doc.habits.taboos.join('、')}` : '',
+        doc.closing?.enabled ? `【收尾签名】只用 ${doc.closing.maxChars ?? 20} 字以内的动作/态度` : '',
+        doc.examples?.length ? `【示例】${doc.examples.join(' / ')}` : '',
+        doc.render?.language ? `【语言】${doc.render.language}` : '',
+        doc.render?.audience ? `【受众】${doc.render.audience}` : '',
+      ].filter(Boolean).join('\n')
+      const personaDiffPaths = (a, b, prefix = '') => {
+        const out = []
+        const keys = new Set([...Object.keys(a ?? {}), ...Object.keys(b ?? {})])
+        for (const key of keys) {
+          const path = prefix + '/' + key
+          const left = a?.[key]
+          const right = b?.[key]
+          if (left && right && typeof left === 'object' && typeof right === 'object' && !Array.isArray(left) && !Array.isArray(right)) out.push(...personaDiffPaths(left, right, path))
+          else if (JSON.stringify(left) !== JSON.stringify(right)) out.push(path)
+        }
+        return out
       }
 
       const statusLabels = {
@@ -671,20 +725,23 @@ body[data-ds-dark-theme] [class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="nex
       const personaUiFlags = ({ status, writable = true, view = 'form' }) => {
         const busy = status === 'saving'
         const invalid = status === 'importInvalid' || status === 'tooLarge'
+        const pending = status === 'importParsed'
         const readonly = writable === false
         return {
-          busy, invalid, readonly,
-          formLocked: readonly || busy || invalid,
-          canSave: !readonly && !busy && !invalid,
+          busy, invalid, pending, readonly,
+          formLocked: readonly || busy || invalid || pending,
+          canSave: !readonly && !busy && !invalid && !pending,
           canDownload: true,
-          canForm: !invalid,
+          canForm: !invalid && !pending,
+          canApply: pending && !readonly && !busy,
+          canCancel: pending && !busy,
           showJson: view === 'json',
-          showPending: status === 'importParsed',
+          showPending: pending,
           showRestore: invalid,
         }
       }
 
-      const PersonaEditor = ({ state, setField }) => {
+      const PersonaEditor = ({ state, setField, tabGuard }) => {
         const initialRaw = fieldValue(state.value, { field: 'persona', fallback: PERSONA_WHALE_JSON })
         const initialParsed = parsePersonaJson(initialRaw)
         const [doc, setDoc] = react.useState(initialParsed.ok ? initialParsed.doc : emptyPersonaDoc())
@@ -695,16 +752,20 @@ body[data-ds-dark-theme] [class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="nex
         const [error, setError] = react.useState(initialParsed.ok ? '' : initialParsed.error + ' (' + initialParsed.pointer + ')')
         const [lastValid, setLastValid] = react.useState(initialParsed.ok ? initialParsed.doc : emptyPersonaDoc())
         const [pendingImport, setPendingImport] = react.useState(null)
+        const [previousImport, setPreviousImport] = react.useState(null)
+        const [importDiff, setImportDiff] = react.useState([])
         const [view, setView] = react.useState(initialParsed.ok ? 'form' : 'json')
         const flags = personaUiFlags({ status, writable: state.writable, view })
         const readonly = flags.readonly
         const busy = flags.busy
         const invalid = flags.invalid
+        const pending = flags.pending
         const formLocked = flags.formLocked
-        const dirty = ['dirty', 'jsonEditing', 'importParsed', 'failed', 'draftOff'].includes(status)
+        const dirty = ['dirty', 'jsonEditing', 'importParsed', 'failed', 'draftOff', 'importInvalid', 'tooLarge'].includes(status)
         const bytes = byteLength(jsonText)
-        const warn1200 = JSON.stringify(doc).length > 1200
-        const warn4000 = JSON.stringify(doc).length > 4000
+        const renderedBody = personaRenderedBody(doc)
+        const warn1200 = renderedBody.length > 1200
+        const warn4000 = renderedBody.length > 4000
         const updateDoc = (next) => {
           setDoc(next)
           setJsonText(JSON.stringify(next, null, 2))
@@ -732,38 +793,39 @@ body[data-ds-dark-theme] [class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="nex
           }
         }
         const confirmDirty = () => !dirty || typeof window === 'undefined' || typeof window.confirm !== 'function' || window.confirm('有未保存修改，确认丢弃？')
+        if (tabGuard) tabGuard.confirm = confirmDirty
         const loadWhale = () => {
-          if (readonly || busy) return
+          if (readonly || busy || pending) return
           if (!confirmDirty()) return
           const parsed = parsePersonaJson(PERSONA_WHALE_JSON)
           if (!parsed.ok) { setStatus('importInvalid'); setError(parsed.error); return }
           setDoc(parsed.doc); setJsonText(JSON.stringify(parsed.doc, null, 2)); setLastValid(parsed.doc); setStatus('dirty'); setView('form'); setError('')
         }
         const resetDefault = () => {
-          if (readonly || busy) return
+          if (readonly || busy || pending) return
           if (!confirmDirty()) return
           const parsed = parsePersonaJson(PERSONA_WHALE_JSON)
           if (!parsed.ok) return
           setDoc(parsed.doc); setJsonText(JSON.stringify(parsed.doc, null, 2)); setLastValid(parsed.doc); setEnabled(false); setStatus('dirty'); setView('form'); setError('')
         }
         const save = async () => {
-          if (readonly || busy || invalid) return
+          if (!flags.canSave) return
           const parsed = parsePersonaJson(jsonText)
           if (!parsed.ok) { setStatus('importInvalid'); setError(parsed.error + ' (' + parsed.pointer + ')'); return }
           if (parsed.unknownPaths.length && typeof window !== 'undefined' && typeof window.confirm === 'function' && !window.confirm('JSON 含未知字段，保存会原样保留：' + parsed.unknownPaths.join(', ') + '。继续？')) return
           setStatus('saving')
           try {
-            const enabledResult = await setField('personaEnabled', enabled)
-            if (enabledResult === false) throw new Error('personaEnabled write rejected')
             const personaResult = await setField('persona', JSON.stringify(parsed.doc, null, 2))
             if (personaResult === false) throw new Error('persona write rejected')
+            const enabledResult = await setField('personaEnabled', enabled)
+            if (enabledResult === false) throw new Error('personaEnabled write rejected')
             setDoc(parsed.doc); setLastValid(parsed.doc); setStatus(enabled ? 'saved' : 'off'); setError('')
           } catch (saveError) {
             setStatus('failed'); setError(String(saveError.message ?? saveError))
           }
         }
         const upload = async (event) => {
-          if (readonly || busy) return
+          if (readonly || busy || pending) return
           const file = event?.target?.files?.[0]
           if (!file) return
           setView('json')
@@ -774,26 +836,33 @@ body[data-ds-dark-theme] [class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="nex
             if (byteLength(text) > PERSONA_MAX) { setStatus('tooLarge'); setError('文件超过 64KB'); return }
             const parsed = parsePersonaJson(text)
             if (!parsed.ok) { setStatus('importInvalid'); setError(parsed.error + ' (' + parsed.pointer + ')'); return }
+            setPreviousImport({ doc, jsonText, status, view })
             setPendingImport(parsed.doc)
+            setImportDiff(personaDiffPaths(doc, parsed.doc))
             setJsonText(text)
             setStatus('importParsed')
             setError(parsed.unknownPaths.length ? '未知字段：' + parsed.unknownPaths.join(', ') : '')
           } catch (readError) { setStatus('importInvalid'); setError(String(readError.message ?? readError)) }
         }
         const applyImport = () => {
-          if (!pendingImport || readonly || busy) return
-          setDoc(pendingImport); setJsonText(JSON.stringify(pendingImport, null, 2)); setLastValid(pendingImport); setPendingImport(null); setStatus('dirty'); setView('form')
+          if (!pendingImport || !flags.canApply) return
+          setDoc(pendingImport); setJsonText(JSON.stringify(pendingImport, null, 2)); setLastValid(pendingImport); setPendingImport(null); setPreviousImport(null); setImportDiff([]); setStatus('dirty'); setView('form')
         }
         const cancelImport = () => {
-          if (busy) return
-          setPendingImport(null); setStatus('jsonEditing')
+          if (!flags.canCancel) return
+          if (previousImport) {
+            setDoc(previousImport.doc); setJsonText(previousImport.jsonText); setStatus(previousImport.status); setView(previousImport.view)
+          } else {
+            setStatus('off')
+          }
+          setPendingImport(null); setPreviousImport(null); setImportDiff([]); setError('')
         }
         const restoreLast = () => {
           if (readonly || busy) return
           setDoc(lastValid); setJsonText(JSON.stringify(lastValid, null, 2)); setStatus('dirty'); setView('form'); setError('')
         }
         const formatJson = () => {
-          if (busy) return
+          if (busy || pending) return
           const parsed = parsePersonaJson(jsonText)
           if (parsed.ok) { setDoc(parsed.doc); setJsonText(JSON.stringify(parsed.doc, null, 2)); setStatus('dirty'); setError('') }
           else { setStatus('importInvalid'); setError(parsed.error + ' (' + parsed.pointer + ')') }
@@ -817,33 +886,36 @@ body[data-ds-dark-theme] [class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="nex
           return jsxs('label', { style: fieldStyle, children: [jsx('span', { style: labelStyle, children: label }), control] })
         }
         const tabButton = (id, label) => jsx('button', {
-          type: 'button', role: 'tab', 'aria-selected': view === id, disabled: id === 'form' && invalid,
-          onClick: () => { if (id === 'form' && invalid) return; setView(id) },
+          type: 'button', role: 'tab', 'aria-selected': view === id, disabled: id === 'form' && (invalid || pending),
+          onClick: () => { if (id === 'form' && (invalid || pending)) return; setView(id) },
           style: { ...tabButtonStyle, ...(view === id ? tabActiveStyle : {}) }, children: label,
         })
         return jsxs('div', { 'data-dsh-persona': '1', style: { display: 'flex', flexDirection: 'column', gap: '14px' }, children: [
           jsxs('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }, children: [
             jsx('div', { style: labelStyle, children: '启用表达风格' }),
-            jsx(ui.Switch, { checked: enabled, disabled: readonly || busy || invalid, label: '启用表达风格', onChange: (next) => { if (readonly || busy || invalid) return; setEnabled(next); setStatus(next ? 'dirty' : 'draftOff') } }),
+            jsx(ui.Switch, { checked: enabled, disabled: readonly || busy || invalid || pending, label: '启用表达风格', onChange: (next) => { if (readonly || busy || invalid || pending) return; setEnabled(next); setStatus(next ? 'dirty' : 'draftOff') } }),
           ] }),
           jsxs('div', { style: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }, children: [
-            jsx('select', { disabled: readonly || busy, value: template, onChange: (event) => setTemplate(event.target.value), style: { ...inputStyle, width: '180px' }, children: [jsx('option', { value: 'whale', children: '鲸鱼娘（示例）' }), jsx('option', { value: 'custom', children: '自定义' })] }),
-            jsx('button', { type: 'button', disabled: readonly || busy, onClick: loadWhale, style: secondaryButtonStyle, children: '载入基础模板' }),
+            jsx('select', { disabled: readonly || busy || pending, value: template, onChange: (event) => { if (readonly || busy || pending) return; setTemplate(event.target.value) }, style: { ...inputStyle, width: '180px' }, children: [jsx('option', { value: 'whale', children: '鲸鱼娘（示例）' }), jsx('option', { value: 'custom', children: '自定义' })] }),
+            jsx('button', { type: 'button', disabled: readonly || busy || pending, onClick: loadWhale, style: secondaryButtonStyle, children: '载入基础模板' }),
             jsx('button', { type: 'button', onClick: download, style: secondaryButtonStyle, children: '下载 JSON' }),
             jsx('span', { style: noteStyle, children: '非官方 · 社区二创 · 不打包美术' }),
           ] }),
-          pendingImport ? jsxs('div', { style: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', padding: '8px 10px', borderRadius: '7px', background: 'var(--dsw-alias-bg-layer-3, transparent)' }, children: [
+          pendingImport ? jsxs('div', { style: { display: 'flex', flexDirection: 'column', gap: '6px', padding: '8px 10px', borderRadius: '7px', background: 'var(--dsw-alias-bg-layer-3, transparent)' }, children: [
             jsx('span', { style: labelStyle, children: '待确认导入：只替换草稿，保存后才写入 profile。' }),
-            jsx('button', { type: 'button', disabled: readonly || busy, onClick: applyImport, style: primaryButtonStyle, children: '应用导入' }),
-            jsx('button', { type: 'button', disabled: readonly || busy, onClick: cancelImport, style: secondaryButtonStyle, children: '取消导入' }),
+            jsx('span', { style: noteStyle, children: importDiff.length ? '字段变更：' + importDiff.join(', ') : '字段无变化' }),
+            jsxs('div', { style: { display: 'flex', gap: '8px', flexWrap: 'wrap' }, children: [
+              jsx('button', { type: 'button', disabled: !flags.canApply, onClick: applyImport, style: primaryButtonStyle, children: '应用导入' }),
+              jsx('button', { type: 'button', disabled: !flags.canCancel, onClick: cancelImport, style: secondaryButtonStyle, children: '取消导入' }),
+            ] }),
           ] }) : null,
           jsxs('div', { role: 'tablist', style: { display: 'flex', gap: '6px' }, children: [tabButton('form', '表单'), tabButton('json', 'JSON')] }),
           view === 'json' ? jsxs('div', { style: { display: 'flex', flexDirection: 'column', gap: '8px' }, children: [
-            jsx('textarea', { value: jsonText, disabled: readonly || busy, onChange: (event) => onJson(event.target.value), spellCheck: false, style: { ...inputStyle, minHeight: '360px', fontFamily: 'var(--ds-font-family-code, monospace)', fontSize: '12px', whiteSpace: 'pre' } }),
+            jsx('textarea', { value: jsonText, disabled: readonly || busy || pending, onChange: (event) => onJson(event.target.value), spellCheck: false, style: { ...inputStyle, minHeight: '360px', fontFamily: 'var(--ds-font-family-code, monospace)', fontSize: '12px', whiteSpace: 'pre' } }),
             jsxs('div', { style: { display: 'flex', gap: '8px', flexWrap: 'wrap' }, children: [
-              jsx('button', { type: 'button', disabled: readonly || busy, onClick: formatJson, style: secondaryButtonStyle, children: '格式化' }),
-              jsx('button', { type: 'button', disabled: readonly || busy, onClick: () => { const parsed = parsePersonaJson(jsonText); if (!parsed.ok) { setStatus('importInvalid'); setError(parsed.error); } else { setStatus('dirty'); setError('') } }, style: secondaryButtonStyle, children: '校验' }),
-              jsx('label', { style: { ...secondaryButtonStyle, display: 'inline-block' }, children: ['上传 JSON', jsx('input', { type: 'file', accept: 'application/json,.json', disabled: readonly || busy, onChange: upload, style: { display: 'none' } })] }),
+              jsx('button', { type: 'button', disabled: readonly || busy || pending, onClick: formatJson, style: secondaryButtonStyle, children: '格式化' }),
+              jsx('button', { type: 'button', disabled: readonly || busy || pending, onClick: () => { const parsed = parsePersonaJson(jsonText); if (!parsed.ok) { setStatus('importInvalid'); setError(parsed.error); } else { setStatus('dirty'); setError('') } }, style: secondaryButtonStyle, children: '校验' }),
+              jsx('label', { style: { ...secondaryButtonStyle, display: 'inline-block' }, children: ['上传 JSON', jsx('input', { type: 'file', accept: 'application/json,.json', disabled: readonly || busy || pending, onChange: upload, style: { display: 'none' } })] }),
               jsx('button', { type: 'button', onClick: download, style: secondaryButtonStyle, children: '下载' }),
               invalid ? jsx('button', { type: 'button', disabled: readonly || busy, onClick: restoreLast, style: secondaryButtonStyle, children: '恢复最后有效值' }) : null,
             ] }),
@@ -870,8 +942,8 @@ body[data-ds-dark-theme] [class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="nex
           jsxs('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }, children: [
             jsx('span', { style: { ...noteStyle, color: invalid ? 'var(--dsw-alias-state-error-primary, #b91c1c)' : 'var(--dsw-alias-label-tertiary, inherit)' }, children: (statusLabels[status] ?? status) + (bytes ? ' · ' + bytes + ' B / 64KB' : '') + (warn1200 ? ' · 超过 1200 字符建议' : '') + (warn4000 ? ' · 超过 4000 字符强警告' : '') }),
             jsxs('div', { style: { display: 'flex', gap: '8px' }, children: [
-              jsx('button', { type: 'button', disabled: readonly || busy, onClick: resetDefault, style: secondaryButtonStyle, children: '恢复默认' }),
-              jsx('button', { type: 'button', disabled: readonly || busy || invalid, onClick: save, style: primaryButtonStyle, children: '保存' }),
+              jsx('button', { type: 'button', disabled: readonly || busy || pending, onClick: resetDefault, style: secondaryButtonStyle, children: '恢复默认' }),
+              jsx('button', { type: 'button', disabled: !flags.canSave, onClick: save, style: primaryButtonStyle, children: '保存' }),
             ] }),
           ] }),
           jsx('p', { style: noteStyle, children: '保存到当前 profile；不写日志、不上传。示例只作风格参考，不是实时输出。' }),
@@ -882,6 +954,8 @@ body[data-ds-dark-theme] [class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="nex
       personaTestApi = { parsePersonaJson, emptyPersonaDoc, setPath, byteLength, statusLabels, personaUiFlags, PersonaEditor }
 
       const StructuredConfigCard = (props) => {
+        const [tab, setTab] = react.useState('structured')
+        const personaGuard = {}
         if (props.view !== undefined && props.view !== 'page') return null
         const read = props.useStructuredConfig ?? props.structuredConfig
         const state = typeof read === 'function' ? read((snapshot) => snapshot) : null
@@ -889,11 +963,14 @@ body[data-ds-dark-theme] [class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="nex
           return jsx('p', { style: noteStyle, children: '插件未加载或配置暂不可用。' })
         }
         const setField = typeof props.setField === 'function' ? props.setField : () => {}
-        const [tab, setTab] = react.useState('structured')
         const tabs = [
           ['structured', '结构化输出'],
           ['persona', '表达风格（Persona）'],
         ]
+        const switchTab = (next) => {
+          if (next === 'structured' && tab === 'persona' && typeof personaGuard.confirm === 'function' && !personaGuard.confirm()) return
+          setTab(next)
+        }
         return jsxs('div', {
           'data-dsh-structured-config': '1',
           children: [
@@ -904,16 +981,15 @@ body[data-ds-dark-theme] [class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="nex
               type: 'button',
               role: 'tab',
               'aria-selected': tab === id,
-              onClick: () => setTab(id),
+              onClick: () => switchTab(id),
               style: { ...tabButtonStyle, ...(tab === id ? tabActiveStyle : {}) },
               children: label,
             })) }),
-            tab === 'structured'
-              ? jsxs('div', { children: [
-                  jsx('div', { children: CONFIG_FIELDS.map((spec) => renderRow(state, setField, spec)) }),
-                  jsx('p', { style: noteStyle, children: '会话级开关请用 /structured on | off（按会话生效，不写入这里）。' }),
-                ] })
-              : jsx(PersonaEditor, { state, setField }),
+            jsx('div', { style: { display: tab === 'structured' ? 'block' : 'none' }, children: jsxs('div', { children: [
+              jsx('div', { children: CONFIG_FIELDS.map((spec) => renderRow(state, setField, spec)) }),
+              jsx('p', { style: noteStyle, children: '会话级开关请用 /structured on | off（按会话生效，不写入这里）。' }),
+            ] }) }),
+            jsx('div', { style: { display: tab === 'persona' ? 'block' : 'none' }, children: jsx(PersonaEditor, { state, setField, tabGuard: personaGuard }) }),
           ],
         })
       }

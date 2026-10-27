@@ -16,9 +16,12 @@ test('pack：鲸鱼娘 JSON/许可/署名随包，1.0 草稿不随包', () => {
   }
   assert.equal(files.includes('test/fixtures/baseline/P04-meeting.md'), false, 'pack should exclude P04 fixture')
   assert.equal(files.includes('test/fixtures/baseline/P07-python.py'), false, 'pack should exclude P07 fixture')
-  assert.equal(files.length, 61, 'pack file count must match ACCEPTANCE-1.0.0.md')
-  assert.equal(parsed[0].size, 791508, 'pack size must match ACCEPTANCE-1.0.0.md')
-  assert.equal(parsed[0].unpackedSize, 1125798, 'pack unpackedSize must match ACCEPTANCE-1.0.0.md')
+  assert.equal(files.includes('test/fixtures/persona-gate/no-persona.md'), false, 'pack should exclude old gate fixture')
+  assert.equal(files.includes('test/fixtures/persona-gate/persona-append.md'), false, 'pack should exclude old gate fixture')
+  assert.equal(files.includes('test/fixtures/persona-gate/style-override.md'), false, 'pack should exclude old gate fixture')
+  assert.equal(files.length, 58, 'pack file count must match ACCEPTANCE-1.0.0.md')
+  assert.equal(parsed[0].size, 795674, 'pack size must match ACCEPTANCE-1.0.0.md')
+  assert.equal(parsed[0].unpackedSize, 1147024, 'pack unpackedSize must match ACCEPTANCE-1.0.0.md')
   for (const name of readdirSync('.')) {
     if (/^dsh-structured-.*\.tgz$/.test(name) && !before.has(name)) rmSync(name, { force: true })
   }
