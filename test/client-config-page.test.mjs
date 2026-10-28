@@ -389,8 +389,12 @@ test('config page：tone flags 覆盖 invalid/readonly/saving/download', () => {
   assert.equal(saving.formLocked, true)
   assert.equal(saving.canSave, false)
   const clean = flags({ status: 'off' })
-  assert.equal(clean.canSave, true)
+  assert.equal(clean.canSave, false)
   assert.equal(clean.canBasic, true)
+  assert.equal(flags({ status: 'saved' }).canSave, false)
+  assert.equal(flags({ status: 'dirty' }).canSave, true)
+  assert.equal(flags({ status: 'draftOff' }).canSave, true)
+  assert.equal(flags({ status: 'failed' }).canSave, true)
 })
 
 test('config page：结构化 tab 下 PersonaEditor 仍挂载，跨 tab 不丢草稿', () => {

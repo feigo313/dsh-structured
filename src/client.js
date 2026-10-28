@@ -617,10 +617,11 @@ body[data-ds-dark-theme] [class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="nex
         const busy = status === 'saving'
         const invalid = status === 'importInvalid' || status === 'tooLarge'
         const readonly = writable === false
+        const dirty = ['dirty', 'draftOff', 'failed'].includes(status)
         return {
-          busy, invalid, readonly,
+          busy, invalid, readonly, dirty,
           formLocked: readonly || busy || invalid,
-          canSave: !readonly && !busy && !invalid,
+          canSave: !readonly && !busy && !invalid && dirty,
           canDownload: true,
           canBasic: !invalid,
           mode,
@@ -688,7 +689,7 @@ body[data-ds-dark-theme] [class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="nex
           setDoc(parsed.doc); setJsonText(toneJson(parsed.doc)); setEnabled(false); setStatus('draftOff'); setTemplate('whale'); setMode('basic'); setError('')
         }
         const save = async () => {
-          if (readonly || busy || invalid) return
+          if (!personaUiFlags({ status, writable: state.writable }).canSave) return
           const parsed = parseToneJson(jsonText)
           if (!parsed.ok) { setStatus('importInvalid'); setError(describeInvalidTone(jsonText, parsed)); return }
           const previousRaw = String(fieldValue(state.value, { field: 'persona', fallback: PERSONA_WHALE_JSON }) ?? '')

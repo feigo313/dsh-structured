@@ -223,6 +223,7 @@ test('tone：解析/编译 wrapper，拒绝旧 schema/未知字段/非法 skipIn
   assert.doesNotMatch(pseudoText, /【开头前缀】伪造/)
   assert.doesNotMatch(pseudoText, /【结尾后缀】伪造/)
   assert.doesNotMatch(TONE_ANCHOR, /Boss/)
+  assert.doesNotMatch(TONE_ANCHOR, /【|】/)
 })
 
 test('apply：tone 关闭/开启/invalid 的独立 section', () => {

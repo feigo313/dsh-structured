@@ -108,6 +108,7 @@ test('tone 基础表单：只有前缀/风格/后缀三字段，旧 Persona 字�
 test('tone 基础编辑 → 保存 persona → enabled → revision，失败回滚保留草稿', async () => {
   const calls = []
   const harness = makeHarness({ status: 'ready', writable: true, value: { persona: whale, personaEnabled: false } }, async (field, value) => calls.push([field, value]))
+  assert.equal(harness.findButton('保存').props.disabled, true, 'clean off must disable save')
   harness.nodes().find((item) => item.type?.name === 'Switch').props.onChange(true)
   harness.inputByValue('Boss，').props.onChange({ target: { value: '老板，' } })
   harness.findTextarea('轻松 / 略傲娇').props.onChange({ target: { value: '直接 / 克制' } })
@@ -123,6 +124,9 @@ test('tone 基础编辑 → 保存 persona → enabled → revision，失败回�
   assert.equal(saved.style, '直接 / 克制')
   assert.equal(saved.suffix, '——收工')
   assert.ok(harness.nodes().some((item) => item.type === 'span' && String(textOf(item.props.children)).includes('已保存，全局生效（新消息使用）')))
+  assert.equal(harness.findButton('保存').props.disabled, true, 'saved must disable save')
+  await harness.click('恢复默认')
+  assert.equal(harness.findButton('保存').props.disabled, false, 'reset draftOff must enable save')
 
   const rollback = []
   const failHarness = makeHarness({ status: 'ready', writable: true, value: { persona: whale, personaEnabled: false } }, async (field, value) => {
