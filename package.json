@@ -59,6 +59,7 @@
     "lib",
     "src",
     "scripts",
+    "!scripts/style-gate.mjs",
     "docs",
     "!docs/FULL-TEST-PROMPT.md",
     "!docs/FULL-TEST-REPORT.md",
