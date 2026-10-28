@@ -151,8 +151,13 @@ test('config page：宿主服务 describe 命名空间时注册 bundle 配置页
   const snapshot = { status: 'ready', writable: true, value: { theme: 'deepseek' } }
   const form = {
     setCalls: [],
+    mutateCalls: [],
     set(field, value) {
       this.setCalls.push([field, value])
+      return Promise.resolve(true)
+    },
+    mutate(ops, revision) {
+      this.mutateCalls.push([ops, revision])
       return Promise.resolve(true)
     },
     getSnapshot() {
@@ -175,6 +180,11 @@ test('config page：宿主服务 describe 命名空间时注册 bundle 配置页
   assert.equal(typeof face.setField, 'function')
   face.setField('visual', false)
   assert.deepEqual(form.setCalls[0], ['visual', false])
+  assert.equal(typeof face.mutateFields, 'function')
+  assert.equal(typeof face.readFields, 'function')
+  face.mutateFields([{ op: 'set', path: ['x'], value: 1 }], 3)
+  assert.deepEqual(form.mutateCalls[0][1], 3)
+  assert.equal(face.readFields(), snapshot)
 })
 
 test('config page：describe 未服务命名空间时不注册', () => {
@@ -376,14 +386,14 @@ test('config page：tone flags 覆盖 invalid/readonly/saving/download', () => {
   assert.equal(invalid.formLocked, true)
   assert.equal(invalid.canBasic, false)
   assert.equal(invalid.canSave, false)
-  assert.equal(invalid.canDownload, true)
+  assert.equal('canDownload' in invalid, false)
   const tooLarge = flags({ status: 'tooLarge' })
   assert.equal(tooLarge.formLocked, true)
   assert.equal(tooLarge.canSave, false)
   const readonly = flags({ status: 'off', writable: false })
   assert.equal(readonly.formLocked, true)
   assert.equal(readonly.canSave, false)
-  assert.equal(readonly.canDownload, true)
+  assert.equal('canDownload' in readonly, false)
   const saving = flags({ status: 'saving' })
   assert.equal(saving.busy, true)
   assert.equal(saving.formLocked, true)

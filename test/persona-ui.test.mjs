@@ -44,7 +44,14 @@ function makeHarness(state, setField, extraProps = {}) {
   let hookIndex = 0
   let tree = null
   let current = null
-  const render = () => { hookIndex = 0; tree = current({ state, setField, ...extraProps }); return tree }
+  const written = { ...(state.value ?? {}) }
+  const trackedSetField = async (field, value) => {
+    const result = await setField(field, value)
+    if (result !== false) written[field] = value
+    return result
+  }
+  const readFields = extraProps.readFields ?? (() => ({ status: 'ready', writable: state.writable, value: { ...written } }))
+  const render = () => { hookIndex = 0; tree = current({ state, setField: trackedSetField, readFields, ...extraProps }); return tree }
   const react = {
     useState(initial) {
       const index = hookIndex++
@@ -229,6 +236,118 @@ test('tone tabGuard：dirty 时确认，clean 时放行', () => {
   assert.equal(guard.confirm(), false)
   harness.setWindowConfirm(true)
   assert.equal(guard.confirm(), true)
+})
+
+test('tone 保存：宿主 mutate 一次批量写 persona/enabled/revision', async () => {
+  const calls = []
+  let batch = null
+  const harness = makeHarness(
+    { status: 'ready', writable: true, revision: 9, value: { persona: whale, personaEnabled: false, personaRevision: 3 } },
+    async (field, value) => { calls.push([field, value]); return true },
+    { mutateFields: async (ops, revision) => { batch = { ops, revision }; return true } },
+  )
+  harness.inputByValue('Boss，').props.onChange({ target: { value: '批量前缀' } })
+  await harness.click('保存')
+  assert.equal(calls.length, 0, 'batch path must not call setField')
+  assert.ok(batch, 'batch must be called')
+  assert.equal(JSON.stringify(batch.ops.map((op) => [op.op, op.path[0]])), JSON.stringify([['set', 'persona'], ['set', 'personaEnabled'], ['set', 'personaRevision']]))
+  assert.match(batch.ops[0].value, /批量前缀/)
+  assert.equal(batch.ops[1].value, false)
+  assert.equal(batch.ops[2].value, 4)
+  assert.equal(batch.revision, 9)
+  assert.ok(harness.nodes().some((item) => item.type === 'span' && String(textOf(item.props.children)).includes('已保存，未启用')))
+})
+
+test('tone 保存：批量写被拒绝保留草稿并允许重试', async () => {
+  let batchCalls = 0
+  const harness = makeHarness(
+    { status: 'ready', writable: true, revision: 2, value: { persona: whale, personaEnabled: false } },
+    async () => { throw new Error('setField must not run') },
+    { mutateFields: async () => { batchCalls += 1; return false } },
+  )
+  harness.inputByValue('Boss，').props.onChange({ target: { value: '批量失败草稿' } })
+  await harness.click('保存')
+  assert.equal(batchCalls, 1)
+  assert.ok(harness.inputByValue('批量失败草稿'))
+  assert.ok(harness.nodes().some((item) => item.type === 'span' && String(textOf(item.props.children)).includes('批量写入失败')))
+  assert.ok(harness.nodes().some((item) => item.type === 'span' && String(textOf(item.props.children)).includes('批量写入被宿主拒绝')))
+  assert.equal(harness.findButton('保存').props.disabled, false)
+})
+
+test('tone 保存：persona 写失败不继续写 enabled/revision', async () => {
+  const calls = []
+  const harness = makeHarness(
+    { status: 'ready', writable: true, value: { persona: whale, personaEnabled: false } },
+    async (field, value) => { calls.push([field, value]); if (field === 'persona') throw new Error('persona failed'); return true },
+  )
+  harness.inputByValue('Boss，').props.onChange({ target: { value: 'persona 失败草稿' } })
+  await harness.click('保存')
+  assert.deepEqual(calls.map(([field]) => field), ['persona'])
+  assert.ok(harness.inputByValue('persona 失败草稿'))
+  assert.ok(harness.nodes().some((item) => item.type === 'span' && String(textOf(item.props.children)).includes('persona failed')))
+})
+
+test('tone 保存：revision 写失败回滚 enabled/persona', async () => {
+  const calls = []
+  const harness = makeHarness(
+    { status: 'ready', writable: true, value: { persona: whale, personaEnabled: false } },
+    async (field, value) => {
+      calls.push([field, value])
+      if (field === 'personaRevision') throw new Error('revision failed')
+      return true
+    },
+  )
+  harness.inputByValue('Boss，').props.onChange({ target: { value: 'revision 失败草稿' } })
+  await harness.click('保存')
+  assert.deepEqual(calls.map(([field]) => field), ['persona', 'personaEnabled', 'personaRevision', 'personaEnabled', 'persona'])
+  assert.equal(calls[3][1], false)
+  assert.equal(calls[4][1], whale)
+  assert.ok(harness.inputByValue('revision 失败草稿'))
+  assert.ok(harness.nodes().some((item) => item.type === 'span' && String(textOf(item.props.children)).includes('revision failed')))
+})
+
+test('tone 保存：写后读回不一致触发回滚', async () => {
+  const calls = []
+  const harness = makeHarness(
+    { status: 'ready', writable: true, value: { persona: whale, personaEnabled: false } },
+    async (field, value) => { calls.push([field, value]); return true },
+    { readFields: () => ({ status: 'ready', writable: true, value: { persona: 'not-the-doc', personaEnabled: true, personaRevision: 99 } }) },
+  )
+  harness.inputByValue('Boss，').props.onChange({ target: { value: '读回失败草稿' } })
+  await harness.click('保存')
+  assert.ok(harness.inputByValue('读回失败草稿'))
+  assert.ok(harness.nodes().some((item) => item.type === 'span' && String(textOf(item.props.children)).includes('写后读回校验失败')))
+  assert.deepEqual(calls.map(([field]) => field), ['persona', 'personaEnabled', 'personaRevision', 'personaRevision', 'personaEnabled', 'persona'])
+})
+
+test('tone 保存：缺少读回接口时不宣布保存成功', async () => {
+  const harness = makeHarness(
+    { status: 'ready', writable: true, value: { persona: whale, personaEnabled: false } },
+    async () => true,
+    { readFields: undefined },
+  )
+  harness.inputByValue('Boss，').props.onChange({ target: { value: '无读回草稿' } })
+  await harness.click('保存')
+  assert.ok(harness.inputByValue('无读回草稿'))
+  assert.ok(harness.nodes().some((item) => item.type === 'span' && String(textOf(item.props.children)).includes('缺少配置读回接口')))
+})
+
+test('tone 保存：回滚返回 false 也显示回滚失败', async () => {
+  const calls = []
+  const harness = makeHarness(
+    { status: 'ready', writable: true, value: { persona: whale, personaEnabled: false } },
+    async (field, value) => {
+      calls.push([field, value])
+      if (field === 'personaEnabled') throw new Error('enabled failed')
+      if (field === 'persona' && value === whale) return false
+      return true
+    },
+  )
+  harness.inputByValue('Boss，').props.onChange({ target: { value: '回滚 false 草稿' } })
+  await harness.click('保存')
+  assert.ok(harness.inputByValue('回滚 false 草稿'))
+  assert.ok(harness.nodes().some((item) => item.type === 'span' && String(textOf(item.props.children)).includes('回滚失败，profile 可能半保存')))
+  assert.ok(calls.some(([field, value]) => field === 'persona' && value === whale))
 })
 
 test('tone Client/Host parity：同一无害/恶意 JSON 结果一致', () => {

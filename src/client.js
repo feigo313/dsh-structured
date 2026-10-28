@@ -622,13 +622,12 @@ body[data-ds-dark-theme] [class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="nex
           busy, invalid, readonly, dirty,
           formLocked: readonly || busy || invalid,
           canSave: !readonly && !busy && !invalid && dirty,
-          canDownload: true,
           canBasic: !invalid,
           mode,
         }
       }
 
-      const PersonaEditor = ({ state, setField, tabGuard }) => {
+      const PersonaEditor = ({ state, setField, mutateFields, readFields, tabGuard }) => {
         const initialRaw = fieldValue(state.value, { field: 'persona', fallback: PERSONA_WHALE_JSON })
         const initialParsed = parseToneJson(initialRaw)
         const [doc, setDoc] = react.useState(initialParsed.ok ? initialParsed.doc : emptyTone())
@@ -695,26 +694,63 @@ body[data-ds-dark-theme] [class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="nex
           const previousRaw = String(fieldValue(state.value, { field: 'persona', fallback: PERSONA_WHALE_JSON }) ?? '')
           const previousEnabled = fieldValue(state.value, { field: 'personaEnabled', fallback: false }) === true
           const previousRevision = Number(fieldValue(state.value, { field: 'personaRevision', fallback: 0 })) || 0
+          const nextRaw = JSON.stringify(parsed.doc, null, 2)
+          const nextRevision = previousRevision + 1
+          const finishSaved = () => {
+            setDoc(parsed.doc)
+            setJsonText(toneJson(parsed.doc))
+            setStatus(enabled ? 'saved' : 'savedOff')
+            setError('')
+          }
+          setStatus('saving')
+
+          if (typeof mutateFields === 'function') {
+            try {
+              const accepted = await mutateFields([
+                { op: 'set', path: ['persona'], value: nextRaw },
+                { op: 'set', path: ['personaEnabled'], value: enabled },
+                { op: 'set', path: ['personaRevision'], value: nextRevision },
+              ], state.revision)
+              if (accepted === false) throw new Error('批量写入被宿主拒绝')
+              finishSaved()
+            } catch (saveError) {
+              setStatus('failed')
+              setError('批量写入失败：' + String(saveError.message ?? saveError))
+            }
+            return
+          }
+
           let personaWritten = false
           let enabledWritten = false
           let revisionWritten = false
-          setStatus('saving')
           try {
-            const personaResult = await setField('persona', JSON.stringify(parsed.doc, null, 2))
+            const personaResult = await setField('persona', nextRaw)
             if (personaResult === false) throw new Error('persona write rejected')
             personaWritten = true
             const enabledResult = await setField('personaEnabled', enabled)
             if (enabledResult === false) throw new Error('personaEnabled write rejected')
             enabledWritten = true
-            const revisionResult = await setField('personaRevision', previousRevision + 1)
+            const revisionResult = await setField('personaRevision', nextRevision)
             if (revisionResult === false) throw new Error('personaRevision write rejected')
             revisionWritten = true
-            setDoc(parsed.doc); setJsonText(toneJson(parsed.doc)); setStatus(enabled ? 'saved' : 'savedOff'); setError('')
+            if (typeof readFields !== 'function') throw new Error('缺少配置读回接口，无法校验保存结果')
+            const snapshot = await readFields()
+            const current = snapshot && typeof snapshot === 'object' ? snapshot.value : undefined
+            const mismatched = []
+            if (!current || current.persona !== nextRaw) mismatched.push('persona')
+            if (!current || current.personaEnabled !== enabled) mismatched.push('personaEnabled')
+            if (!current || current.personaRevision !== nextRevision) mismatched.push('personaRevision')
+            if (mismatched.length) throw new Error('写后读回校验失败：' + mismatched.join(', '))
+            finishSaved()
           } catch (saveError) {
             const rollbackErrors = []
-            if (revisionWritten) { try { await setField('personaRevision', previousRevision) } catch (error) { rollbackErrors.push('revision: ' + String(error.message ?? error)) } }
-            if (enabledWritten) { try { await setField('personaEnabled', previousEnabled) } catch (error) { rollbackErrors.push('enabled: ' + String(error.message ?? error)) } }
-            if (personaWritten) { try { await setField('persona', previousRaw) } catch (error) { rollbackErrors.push('persona: ' + String(error.message ?? error)) } }
+            const rollback = async (field, value) => {
+              const result = await setField(field, value)
+              if (result === false) throw new Error('rejected')
+            }
+            if (revisionWritten) { try { await rollback('personaRevision', previousRevision) } catch (error) { rollbackErrors.push('revision: ' + String(error.message ?? error)) } }
+            if (enabledWritten) { try { await rollback('personaEnabled', previousEnabled) } catch (error) { rollbackErrors.push('enabled: ' + String(error.message ?? error)) } }
+            if (personaWritten) { try { await rollback('persona', previousRaw) } catch (error) { rollbackErrors.push('persona: ' + String(error.message ?? error)) } }
             const base = String(saveError.message ?? saveError)
             setStatus('failed')
             setError(rollbackErrors.length ? '回滚失败，profile 可能半保存：' + base + '；' + rollbackErrors.join('；') : base)
@@ -765,6 +801,8 @@ body[data-ds-dark-theme] [class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="nex
           return jsx('p', { style: noteStyle, children: '插件未加载或配置暂不可用。' })
         }
         const setField = typeof props.setField === 'function' ? props.setField : () => {}
+        const mutateFields = typeof props.mutateFields === 'function' ? props.mutateFields : null
+        const readFields = typeof props.readFields === 'function' ? props.readFields : null
         const tabs = [
           ['structured', '结构化输出'],
           ['persona', '语气风格'],
@@ -791,7 +829,7 @@ body[data-ds-dark-theme] [class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="nex
               jsx('div', { children: CONFIG_FIELDS.map((spec) => renderRow(state, setField, spec)) }),
               jsx('p', { style: noteStyle, children: '会话级开关请用 /structured on | off（按会话生效，不写入这里）。' }),
             ] }) }),
-            jsx('div', { style: { display: tab === 'persona' ? 'block' : 'none' }, children: jsx(PersonaEditor, { state, setField, tabGuard: personaGuard }) }),
+            jsx('div', { style: { display: tab === 'persona' ? 'block' : 'none' }, children: jsx(PersonaEditor, { state, setField, mutateFields, readFields, tabGuard: personaGuard }) }),
           ],
         })
       }
@@ -814,6 +852,12 @@ body[data-ds-dark-theme] [class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="nex
                       return Promise.reject(error)
                     }
                   },
+                  mutateFields: typeof form.mutate === 'function'
+                    ? (ops, revision) => form.mutate(ops, revision)
+                    : undefined,
+                  readFields: typeof form.getSnapshot === 'function'
+                    ? () => form.getSnapshot()
+                    : undefined,
                 }),
               }, StructuredConfigCard),
             )
