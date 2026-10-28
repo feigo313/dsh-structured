@@ -20,8 +20,8 @@ test('pack：鲸鱼娘 JSON/许可/署名随包，1.0 草稿不随包', () => {
   assert.equal(files.includes('test/fixtures/persona-gate/persona-append.md'), false, 'pack should exclude old gate fixture')
   assert.equal(files.includes('test/fixtures/persona-gate/style-override.md'), false, 'pack should exclude old gate fixture')
   assert.equal(files.length, 57, 'pack file count must match ACCEPTANCE-1.0.0.md')
-  assert.equal(parsed[0].size, 783432, 'pack size must match ACCEPTANCE-1.0.0.md')
-  assert.equal(parsed[0].unpackedSize, 1102462, 'pack unpackedSize must match ACCEPTANCE-1.0.0.md')
+  assert.equal(parsed[0].size, 783695, 'pack size must match ACCEPTANCE-1.0.0.md')
+  assert.equal(parsed[0].unpackedSize, 1103146, 'pack unpackedSize must match ACCEPTANCE-1.0.0.md')
   for (const name of readdirSync('.')) {
     if (/^dsh-structured-.*\.tgz$/.test(name) && !before.has(name)) rmSync(name, { force: true })
   }

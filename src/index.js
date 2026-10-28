@@ -80,7 +80,9 @@ export const DEFAULT_PERSONA_JSON = PERSONA_WHALE_JSON === '__DSH_STRUCTURED_WHA
 
 /** 语气 section：放在宿主 sections 之后、tail 之前；不抢结构 section 的优先级。 */
 export const PERSONA_SECTION_NAME = 'dsh-structured:tone'
+export const TONE_ANCHOR_SECTION_NAME = 'dsh-structured:tone-anchor'
 export const PERSONA_ORDER = 10250
+export const TONE_ANCHOR_ORDER = 10275
 export const PERSONA_MAX_BYTES = TONE_MAX_BYTES
 
 /** 固定 wrapper：把风格定义为“必须使用的表达要求”，不是“非指令数据”。 */
@@ -96,14 +98,14 @@ export const PERSONA_WRAPPER_HEAD = [
 ].join('\n')
 
 export const PERSONA_WRAPPER_TAIL = '【风格数据结束】'
-export const TONE_ANCHOR = '本轮按【已启用的表达风格】执行；结构 / 事实 / 安全优先。\n发送前自检：正文是否像报告？若是，改成跟 Boss 说话的口语，再保留结构。本轮是否含代码 / diff / 报错？若是，前缀 / 风格 / 后缀全部跳过。是否含表格 / 短答？若是，保留前缀 / 风格，不加结尾后缀。否则最后一行保留 suffix。'
+export const TONE_ANCHOR = '本轮按【已启用的表达风格】执行；结构 / 事实 / 安全优先。\n发送前自检：正文是否像报告？若是，改成跟用户说话的口语，再保留结构。本轮是否含代码 / diff / 报错？若是，前缀 / 风格 / 后缀全部跳过。是否含表格 / 短答？若是，保留前缀 / 风格，不加结尾后缀。否则最后一行保留 suffix。'
 
 const isRecord = (value) => value !== null && typeof value === 'object' && !Array.isArray(value)
 const toneString = (value, max) => typeof value === 'string' && value.length <= max
 const toneRequiredString = (value, max) => typeof value === 'string' && value.trim().length > 0 && value.length <= max
 const sanitizeToneText = (value) => String(value)
   .replace(/[\r\n]+/g, ' ')
-  .replace(/【\s*风格数据(开始|结束)\s*】/g, '［风格数据$1］')
+  .replace(/【\s*(已启用的表达风格|开头前缀|中间风格|结尾后缀|跳过场景|风格数据(?:开始|结束))\s*】/g, '［$1］')
 
 /**
  * 严格解析 tone JSON；只接受 tone@1，不把旧 persona/meta 字段带进 1.0。
@@ -126,7 +128,7 @@ export function parsePersona(raw) {
   if (!toneString(doc.prefix, 80)) return { ok: false, error: 'prefix must be a string of ≤80 chars', pointer: '/prefix' }
   if (!toneRequiredString(doc.style, 1200)) return { ok: false, error: 'style must be a non-empty string of ≤1200 chars', pointer: '/style' }
   if (!toneString(doc.suffix, 80)) return { ok: false, error: 'suffix must be a string of ≤80 chars', pointer: '/suffix' }
-  if (doc.skipIn !== undefined && (!Array.isArray(doc.skipIn) || doc.skipIn.length > TONE_SKIP_DEFAULT.length || !doc.skipIn.every((item) => TONE_SKIP_DEFAULT.includes(item)))) return { ok: false, error: 'skipIn invalid', pointer: '/skipIn' }
+  if (doc.skipIn !== undefined && (!Array.isArray(doc.skipIn) || doc.skipIn.length > TONE_SKIP_DEFAULT.length || new Set(doc.skipIn).size !== doc.skipIn.length || !doc.skipIn.every((item) => TONE_SKIP_DEFAULT.includes(item)))) return { ok: false, error: 'skipIn invalid', pointer: '/skipIn' }
   return { ok: true, doc, unknownPaths: [] }
 }
 
@@ -540,16 +542,22 @@ export function apply(ctx, config = {}) {
     }
   }
 
+  let toneCache = { key: null, compiled: null, error: null }
   const toneCompiledNow = (context, logError = false) => {
     try {
       if (!personaEnabledNow() || !eligible(context) || !enabledFor(context)) return null
-      void personaRevisionNow()
-      const compiled = compilePersona(personaRawNow())
-      if (!compiled.ok) {
-        if (logError) warn('persona 未注入：' + compiled.error)
+      const raw = personaRawNow()
+      const revision = personaRevisionNow()
+      const key = revision + '|' + raw
+      if (toneCache.key !== key) {
+        const compiled = compilePersona(raw)
+        toneCache = { key, compiled: compiled.ok ? compiled : null, error: compiled.ok ? null : compiled.error }
+      }
+      if (!toneCache.compiled) {
+        if (logError && toneCache.error) warn('persona 未注入：' + toneCache.error)
         return null
       }
-      return compiled
+      return toneCache.compiled
     } catch (error) {
       if (logError) warn('persona section 求值失败，已回退为空 section', error)
       return null
@@ -594,7 +602,7 @@ export function apply(ctx, config = {}) {
             order: REMINDER_ORDER,
             interpolate: false,
             text: (context) =>
-              sectionText(context, () => TAIL_REMINDER_TEXT + (toneCompiledNow(context) ? '\n\n' + TONE_ANCHOR : ''), '尾部提醒求值失败，已回退为空 section'),
+              sectionText(context, () => TAIL_REMINDER_TEXT, '尾部提醒求值失败，已回退为空 section'),
           }),
         'dsh-structured: tail reminder',
       )
@@ -616,6 +624,21 @@ export function apply(ctx, config = {}) {
     )
   } catch (error) {
     warn('注册 persona section 失败，不影响结构 section', error)
+  }
+
+  try {
+    ctx.effect(
+      () =>
+        ctx.systemPrompt.section({
+          name: TONE_ANCHOR_SECTION_NAME,
+          order: TONE_ANCHOR_ORDER,
+          interpolate: false,
+          text: (context) => toneCompiledNow(context) ? TONE_ANCHOR : '',
+        }),
+      'dsh-structured: tone anchor',
+    )
+  } catch (error) {
+    warn('注册 tone anchor 失败，不影响 tone section', error)
   }
 
   try {

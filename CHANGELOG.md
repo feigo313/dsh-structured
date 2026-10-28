@@ -4,7 +4,7 @@
 
 - 1.0 语气风格页：插件详情页“结构化输出 / 语气风格”两个 tab；基础模式只有开头前缀、中间风格、结尾后缀，进阶 JSON 与基础共用同一份 tone 文档；默认关闭，开启后使用鲸鱼娘模板。
 - Host：Config 增加 `personaEnabled/persona/personaRevision`；独立 tone section（order 10250；base 9900 → 宿主 → tone 10250 → tail 10300）；wrapper 改为“已启用的表达风格要求，必须使用”，tail 追加结构/事实/安全锚点；64KB 硬拒、无效 JSON fail-open。skipIn 只控制后缀：短答/表格保留前缀与风格，代码/diff/报错全跳过。
-- Client：基础/进阶双模式、JSON 上传/校验/保存、dirty/importInvalid/readonly/saving/failed/tooLarge 状态；基础只保留 3 个输入，作者/许可/示例等移出主表单。
+- Client：基础/进阶双模式；基础仅开头前缀/中间风格/结尾后缀 3 输入；进阶仅 JSON textarea + 保存；模板显示名“蓝色大肥鱼”；删除校验/上传/下载/IP 标注/未保存文案；保存 persona→enabled→revision，失败回滚；状态“已保存，全局生效（新消息使用）”。
 - tone schema：`dsh-structured/tone@1`，字段只有 `schema / prefix / style / suffix / skipIn`；署名/许可移到 `NOTICE-WHALE` / `LICENSE-WHALE`，不占 JSON token。
 - 鲸鱼娘模板随包：`docs/1.0-PERSONA-WHALE.json` + `LICENSE-WHALE` + `NOTICE-WHALE`；CC-BY-NC-SA-4.0，非官方，不打包美术；构建从 JSON 单一源注入 host/client。
 - 未完成：桌面实机、隔离 temp cwd P01–P10 基线、beta/default-on 用户 gate 均未验；不宣称 gate 通过。
