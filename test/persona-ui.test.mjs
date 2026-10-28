@@ -237,6 +237,7 @@ test('tone Client/Host parity：同一无害/恶意 JSON 结果一致', () => {
     { ...base, style: '' },
     { ...base, prefix: 'x'.repeat(81) },
     { ...base, skipIn: ['bogus'] },
+    { ...base, skipIn: ['code', 'code'] },
   ]
   for (const [index, doc] of cases.entries()) {
     const raw = JSON.stringify(doc)
