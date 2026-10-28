@@ -4,6 +4,10 @@ const fixture = new URL("./first-glance.html", import.meta.url).href
 await page.goto(fixture)
 await page.waitForLoadState("load")
 await page.waitForTimeout(400)
+// Pin a desktop viewport before measuring: the 720px media query changes
+// table font-size to 13px, so the window's default size must not decide this.
+await page.cdp("Emulation.setDeviceMetricsOverride", { width: 1200, height: 900, deviceScaleFactor: 1, mobile: false })
+await page.waitForTimeout(100)
 const style = await page.evaluate(() => {
   const q = (s) => document.querySelector(s)
   const cs = (el, pseudo) => getComputedStyle(el, pseudo)
