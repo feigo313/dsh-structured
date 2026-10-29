@@ -208,3 +208,11 @@
 - **线上**：npm `latest=0.9.9`；Release v0.9.9 资产 758,096 B / `05ccf744…` 未变；tag 仅 `v0.9.9`；listing `v0.9.9` + 7 图。
 - **仓库**：`feat/1.0-persona` 在途（`0b41231`，1.0 人格实现相关修复若干；未推送、无 CI）；未跟踪 `docs/1.0-PERSONA-AUDIT-881704c.md` 仍在。
 - **本轮动作**：只读复核与记录，未改动在途代码。
+
+## 2026-10-29 · 第 9 轮
+
+- **issue 水位**：0 open / 2 closed。
+- **线上**：npm `latest=0.9.9`；Release v0.9.9 资产 758,096 B / `05ccf744…` 未变；listing `v0.9.9`；CI 无新 run。
+- **仓库**：`feat/1.0-persona` 在途（`65c2606`，tone v2/v3 与 detached style gate 相关提交；未推送）；未跟踪 `docs/1.0-PERSONA-AUDIT-881704c.md`、`docs/1.0-TONE-V2/V3-*`。
+- **漂移**：仓库根出现未跟踪 `.zcode/`；未清理，先确认来源再决定忽略或删除，避免误删他方工具目录。
+- **本轮动作**：只读复核与记录，未改动在途代码。
