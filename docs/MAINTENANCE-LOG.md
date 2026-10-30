@@ -216,3 +216,11 @@
 - **仓库**：`feat/1.0-persona` 在途（`65c2606`，tone v2/v3 与 detached style gate 相关提交；未推送）；未跟踪 `docs/1.0-PERSONA-AUDIT-881704c.md`、`docs/1.0-TONE-V2/V3-*`。
 - **漂移**：仓库根出现未跟踪 `.zcode/`；未清理，先确认来源再决定忽略或删除，避免误删他方工具目录。
 - **本轮动作**：只读复核与记录，未改动在途代码。
+
+## 2026-10-30 · 第 10 轮
+
+- **issue 水位**：0 open / 2 closed。
+- **线上**：npm `latest=0.9.9`；Release v0.9.9 资产 758,096 B / `05ccf744…` 未变；listing `v0.9.9`；CI 无新 run。
+- **仓库**：`feat/1.0-persona` 停在 `97b24ea`；1.0 tone-v3 于 10-29 22:15 挂起（Boss 判 75%，明日继续，见 `docs/1.0-TONE-V3-CHECKPOINT.md`）；新增未跟踪 `docs/1.0-IKK-PERSONA.md`、`docs/1.0-TONE-V2/V3-*`。
+- **漂移**：`.zcode/plans` 仍未跟踪（zcode 工具目录），未清理，需确认后加 ignore 或移除。
+- **本轮动作**：只读复核与记录。
