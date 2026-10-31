@@ -1,6 +1,6 @@
 # dsh-structured 1.0.0 验收
 
-[1.0.0 · 代码/构建] `npm test` 85/85；`npm run build` 完成；`desktop-check` 全 PASS；`theme-contrast` 60；`theme-hue-distance` 12；`lib` 由 src 构建并注入鲸鱼娘 JSON；pack 58 文件 / 827707 B / unpacked 1262614 B。
+[1.0.0 · 代码/构建] `npm test` 85/85；`npm run build` 完成；`desktop-check` 全 PASS；`theme-contrast` 60；`theme-hue-distance` 12；`lib` 由 src 构建并注入鲸鱼娘 JSON；pack 58 文件 / 827619 B / unpacked 1262601 B。
 
 [1.0.0 · v5 回复皮肤] 软面卡片台：12px 圆角卡 + 3px 左条 + 同构渐变面；结论 / 下一步 / 风险线标题；表格蓝 tint 表头、26% / 18% 列宽、首列 600 墨字、三色状态签；代码浅色卡 + 「代码 · 语言」线标题 + 双方框复制钮；深色卡面 / 表头 / 代码面 / 状态签全量适配。静态三态×明暗证据：`artifacts/prototype/v5-fixture-light.png` / `v5-fixture-dark.png`；设置页证据：`artifacts/prototype/v5-settings-light.png` / `v5-settings-dark.png`。
 

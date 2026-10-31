@@ -1,13 +1,13 @@
 # Changelog
 
-## 1.0.0 — 2026-10-26
+## 1.0.0 — 2026-10-31
 
-- 1.0 语气风格页：插件详情页“结构化输出 / 语气风格”两个 tab；基础模式只有开头前缀、中间风格、结尾后缀，进阶 JSON 与基础共用同一份 tone 文档；默认关闭，开启后使用鲸鱼娘模板。
-- Host：Config 增加 `personaEnabled/persona/personaRevision`；独立 tone section（order 10250；base 9900 → 宿主 → tone 10250 → tail 10300）；wrapper 改为“已启用的表达风格要求，必须使用”，tail 追加结构/事实/安全锚点；64KB 硬拒、无效 JSON fail-open。skipIn 只控制后缀：短答/表格保留前缀与风格，代码/diff/报错全跳过。
-- Client：基础/进阶双模式；基础仅开头前缀/中间风格/结尾后缀 3 输入；进阶仅 JSON textarea + 保存；模板显示名“蓝色大肥鱼”；删除校验/上传/下载/IP 标注/未保存文案；保存 persona→enabled→revision，失败回滚；状态“已保存，全局生效（新消息使用）”。
-- tone schema：`dsh-structured/tone@1`，字段只有 `schema / prefix / style / suffix / skipIn`；署名/许可移到 `NOTICE-WHALE` / `LICENSE-WHALE`，不占 JSON token。
+- v5 回复皮肤：软面卡片台（12px 圆角 + 3px 左条 + 同构渐变面）；结论 / 下一步 / 风险线标题；表格蓝 tint 表头、26% / 18% 列宽、首列 600 墨字、三色状态签；代码浅色卡 + 线标题 + 双方框复制钮；深色卡面 / 表头 / 代码面 / 状态签全量适配；单一强调色 `#2563eb`。
+- 语气设置页：去掉基础 / 进阶页签与 JSON 编辑；档案行（88px 头像可上传并压 128px JPEG dataURL + 名称 + 签名）+ 开场 / 性格 / 收尾 + 计数 + 64 格 emoji + 固定规则行 + 保存行 + 样式预览（普通 / 表格 / 代码）。
+- Host：Config 增加 `personaEnabled/persona/personaRevision/personaName/personaSignature/personaAvatar`；独立 tone section（order 10250）；保存一次原子写六字段，旧宿主 fallback 读回 + 回滚；tone@1 schema / 64KB / 严格白名单不变，默认鲸鱼 style 清为纯语言描述。
+- 模板只保留默认蓝色大肥鱼 + 用户另存；行内删除、删空提示、恢复默认；tone 注入 / skipIn 语义不变。
 - 鲸鱼娘模板随包：`docs/1.0-PERSONA-WHALE.json` + `LICENSE-WHALE` + `NOTICE-WHALE`；CC-BY-NC-SA-4.0，非官方，不打包美术；构建从 JSON 单一源注入 host/client。
-- 未完成：桌面实机、隔离 temp cwd P01–P10 基线、beta/default-on 用户 gate 均未验；不宣称 gate 通过。
+- 未完成：桌面实机三主题×明暗真实截图、两会话 A 保存→B 下一条、隔离 temp cwd P01–P10 基线、beta/default-on 用户 gate 均未验；不宣称 gate 通过，不 push / publish。
 
 ## 0.9.9 — 2026-10-26
 
