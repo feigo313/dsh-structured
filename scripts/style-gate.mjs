@@ -32,6 +32,18 @@ function readJson(path) {
   }
 }
 
+// Bind evidence to the code tree that produced it, not just a text timestamp.
+// Docs-only commits may advance HEAD; src/lib/scripts/test-fixtures changes may not.
+function codeTreeMatches(head) {
+  if (typeof head !== 'string' || head === '' || head === 'unknown') return false
+  try {
+    execFileSync('git', ['diff', '--quiet', head, '--', 'src', 'lib', 'scripts', 'test/fixtures'], { cwd: root, stdio: 'ignore' })
+    return true
+  } catch {
+    return false
+  }
+}
+
 function runProcess(command, argv, options = {}) {
   return new Promise((resolvePromise) => {
     let child
@@ -204,7 +216,7 @@ async function runWorker(evidenceDirArg) {
     record('copyButton', style.copyButton, true)
     contains('dark.cardBackground', style.dark?.cardBackground, 'rgba(37, 99, 235, 0.18)')
     record('dark.tableHeadBackground', style.dark?.tableHeadBackground, 'rgba(59, 130, 246, 0.16)')
-    record('dark.tableHeadColor', style.dark?.tableHeadColor, 'rgb(138, 180, 255)')
+    record('dark.tableHeadColor', style.dark?.tableHeadColor, 'rgb(147, 197, 253)')
     record('dark.codePreBackground', style.dark?.codePreBackground, 'rgba(0, 0, 0, 0.28)')
     record('dark.codePreColor', style.dark?.codePreColor, 'rgb(201, 210, 224)')
     record('dark.statusBackground', style.dark?.statusBackground, 'rgba(52, 211, 153, 0.16)')
@@ -251,6 +263,10 @@ if (checkIndex !== -1) {
       process.exit(2)
     }
     if (gate.ok) {
+      if (!codeTreeMatches(gate.head)) {
+        console.error(`STYLE_GATE_STALE: ${dir} head=${gate.head ?? 'unknown'} — src/lib/scripts/test/fixtures changed since evidence`)
+        process.exit(1)
+      }
       console.log(`STYLE_GATE_PASS: ${dir}`)
       process.exit(0)
     }

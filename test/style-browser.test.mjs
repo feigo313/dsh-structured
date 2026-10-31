@@ -15,4 +15,6 @@ test('0.9.6 style：源码静态防护（真实浏览器改为手动 gate）', (
   assert.match(gate, /--check/)
   assert.doesNotMatch(gate, /spawnSync/)
   assert.match(gate, /STYLE_GATE_PASS/)
+  assert.match(gate, /STYLE_GATE_STALE/)
+  assert.match(gate, /codeTreeMatches/)
 })

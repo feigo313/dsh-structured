@@ -366,6 +366,13 @@ test('v5 预览：普通 / 表格 / 代码三态可切换', async () => {
   assert.ok(harness.nodes().some((item) => String(textOf(item.props.children)).includes('这版能上')))
 })
 
+test('v5 emptyTone 兜底只写语言风格，不写结构要求', () => {
+  const harness = makeHarness(baseState, async () => true)
+  const tone = harness.api.emptyTone()
+  assert.equal(tone.style, '像朋友说话，口语化；保持简洁。')
+  assert.doesNotMatch(tone.style, /先给结论|结构|表格|代码/)
+})
+
 test('v5 Client/Host parity：同一无害/恶意 JSON 结果一致', () => {
   const harness = makeHarness(baseState, async () => true)
   const base = JSON.parse(whale)

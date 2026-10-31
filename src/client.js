@@ -61,7 +61,7 @@ window.__ModuleLoader__.load({
   --dss-page:#f7f8fa;--dss-paper:#ffffff;--dss-paper-2:#f8fafc;
   --dss-ink:#101828;--dss-ink-2:#475467;--dss-ink-3:#667085;
   --dss-line:#e4e7ec;--dss-line-strong:#d0d5dd;
-  --dss-blue:#2563eb;--dss-blue-hover:#1d4ed8;--dss-blue-text:#1d4ed8;--dss-blue-soft:#eff6ff;
+  --dss-blue:#2563eb;--dss-blue-hover:#1d4ed8;--dss-blue-text:#1d4ed8;--dss-th-text:#1d4ed8;--dss-blue-soft:#eff6ff;
   --dss-green:#067647;--dss-green-strong:#059669;--dss-green-text:#047857;--dss-green-soft:#f0faf4;
   --dss-amber:#b54708;--dss-amber-strong:#d97706;--dss-amber-text:#b54708;--dss-amber-soft:#fffbf3;
   --dss-red:#b42318;--dss-red-soft:#fef3f2;
@@ -76,7 +76,7 @@ body[data-ds-dark-theme] .dss-scope {
   --dss-page:#1a1b1e;--dss-paper:#242629;--dss-paper-2:#2b2e33;
   --dss-ink:#e6e9ef;--dss-ink-2:#b7bdc9;--dss-ink-3:#8a92a0;
   --dss-line:#363a41;--dss-line-strong:#4a4f59;
-  --dss-blue:#3b82f6;--dss-blue-hover:#60a5fa;--dss-blue-text:#8ab4ff;--dss-blue-soft:rgba(59,130,246,.16);
+  --dss-blue:#3b82f6;--dss-blue-hover:#60a5fa;--dss-blue-text:#8ab4ff;--dss-th-text:#93c5fd;--dss-blue-soft:rgba(59,130,246,.16);
   --dss-green:#34d399;--dss-green-strong:#10b981;--dss-green-text:#34d399;--dss-green-soft:rgba(16,185,129,.14);
   --dss-amber:#fbbf24;--dss-amber-strong:#f59e0b;--dss-amber-text:#fbbf24;--dss-amber-soft:rgba(245,158,11,.12);
   --dss-red:#f87171;--dss-red-soft:rgba(248,113,113,.16);
@@ -156,7 +156,7 @@ body[data-ds-dark-theme] .dss-scope {
 }
 .dss-scope .dss-table thead th{
   height:auto;padding:10px 16px!important;background:var(--dss-head-bg)!important;border-bottom:0;
-  color:var(--dss-blue-text)!important;font:600 11.5px/1.5 var(--dss-sans)!important;letter-spacing:.08em!important;text-align:left;
+  color:var(--dss-th-text)!important;font:600 11.5px/1.5 var(--dss-sans)!important;letter-spacing:.08em!important;text-align:left;
 }
 .dss-scope .dss-table th:nth-child(1),.dss-scope .dss-table td:nth-child(1){width:26%}
 .dss-scope .dss-table th:nth-child(2),.dss-scope .dss-table td:nth-child(2){width:18%}
@@ -240,7 +240,7 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
   --dss-page:#f7f8fa;--dss-paper:#ffffff;--dss-paper-2:#f8fafc;
   --dss-ink:#101828;--dss-ink-2:#475467;--dss-ink-3:#667085;
   --dss-line:#e4e7ec;--dss-line-strong:#d0d5dd;
-  --dss-blue:#2563eb;--dss-blue-hover:#1d4ed8;--dss-blue-text:#1d4ed8;--dss-blue-soft:#eff6ff;
+  --dss-blue:#2563eb;--dss-blue-hover:#1d4ed8;--dss-blue-text:#1d4ed8;--dss-th-text:#1d4ed8;--dss-blue-soft:#eff6ff;
   --dss-green:#067647;--dss-green-strong:#059669;--dss-green-text:#047857;--dss-green-soft:#f0faf4;
   --dss-amber:#b54708;--dss-amber-strong:#d97706;--dss-amber-text:#b54708;--dss-amber-soft:#fffbf3;
   --dss-red:#b42318;--dss-red-soft:#fef3f2;
@@ -255,7 +255,7 @@ body[data-ds-dark-theme] .dss-scope {
   --dss-page:#1a1b1e;--dss-paper:#242629;--dss-paper-2:#2b2e33;
   --dss-ink:#e6e9ef;--dss-ink-2:#b7bdc9;--dss-ink-3:#8a92a0;
   --dss-line:#363a41;--dss-line-strong:#4a4f59;
-  --dss-blue:#3b82f6;--dss-blue-hover:#60a5fa;--dss-blue-text:#8ab4ff;--dss-blue-soft:rgba(59,130,246,.16);
+  --dss-blue:#3b82f6;--dss-blue-hover:#60a5fa;--dss-blue-text:#8ab4ff;--dss-th-text:#93c5fd;--dss-blue-soft:rgba(59,130,246,.16);
   --dss-green:#34d399;--dss-green-strong:#10b981;--dss-green-text:#34d399;--dss-green-soft:rgba(16,185,129,.14);
   --dss-amber:#fbbf24;--dss-amber-strong:#f59e0b;--dss-amber-text:#fbbf24;--dss-amber-soft:rgba(245,158,11,.12);
   --dss-red:#f87171;--dss-red-soft:rgba(248,113,113,.16);
@@ -335,7 +335,7 @@ body[data-ds-dark-theme] .dss-scope {
 }
 .dss-scope .dss-table thead th{
   height:auto;padding:10px 16px!important;background:var(--dss-head-bg)!important;border-bottom:0;
-  color:var(--dss-blue-text)!important;font:600 11.5px/1.5 var(--dss-sans)!important;letter-spacing:.08em!important;text-align:left;
+  color:var(--dss-th-text)!important;font:600 11.5px/1.5 var(--dss-sans)!important;letter-spacing:.08em!important;text-align:left;
 }
 .dss-scope .dss-table th:nth-child(1),.dss-scope .dss-table td:nth-child(1){width:26%}
 .dss-scope .dss-table th:nth-child(2),.dss-scope .dss-table td:nth-child(2){width:18%}
@@ -575,7 +575,7 @@ body[data-ds-dark-theme] [data-dsh-structured-config] button#dsh-structured-them
   --dss-page:#f7f8fa;--dss-paper:#ffffff;--dss-paper-2:#f8fafc;
   --dss-ink:#101828;--dss-ink-2:#475467;--dss-ink-3:#667085;
   --dss-line:#e4e7ec;--dss-line-strong:#d0d5dd;
-  --dss-blue:#2563eb;--dss-blue-hover:#1d4ed8;--dss-blue-text:#1d4ed8;--dss-blue-soft:#eff6ff;
+  --dss-blue:#2563eb;--dss-blue-hover:#1d4ed8;--dss-blue-text:#1d4ed8;--dss-th-text:#1d4ed8;--dss-blue-soft:#eff6ff;
   --dss-green:#067647;--dss-green-strong:#059669;--dss-green-text:#047857;--dss-green-soft:#f0faf4;
   --dss-amber:#b54708;--dss-amber-strong:#d97706;--dss-amber-text:#b54708;--dss-amber-soft:#fffbf3;
   --dss-red:#b42318;--dss-red-soft:#fef3f2;
@@ -590,7 +590,7 @@ body[data-ds-dark-theme] .dss-scope {
   --dss-page:#1a1b1e;--dss-paper:#242629;--dss-paper-2:#2b2e33;
   --dss-ink:#e6e9ef;--dss-ink-2:#b7bdc9;--dss-ink-3:#8a92a0;
   --dss-line:#363a41;--dss-line-strong:#4a4f59;
-  --dss-blue:#3b82f6;--dss-blue-hover:#60a5fa;--dss-blue-text:#8ab4ff;--dss-blue-soft:rgba(59,130,246,.16);
+  --dss-blue:#3b82f6;--dss-blue-hover:#60a5fa;--dss-blue-text:#8ab4ff;--dss-th-text:#93c5fd;--dss-blue-soft:rgba(59,130,246,.16);
   --dss-green:#34d399;--dss-green-strong:#10b981;--dss-green-text:#34d399;--dss-green-soft:rgba(16,185,129,.14);
   --dss-amber:#fbbf24;--dss-amber-strong:#f59e0b;--dss-amber-text:#fbbf24;--dss-amber-soft:rgba(245,158,11,.12);
   --dss-red:#f87171;--dss-red-soft:rgba(248,113,113,.16);
@@ -670,7 +670,7 @@ body[data-ds-dark-theme] .dss-scope {
 }
 .dss-scope .dss-table thead th{
   height:auto;padding:10px 16px!important;background:var(--dss-head-bg)!important;border-bottom:0;
-  color:var(--dss-blue-text)!important;font:600 11.5px/1.5 var(--dss-sans)!important;letter-spacing:.08em!important;text-align:left;
+  color:var(--dss-th-text)!important;font:600 11.5px/1.5 var(--dss-sans)!important;letter-spacing:.08em!important;text-align:left;
 }
 .dss-scope .dss-table th:nth-child(1),.dss-scope .dss-table td:nth-child(1){width:26%}
 .dss-scope .dss-table th:nth-child(2),.dss-scope .dss-table td:nth-child(2){width:18%}
@@ -1200,7 +1200,7 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
       const TONE_MAX = 64 * 1024
       const isToneObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value)
       const toneString = (value, max) => typeof value === 'string' && value.length <= max
-      const emptyTone = () => ({ schema: TONE_SCHEMA, prefix: 'Boss，', style: '像朋友说话，先给结论；保持简洁。', suffix: '', skipIn: [...TONE_SKIP_DEFAULT] })
+      const emptyTone = () => ({ schema: TONE_SCHEMA, prefix: 'Boss，', style: '像朋友说话，口语化；保持简洁。', suffix: '', skipIn: [...TONE_SKIP_DEFAULT] })
       const cloneTone = (doc) => JSON.parse(JSON.stringify(doc))
       const toneJson = (doc) => JSON.stringify(doc, null, 2)
       const parseToneJson = (text) => {

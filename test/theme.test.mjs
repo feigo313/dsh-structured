@@ -106,6 +106,8 @@ test('v5 token：三主题统一为软面卡片 token，深色可读性达标', 
   assert.match(client, /--dss-green:#067647/)
   assert.match(client, /--dss-amber:#b54708/)
   assert.match(client, /--dss-ink-3:#8a92a0/)
+  assert.match(client, /--dss-th-text:#93c5fd/)
+  assert.match(client, /color:var\(--dss-th-text\)!important/)
 })
 
 test('0.9.0 对比度：3×2 全组 60 项通过', () => {
