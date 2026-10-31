@@ -224,3 +224,11 @@
 - **仓库**：`feat/1.0-persona` 停在 `97b24ea`；1.0 tone-v3 于 10-29 22:15 挂起（Boss 判 75%，明日继续，见 `docs/1.0-TONE-V3-CHECKPOINT.md`）；新增未跟踪 `docs/1.0-IKK-PERSONA.md`、`docs/1.0-TONE-V2/V3-*`。
 - **漂移**：`.zcode/plans` 仍未跟踪（zcode 工具目录），未清理，需确认后加 ignore 或移除。
 - **本轮动作**：只读复核与记录。
+
+## 2026-10-31 · 第 11 轮
+
+- **issue 水位**：0 open / 2 closed。
+- **线上**：npm `latest=0.9.9`；Release v0.9.9 资产 758,096 B / `05ccf744…` 未变；listing `v0.9.9`；CI 无新 run。
+- **仓库**：`feat/1.0-persona` `ed50d9c`（tone-v4 卡片方向 + 评审修复；未推送）；工作树有未提交修改 `docs/1.0-TONE-V4-CARD-DIRECTIONS.md`（他方在途，未触碰）。
+- **漂移**：`.zcode/` 仍未跟踪。
+- **本轮动作**：只读复核与记录，未改动在途文件。
