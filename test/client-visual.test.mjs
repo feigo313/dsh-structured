@@ -190,6 +190,66 @@ function attrsElement(extra = {}) {
   }
 }
 
+function classElement(extra = {}) {
+  const classes = new Set()
+  return {
+    classes,
+    classList: {
+      add(...names) { for (const name of names) classes.add(name) },
+      remove(...names) { for (const name of names) classes.delete(name) },
+      contains(name) { return classes.has(name) },
+    },
+    ...attrsElement(extra),
+  }
+}
+
+test('v5 skin：结论/表格/代码注入 dss class，状态表标状态单元格', () => {
+  const dom = makeDom()
+  const module = loadClient(dom)
+  const strong = { tagName: 'STRONG', textContent: '结论' }
+  const paragraph = { tagName: 'P', firstElementChild: strong }
+  const block = classElement({ children: [paragraph], closest: () => null })
+  const root = {
+    querySelectorAll(selector) {
+      if (selector === 'blockquote') return [block]
+      return []
+    },
+  }
+  module.__test.decorate(root)
+  assert.equal(block.classes.has('dss-card'), true)
+  assert.equal(block.classes.has('dss-card-conclusion'), true)
+  assert.equal(block.attrs.get('data-dsh-structured-card-type'), 'conclusion')
+
+  const statusCell = classElement({ textContent: '✅ 完成' })
+  const noteCell = classElement({ textContent: '已完成' })
+  const row = classElement({ cells: [statusCell, noteCell], closest: () => null })
+  const table = classElement({ querySelectorAll: (selector) => selector === 'tbody tr' ? [row] : [] })
+  const tableRoot = {
+    querySelectorAll(selector) {
+      if (selector === '[class*="_markdown_"] table') return [table]
+      return []
+    },
+  }
+  module.__test.decorate(tableRoot)
+  assert.equal(table.classes.has('dss-table'), true)
+  assert.equal(table.attrs.get('data-dsh-structured-status-table'), '1')
+  assert.equal(row.attrs.get('data-dsh-structured-row'), 'success')
+  assert.equal(statusCell.attrs.get('data-dsh-structured-status-cell'), '1')
+
+  const heading = { textContent: 'js' }
+  const banner = { querySelector: () => heading }
+  const code = classElement({ querySelector: (selector) => selector === '[data-code-block-banner]' ? banner : null })
+  const codeRoot = {
+    querySelectorAll(selector) {
+      if (selector === '[class*="_markdown_"] .md-code-block') return [code]
+      return []
+    },
+  }
+  module.__test.decorate(codeRoot)
+  assert.equal(code.classes.has('dss-code'), true)
+  assert.equal(code.attrs.get('data-dsh-structured-code'), '1')
+})
+
 test('client：diff 代码块不套插件 chrome，普通代码块才套', () => {
   const dom = makeDom()
   const module = loadClient(dom)

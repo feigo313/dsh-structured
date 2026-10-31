@@ -57,6 +57,9 @@ export const THEMES = ['deepseek', 'codex', 'anthropic']
 
 /** 1.0 语气风格发布默认值；正式是否开启由 Boss 拍板，代码不写死。 */
 export const DEFAULT_PERSONA_ENABLED = false
+export const DEFAULT_PERSONA_NAME = '蓝色大肥鱼'
+export const DEFAULT_PERSONA_SIGNATURE = '主人，再来一碗白米饭！！~'
+export const DEFAULT_PERSONA_AVATAR = ''
 
 /** 构建脚本替换此常量；源码直接运行时使用中性 FALLBACK，避免未构建就崩溃。 */
 const PERSONA_WHALE_JSON = '__DSH_STRUCTURED_WHALE_JSON__'
@@ -166,8 +169,11 @@ export const Config = Schema.object({
   includeSubagents: k(Schema.boolean().default(false).description('子代理注入 / Include subagents: 默认关闭')),
   genui: k(Schema.union(['auto', 'on', 'off']).default('auto').description('GenUI 联动 / GenUI routing: auto | on | off').loose()),
   personaEnabled: k(Schema.boolean().default(DEFAULT_PERSONA_ENABLED).description('语气风格 / Tone: 默认关闭，开启后注入鲸鱼娘语气模板')),
-  persona: k(Schema.string().default(DEFAULT_PERSONA_JSON).description('语气风格 JSON / tone@1 JSON: 与基础/进阶表单同一份 canonical 数据')),
+  persona: k(Schema.string().default(DEFAULT_PERSONA_JSON).description('语气风格 JSON / tone@1 JSON: 内部 canonical 数据，不向用户暴露裸编辑')),
   personaRevision: k(Schema.number().default(0).description('语气风格全局修订号 / 内部：保存时递增，供所有会话重建 prompt')),
+  personaName: k(Schema.string().default(DEFAULT_PERSONA_NAME).description('语气风格 / 显示名: 档案行与预览身份行')),
+  personaSignature: k(Schema.string().default(DEFAULT_PERSONA_SIGNATURE).description('语气风格 / 个性签名: 档案行与预览身份行')),
+  personaAvatar: k(Schema.string().default(DEFAULT_PERSONA_AVATAR).description('语气风格 / 头像 dataURL: 前端裁压到 128px JPEG，空值使用内置鲸鱼头像')),
 })
 
 /**

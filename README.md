@@ -81,7 +81,7 @@ pnpm add $tgz
 
 ### 兼容性门禁
 
-本包声明 `@deepseek-ai/schemastery` peer：`Config`（theme/visual/defaultEnabled/tailReminder/includeSubagents/genui）用它生成设置表单；这是 host 提供的服务，不是门禁。真正门禁是 `engines.dsh`（`>=0.1.7-rc.2 <0.4.0-0`，0.9.4 起覆盖 0.3.x），`dsh-app-boot` 在有 `engines.dsh` 时读取它；`dsh.compatibility.dshReleases` 是 advisory。实测 DSH CLI `0.1.7-rc.2` 与 desktop `0.2.1-rc.2`；`0.2.1-rc.3` / `0.3.0-rc.1` 为声明性兼容（插件依赖的 systemPrompt / commands / configForms / plugins.bundle.config 均为宿主稳定服务面，未见破坏性变更公告；未逐项实测，实测后将更新标注）。
+本包声明 `@deepseek-ai/schemastery` peer：`Config`（theme/visual/defaultEnabled/tailReminder/includeSubagents/genui + personaEnabled/persona/personaRevision/personaName/personaSignature/personaAvatar）用它生成设置表单；这是 host 提供的服务，不是门禁。真正门禁是 `engines.dsh`（`>=0.1.7-rc.2 <0.4.0-0`，0.9.4 起覆盖 0.3.x），`dsh-app-boot` 在有 `engines.dsh` 时读取它；`dsh.compatibility.dshReleases` 是 advisory。实测 DSH CLI `0.1.7-rc.2` 与 desktop `0.2.1-rc.2`；`0.2.1-rc.3` / `0.3.0-rc.1` 为声明性兼容（插件依赖的 systemPrompt / commands / configForms / plugins.bundle.config 均为宿主稳定服务面，未见破坏性变更公告；未逐项实测，实测后将更新标注）。
 
 ## 使用
 
@@ -101,11 +101,13 @@ pnpm add $tgz
 
 ### 语气风格（Tone，1.0）
 
-- 插件详情页第二个 tab：**基础 / 进阶**。基础只保留开头前缀、中间风格、结尾后缀；进阶是可编辑 JSON + 上传 + 校验 + 保存。
-- 存储为 profile Config：`personaEnabled:boolean` + `persona:string`；不读 `persona.md`，不引入文件路径。保存时同时写 persona/enabled/revision，失败回滚；保存后全局生效（新消息使用），不需要每次重启；**安装/升级 1.0 后完整重启 Desktop 一次**。
+- 插件详情页第二个 tab：**语气风格**。只有 AI 档案行 + 开场 / 性格 / 收尾三字段 + 固定规则行 + 保存行 + 样式预览；**没有基础 / 进阶页签，也没有 JSON 编辑入口**（内部仍是 tone@1 canonical JSON）。
+- 档案行：头像 88px 可点击上传（png / jpeg / webp，前端居中裁方并压到 128px JPEG dataURL）、名称、个性签名；名称 / 签名实时绑定预览身份行。
+- 存储为 profile Config：`personaEnabled:boolean` + `persona:string` + `personaRevision:number` + `personaName` + `personaSignature` + `personaAvatar`；不读 `persona.md`，不引入文件路径。保存时一次批量写六字段（旧宿主走顺序写 + 写后读回 + 补偿回滚）；保存后全局生效（新消息使用），不需要每次重启；**安装/升级 1.0 后完整重启 Desktop 一次**。
 - tone JSON 只有 `schema / prefix / style / suffix / skipIn`；`schema` 必须是 `dsh-structured/tone@1`。作者/许可/来源/署名链不在 JSON，见 `NOTICE-WHALE` / `LICENSE-WHALE`。
-- 开头前缀放在标题卡正文开头；中间风格始终生效；结尾后缀是最后一行签名/态度，不是总结，`code / diff / error / short / table` 按 `skipIn` 跳过。结构 / 事实 / 安全永远优先。
-- 蓝色大肥鱼是社区二创模板，非 DeepSeek 官方；模板单独 CC-BY-NC-SA-4.0，不打包美术。64KB 硬拒；非法 JSON 拒绝保存。
+- 开场放在最前面；性格只写语言风格（角色 / 语气 / 句式 / 称呼）；收尾是最后一行签名/态度，不是总结，`code / diff / error / short / table` 按 `skipIn` 跳过。结构 / 事实 / 安全永远优先。
+- 模板只保留默认「蓝色大肥鱼」+ 用户另存的模板；「切换人格」弹层支持行内删除，删空提示用「恢复默认」找回。模板存当前三字段 + 名称 + 签名，不自动选中。
+- 蓝色大肥鱼是社区二创模板，非 DeepSeek 官方；模板单独 CC-BY-NC-SA-4.0，不打包美术。64KB 硬拒；非法 tone JSON 拒绝保存。
 
 ### 代码 / diff 例外
 
@@ -115,11 +117,11 @@ pnpm add $tgz
 
 ### 视觉层（desktop 主目标；web 兼容）
 
-客户端半区会给对话 markdown 加一层排版：标题层级与图标方块、表头/细横线/状态列、代码块语言色与贴合 banner、风险/验收/结论三色卡片、结论/下一步卡、列表/链接/分隔线。`theme` 提供 `deepseek`（默认）/`codex`/`anthropic` 三套 token；`--ds-accent` 负责任 fill/border/icon，`--ds-accent-text` 负责文字/链接/标签/行内 code/表格结论（保证小字 AA）；暗色走宿主 `body[data-ds-dark-theme]`。Codex 为绿 `#10A37F`/文字 `#0B6B4F`，Anthropic 为陶土 `#CC785C`/文字 `#A14A2E`，DeepSeek 默认蓝 `#2563EB` 不变；只给宿主节点加 class/attribute，不改消息内容，headless / CLI 不加载 client 半区。
+客户端半区会给对话 markdown 加一层 v5「软面卡片台」皮肤：12px 圆角卡 + 3px 彩色左条 + 同构渐变面；结论 / 下一步 / 风险三色线标题；表格蓝 tint 表头、26% / 18% 列宽、首列 600 墨字、三色状态签；代码浅色卡 + 线标题「代码 · 语言」+ 双方框复制钮；深色跟随宿主 `body[data-ds-dark-theme]`，卡面 / 表头 / 代码面 / 状态签都有深色同构。单一强调色 `#2563eb`，语义色只用于语义态。只给宿主节点加 class/attribute，不改消息内容；headless / CLI 不加载 client 半区。
 
-视觉方向只做一套：**Linear 的秩序 + Notion 的卡片 + Stripe 的信息密度 + Vercel AI Elements 的回复结构**，见 [`docs/DESIGN-REFERENCES.md`](docs/DESIGN-REFERENCES.md)。卡片用图标方块 + 13px 标签 + 淡色表面；状态只在 68px 状态列着色，不再整行 pastel；表格结论用强调左规线。`theme` 只切换 token，不做主题市场/自定义 CSS/按消息主题。
+`theme` 仍保留 `deepseek`（默认）/`codex`/`anthropic` 三个配置值；v5 皮肤统一为一套蓝系 token，避免三套卡片家族再次分裂。设置页的「样式预览」用同一份卡面材质展示普通 / 表格 / 代码三态。
 
-设计与分阶段计划见 [`docs/VISUAL-PLAN.md`](docs/VISUAL-PLAN.md)，视觉热点/层级诊断见 [`docs/VISUAL-CRITIQUE.md`](docs/VISUAL-CRITIQUE.md)，卡片类型与热点预算见 [`docs/CARD-SYSTEM.md`](docs/CARD-SYSTEM.md)。视觉层由插件设置 `visual` 控制（默认开启），`theme` 控制三套 token；`/structured on|off` 只控制提示词注入。
+设计与分阶段计划见 [`docs/VISUAL-PLAN.md`](docs/VISUAL-PLAN.md)，视觉热点/层级诊断见 [`docs/VISUAL-CRITIQUE.md`](docs/VISUAL-CRITIQUE.md)，卡片类型与热点预算见 [`docs/CARD-SYSTEM.md`](docs/CARD-SYSTEM.md)。视觉层由插件设置 `visual` 控制（默认开启）；`/structured on|off` 只控制提示词注入。
 
 Phase 2 已落地 2.1–2.4：卡片类型（结论/判断/指标/风险/下一步/验收/重点）、`data-dsh-structured-card-type` 归属标记、GenUI 软联动（检测到才追加 `dsh-ui` 路由，未检测走纯 markdown fallback，不硬依赖）。
 
@@ -139,11 +141,11 @@ Phase 2 已落地 2.1–2.4：卡片类型（结论/判断/指标/风险/下一�
 
 ![插件设置页](assets/screenshots/11-config-page.png)
 
-`screenshots.json` 列出全部 7 张：前 4 张是 0.9.6 的真实界面裁图（web profile 渲染，覆盖标题卡、表格 + 表格结论、状态列、代码块与 800px 窄窗）；09/10 两张是按 0.9.6 实际 token 渲染的主题对照图（不是桌面实机截图）；第 7 张是 0.9.2 起插件板块 → dsh-structured 详情页的配置区截图（六字段 + 主题分段按钮带各主题强调色，0.9.6 未改配置页）。GenUI 截图因避免暴露工作区未收录。
+`screenshots.json` 列出全部 7 张；这些是 0.9.6 旧皮肤的归档图，保留用于对比，**不代表 1.0 v5 皮肤**。1.0 v5 的三态×明暗证据在本地 `artifacts/prototype/v5-fixture-{light,dark}.png`（不进 npm 包）。GenUI 截图因避免暴露工作区未收录。
 
 ### 配置
 
-**首选：插件板块 → dsh-structured → 详情页的配置区**（0.9.2 起）。插件自己的浏览器半侧把六个字段注册进宿主 `plugins.bundle.config` slot，改完立即写入 active profile 的 Cordis patch：
+**首选：插件板块 → dsh-structured → 详情页的配置区**（0.9.2 起）。插件自己的浏览器半侧把基础六字段注册进宿主 `plugins.bundle.config` slot；「语气风格」tab 再提供档案行与 tone 三字段（共九项配置），改完写入 active profile 的 Cordis patch：
 
 ```text
 主题 / Theme           deepseek | codex | anthropic
@@ -167,9 +169,14 @@ GenUI 联动              auto | on | off
     tailReminder: true     # system prompt 末尾追加一句提醒
     includeSubagents: false # 子代理会话不注入（它的产出不直接面向用户）
     genui: auto            # auto | on | off；auto 检测到 GenUI 才追加 dsh-ui 路由
+    personaEnabled: false  # 语气风格开关
+    persona: '{"schema":"dsh-structured/tone@1",...}' # 内部 canonical tone@1，不暴露裸编辑
+    personaName: 蓝色大肥鱼
+    personaSignature: 主人，再来一碗白米饭！！~
+    personaAvatar: ''      # 空值使用内置鲸鱼头像；自定义值为 128px JPEG dataURL
 ```
 
-`theme`、`visual`、`defaultEnabled`、`tailReminder`、`includeSubagents`、`genui` 都是 `.volatile()` 配置：插件板块详情页的配置区（0.9.2 起，见上）与标准 bundle 表单都可编辑，写入走 active profile 的 Cordis patch，home patch / CLI overlay 优先。若快照的 `writable` 为 false，说明当前配置被上层覆盖，配置区控件只读并提示，不会静默写入成功；请改上层配置或接受只读。`/structured on|off` 只影响 `state.json` 里的按会话提示词开关，不影响 `theme`/`visual`。
+`theme`、`visual`、`defaultEnabled`、`tailReminder`、`includeSubagents`、`genui`、`personaEnabled`、`persona`、`personaRevision`、`personaName`、`personaSignature`、`personaAvatar` 都是 `.volatile()` 配置：插件板块详情页的配置区（0.9.2 起，见上）与标准 bundle 表单都可编辑，写入走 active profile 的 Cordis patch，home patch / CLI overlay 优先。若快照的 `writable` 为 false，说明当前配置被上层覆盖，配置区控件只读并提示，不会静默写入成功；请改上层配置或接受只读。`/structured on|off` 只影响 `state.json` 里的按会话提示词开关，不影响 `theme`/`visual`。
 
 ## 验证注入生效
 

@@ -6,7 +6,7 @@
  * 2) 语义装饰：结论卡片、风险/验收等 callout 色调、标题关键词图标、代码块语言色。
  *
  * 只给宿主已有节点加 class/attribute，不搬 React 节点；markdown 重渲染后由 MutationObserver
- * 重新扫描。主题色全部走 --dsw-alias-*，自动跟随明暗主题。
+ * 重新扫描。v5 皮肤走 --dss-* token，深色跟随宿主 body[data-ds-dark-theme]。
  */
 window.__ModuleLoader__.load({
   id: 'dsh-structured',
@@ -20,6 +20,9 @@ window.__ModuleLoader__.load({
     const SKIP_ATTR = 'data-dsh-structured-skip'
     const STATUS_ATTR = 'data-dsh-structured-status'
     const STATUS_TABLE_ATTR = 'data-dsh-structured-status-table'
+    const STATUS_CELL_ATTR = 'data-dsh-structured-status-cell'
+    const STATUS_PILL_ATTR = 'data-dsh-structured-status-pill'
+    const COPY_ATTR = 'data-dsh-structured-copy'
     const LEAD_ATTR = 'data-dsh-structured-lead'
     const ROW_ATTR = 'data-dsh-structured-row'
     const ROOT_ATTR = 'data-dsh-structured'
@@ -33,6 +36,9 @@ window.__ModuleLoader__.load({
     const BUNDLE_CONFIG_SLOT = 'plugins.bundle.config'
     let personaTestApi = null
     const PERSONA_WHALE_JSON = '__DSH_STRUCTURED_WHALE_JSON__'
+    const DEFAULT_PROFILE_NAME = '蓝色大肥鱼'
+    const DEFAULT_PROFILE_SIGNATURE = '主人，再来一碗白米饭！！~'
+    const DEFAULT_AVATAR = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCACAAIADASIAAhEBAxEB/8QAHAAAAgMBAQEBAAAAAAAAAAAABgcABQgEAwEC/8QAPhAAAgEDAwIEAwYDBgUFAAAAAQIDBAURAAYhEjEHE0FRImFxFCMyQoGRCBViM1KhscHRFiRygrJDk+Hw8f/EABoBAAIDAQEAAAAAAAAAAAAAAAQFAAMGAQL/xAAuEQABBAEDAgQGAQUAAAAAAAABAAIDEQQSITEFQRNRYZEUIjKh4fAjQnGBwdH/2gAMAwEAAhEDEQA/ANl6mpqaiimpqamoopqamvGsqqWjhM9XUQ08QOC8rhFH6nUUXtqlvm7NuWSUw3O8UsEw7w9XVIP+xct/hqm8TN1x2rw5ud6stfTSzALTwTxOsipI7KgPBIJXq6sfIaE/DPZe26WwRX3c1dSV1RUsHZJ6lWhiZuQr8/eSkcsWzznA4yb442aS952+5VbnOvS0IxpfEzYtRMIl3HSRsfWdXiH7uoGiqmngqYEnp5o5opB1I8bBlYe4I4OqD/hnZd3pD5dlslTAcr1wwRkfQMv++h9vDyp27O9w8Pbs9qkJ6ntlUzS0NR8iv4oz/UpyNcIid9JI/v8Av+l0Fw5TD1NUGz9yJfUqKWqo5Lbd6FgldQSsGaFiOGDDh42wSrjgj2IIF/qogg0V7BtTU1NTXFFNTU1NRRTU1NTUUU1+KiaKngeeeRIoo1LO7thVUckknsNfitqqeipJaqqlWKGJSzu3YDQvcquuvtyoKSG01ENvp5ftNd9tBhMihWMSouCJD1hWIJGABnk410BRdz3+qq5EhtNqqiZAXWoq4mig8sfmzgsSeMLgE9+wzrisdEhVaq/LTTX/AATKzv5qRnv0wlgAqYxjABPc5OTr5uveNn2/ahcq2rSGBuIzjqlaQd0VO7Nj9B3JA0gN4eLW4LtVTGxqLFSMTh4yHqXHzkPCfRAPqdF4+HJP9IXh8rY+VoatpLXFdUurWqF6iSJf+YMX4SpPSRngHBI6hz2Gca6KhrU9xFfDRRTViIVFRHEC+Dj4eoc84GfbGsR3Se5Xh5ZvMNSMZkqq6Rpur6BiS317a5mtUtFCZqem++AHUPijRPnxyB+vHvpgOkGvq+yo+KHktuXWnaSuNwsk1HS3CmH3rSxt5dQrKQEfpwSAekhuSCMDuddLT3u2Uwq6uWK4RIvVUxxw9EiDHxMmCeoDn4TyR2JPBx7tXfu7rRKlNBe6+CSM9S0tZKamFsf3DJkj6AjTl2B43RVbLat005oZmRgtVA/3bsx7tnJTv3GQD3xoSbp0sYsbhWtnY7bhGu/qqKh8QNi3y1yo9VcKprbMsbZNRSSRl8nHdUZVcH0yffTHHbQhSUH8kpKa4W+rkuUFFCIpEm6JHEIAyYnVQQQoz08hgPQnOuy1bnNXJSyzUQhoK6Ro6SpWYP1EFgodcDoLdJxyR6EgkAgSPFAeSuawmyF93Sn2272q1TPKKWUTTzLHK0ZcRqoUEqQcdUgPfuo1yQXavG2KCkjqM3WpmeiWdwGK+UzLJMR64VC3sWKj1113NvN3nSoOfItszH5dcsQH/g37aotpyrNWXa41QaOmt1TV0sbOCOPPeWZxn0/s1z/QdDOdTii2MBYD5fn8K/21VNTw3SOsr5Jaaiq/LSeqkXqC+VGzBmwAcMzDP6emiAEEAggg9jpb2h0qbdLc7pEHoKAS1ksTrlZap8yvkHhvLVhGP6y3qo0bbWpJaDbdtophiWCljRx7MFGR9B2/TXtjr2VUzA3dWWpqa/MrrHG0jsFRQSxPoB3OrFQhrclzpDuyxWJ3EsksklS8CcsPLQlHcdggYZ9+oLgHnHJvvcNstFlluFRK5EBAVYTiV5GPSsS5/Mx4B9MEngHVB4ePRXm5XHfNRVMtRUzT0lJ1qpSGNXAz2z1HpCnnGFHz0rfGPdc1w3QKeORWhtTlTjGHqmX7x/n0R9CD5s/vo7FxTLKGe6qkk0M1eyDt73m6X/cEtXdXHmKOhIkJ8uFM8Ig/u59e7dzydUjJ5p6W4iHB/qI9Pp/+avJ7lRtaljjph9tJCpI4BIdu5H0Az+muo0lip6OEz1HVIkeTGj8AAdifQ/6nWoawMAaBslJkPJQ1InUwA7Lj9/TXRUtNLGivM7Kgxgn0767rTVUctAslVT9EstWHOVx0xliCPlgBdXdbZbYttluEUzdDR/AnUOkNj9/0121HP0miEGz0kUkZp5F6kHxRsO6/Q+hH+2u6y2mS5JLC8n38C9Sn8JYejD2J5Htkc8HXVffs1uno56VBVKoUzxD4iwLdLjA+Rz+mu6tuVvgqqOstq9Aij6HUqcFDxj5+h1yxdKFxIBARD4Xb8qts1R2/fGaos8vwOnST0I2R1KO+O4Keh6scj4m3tFqa52fcNhttV109LWM1unaTr6VfEsZz3ISYOAe5VQee5zLc5JpKV5wPMmp8yqM4LJ+df2HUPmvz00P4ddxmTda0TzRNBWUDwxkjD+ZG/mKvzGDLx6HPocBF1bCGgys5HKaYGQdWhyd9tFUJay8XeNKaoqehfKWTzFp4kBCr1AYPLOxPb4gPTXVc6SG52upoZpJBDVQNEzwydLBWGMq3ocHg6+XF2gEFSpIWOZRJ/wBDfCT+hKn9NfYKJKaoMlOzQxtkyQD+zJ/vAflPvjg+ozzrNk2m3qqC+vSWqOzbfpqSomiZjKIIlLvOsJVgnUeMtIyszMQMByTq3sNZeZtxPBWVUMqrTGSpghjHlUzsV8pFf8TMVDkk9x0kBQRn9XSpqjUU9rtzKtZV9R8xh1LBEuOqQr+bBZQB6swzwDq4tFuprXRimpg5yxeSR26nlc/idj6sff8A0AGrIwVVK4Bu/K7NBHi7ua3WnaVyohcqSO4zwiFIDMok6ZCFLdOc/hLH9NG+s/8AjVMlk3Zfmqq6Klpq2kgrSzxhw2FMLJ0nhv7NSPrplgwCeYNJ9UrzJzBFrAv8qo8DtxUNNsO5CgqHrrlXXGVmomkHl0wwOlvi4QMDknksewyNKmN6malherbrqZmaWc5zmSRyzf5jVxsXeFlp9rXmpgEVrkpIpJY6BFVUz0gI645JJAHJ1W0cbJDSCTkqIgx9zgA60kMDY3F4Nkpc3IklcWuFBvC8oFeW49CjiJM/q3/wP8dHPhrtFtybmgp5YuqjgYSzgjhgDwp+RPf5A6Hdu0M01VU+VH1yPUGJB81AHbuedaN2Fta7bcsqwwT22KqmIkqC1M8hB9EyHXgdu3fJ0F1PM8OMtaaJTDEit4cRsFna50bNc6yFh8XmSMf/AHG/11z+Q7oIuQ3VyPb1/wBtMXcW3ZqW419RLGrSLXvTsUUhecyDv2HOqcWpVczOMMOCfTA9Ppq+HKaWClXLCQ7dUm2aMNu+1JJLHHH58XUzsAB96vJz6YB11b+26lm3HW0EBjamJ82nKMGXynzwCPY5H6aPtoWi2W+us1wuLU8MYeWtmeQACNFAWPqY8DqOSMnnXT4j3vw93JRt/LNwWaW6W2VU8iJ18ycSf+mijmRuxwueRj10vOfWUD24Puivhz4Onvz9klaXIVJWGQuC49xnBH+ejXwm8OqOeaiutuv1fFcoDVVMsVMFbElPIixooIyGwylv7wbHqDqhtFB5s1bTnGF81QQcj8fwkf4a5Nl7qrNj+LlXc4oYHSohEMgmcIGRkjLIHPCN1KpBPGcA4ByD84l0PyoTFNS0tQWW/wAVytFM1zpGpZp4V8+PBKoxHxL7jByMHka7LruC1W+NTLVCWaTPlQQ/HLKf6V/zJwB6karrHc9pb1oprjZ6lftXmASqPuahG4GHRv8AMgg9wT31z3myWCxVlbuC51s7CGnSBWYhQgL5VD0jLszMOPX4QBnWTGO7VR4T0zREXVHyVv4ey/zGKuu9XG0dxkm8ieInqWnVBlIkYcMMP1FvUuTgcAFWh3Z1vqqWW4Vs8L0qVjoyU7sCwKp0l2wSAzYHAJ4UZOc4ItWEAbBCOcXGyprNv8Wt2oLjX0tihggkqqSNjJN0gunWAWUHuAFxx7yKe66dfiTvCg2ZtyW41TxtUuClJAzY82THr7KO7H0HzIByPBZdz763FJWU9PUVDVcpZ6uZCkWSclie3JJ4GfbsNMunw/N4ruAh5nf0hBU9sinLBECkIzOAOGVFLc/QqOf99H7Ujmn6QPiKDp+pGR/jq83rs5/D/wAObhdno4K2qkiFM0zSYJMuRgDvgew7+p1+LK1PVzQ00rdK1NFHPC/t6H9j3/6hp5DIHAkICf5SLVPtC+bhqb+9r2DSUVXeJFeolr6nPk2rMvc8FXbGeMHk+p/D72LxS8W75VQUkd227USSziOJa+KKCOcFwowMAgnI7NkDn002PAyy2q0Xi43mJY6aqETwXKDGQ69ReOZceoy6H3BU9xzy7a8Pdl132WGGneupLZVCrttVTsSsmclWLEAdiMr8hyRpK10DpJPieRwmby9rWGBpIPkija0FZuvZNRLXWn+U3ZqjyqqlaoMkcVRAxjZkkIPUhAI9e2M516w+H5lq43ramNadFOYo8klu3JPyz++ibZtoSx2JaFOnBnmnIXsDJIXx/j++dXOVwcg59DnSp0zo3OZG7ZFAawHOG6y3/ELZ7qPEUV92t9fd9u0EFOlJbKOZoEVZCyA9SjJfqAYnkgEDOvHZPhJbbjHui1XWErPQ0ENwobkitHNTTEOHVXz1FQyDg5BwSMZ1pq4UMMtSldlknjjMQbuCpOex+eefmdDlLTVNurqueKsp/IqmJq1MAR3QIQiq/VhQpJPbnJ50YM6EY3hBvzbb+tqpuPkPl17aUi9hWm7WmxmG/MWr3Imm6yCyqyhgD/UWbnPOVOllu6rjp/ECv+0UjVtFURQyNGr9Lxt5agOp7HtgqeGHscHTf3dcIKH7T5aeVU1tRJULTl+ph1HufkBjv6D3Os8z10lVXJVyuX+BImY/m6VAz/rpy1twNDkuBvIe8IwoLnEtXGy7ityUZlMop5FMT05znCq4ynOOUY6tNg7qR/Ea0V25K1rpRUdYtRUhXeRcj8Jy2epgcPgZz0Aeugq2wPdbvQ2yhCzVtZUJTUydQUNI7BVGTwBkjnWmrV4KyU23KayV+30qqqLJe4wVaIWkY5Zgx+IL2AUqeAM476FkETDTzyitTiNloCjqIKuliqaWaOaCVA8ckbBldSMggjuDr10t/CTZu49ozvTSXV3srKxFHUusrpISCGQqAFHfPfOc4BySyNKHtDXUDa9g2N0Hb18PLJui9017rFJrqaHyY/NQTQ9PUW5jbjOT3GD2znAwPb8guOydsVV+F2oqhaYL5MMtDgsSQPLBVwAvc5A6uO500tCW56GK/bxtdsq1D0Ntj/mVQjfheTq6YQR7Aq7f9o1bDIbAcdh+/deXjbblZE31uHeO54KmPdFbKkUFS7R0HliNYZOVI6Rz8IBA6iSMn3Ouu2zySWilMUpiqKQieklxkFXUdcR+R4I9+3fGu/xASOu3VcZYuVkaWokP9b5bH7MP3188L6eKutTxt0s8GYZoz+aJuUcfIHKn9NapjWsYNqSqV9i1f7b3pHDeqNZGe1XBisRkZA9NMrnAViSMDI9cY9+2tBUlJWGOM1A6ZABlQMBflrJ+8aCGid6KVEVoj3IADxPkqT+qn99E2xd7b/tUsFt2/PNd6fyTLFRTxGoVUUAnpIIZQMgcNjkYGk/UumumPiMI/fVM+n5wiboK0+Y3+zlI5fLfHD9IbB+h76hWcxdJlQOfzLH/AKE6WGyPFW5XuCv+37TeKe3lVmSnqD1liCceW6gqeOMnn9NGD7voxD5iUFY3GRkoF/fq/wBNZ2WJ0Rp4pNIwZRbd0RKn3QRmZ8DBZu5+Z0BeKe8dtbSpRSViwXC81QxR2vhmkb0Zx+SMdyx9sDJ14Xe87ur62l8uWns1u+1PHLEgJqKhOjK4kbHRyGJwM4Xvzpbbg8PKO1eMNff5aqOaj/l0dXIoRiyTFekg9y/CdXueoDv3MxMLxHjXsP32Q8+QYGEjlBO6beNu7MqrnVSKa2qDL1N+J5XB6VA78ZZz7BcaUKBEpmjPcMCv7auvETclw3LvAz1UctNSUpKU9LKCpiAYhusH85xznt29NUNbHJPI7IAtOqHJzyzZwB9P8+BrQvffHASyJjgLdyUW7F23NcEW4sZAHUmnSM4kdPWRD/fBGV9+k+41szw73bXrBR2jdZBnmRf5fdkH/L3FCMqQ3ZZCO6nBJ+es3bXaIKKVj5LwOZIWUcqucnH0Pp7Eaefh9uMW+n/lF4ijmt05J/D1IpPJIHqpPJHcHnXjOx9UYoXXv/j/AIqY8ipKcaTg1NCWz78k25Lxtk1K1QoRHPSzh+rqgkAIUn1KE4z6grnnOi3SB7Cw0Uxa4OFhTSe8T7tfbFvq51VvjR6StscdNLIx4gYPJ0sPd8swC+vVnsNMnc92FtpemNgJ5ASCRnoUYBbHryQAPUkemdJrete1ZV0dAzlGkdpuT1MSAcMx9TwTn5L2AA0f06AvdqI2QeXOIxQ5S1rKUosyJl3VD5jk5+I9yT68nGqbaDzUF+pjRkdbfcBWPD9XofkTjRZuM09FTtRQnoXGZJDkksQenOOfnxrg2XTW8bgpkhd6ypRvNd/LKRxKozxnlmJ6RnAAz760hOyWtdbSi/bcdsvniNsitqSESY1MXTIBlmSJmRDn1Vi/7aaVPY9s2S5Xa9GGioQlEBPOFWAFA+eps4Axgc+vHfjSl8OLjt+i8YobLfUo2VpaqS3PUKpSGqbynUgtwr4VwD3y2BydNnxYt1Lf9tVFrNMxNxiakgmDnBkk+FePYNhv+3Os/nE+Pp7V+U1wh/EElIvHTblt3buJquGtrqR6mNaKspolxLCsSq3UGKkfEGIPz1a7h8ULNT7TrdxWSxS1kFPDG8YlmEKuzkEMyfiYcjtknn66zhumOWz1dZt+50yT3OlqXgeIH4VdGKs3/SSARphXDZEK/wAMdDd/5m8lxFxWrlpo5gPJhd3jjboHKqTgjPHORyTrskMe3e0QJHjg0qy5+Km97pc7Xf7hcqRIbfM9TT0qUwWLJUo3mL3YFWYctnk409WvFdUUdivNZQimrquCkq5qUsSEZR1lMnnGeng+hGs37F2VvTecc1JaKemujUvQWieZY5UjLD48NgOoPDYORx7jWsd02k7n8UIbUsS0lVT2UztPAQfIk85VUOOxVlV+kNyQDjGNWeJHHIBW3dUzRukZQ5Sk/ie8PbLUbYrvFKwXWQiWqQ19LUEZZmKqxT1VgQMoc8ZIPupvDmhp7jRNcaoferORToTlFwAeo+5549sce+tG7n2/a7lV120L/RU1XWU8aVEkCTsgYEEI4Ycrn4sZB6cngg8qCHb1FYaZoLPV1FRSyVT+WtRGFnpnUKDDKBwWXH4hwwII9QCsWKnDex2Qr8jUC0ind19rIKqKMGLqSoiYOuGwePn8wT9c6dtjslZLs6m3BbXNwtUsHnjAxPTgfjjdPzFWDDK88dtLy1pR19LDFVr8EigxSDgofbPtn00bbEqrns+vL0U5mpJWHnUzn4JR2/Rsdj+hyOxOQJKuPkdvNCa4ydMiLNiXGkp6r7ZRGniq6lFDuygLOndOo4yBycN8x3HGmla66K4UgniDKQxSSNuGjccFT8wf9+2sx1kk0db59M80NMkkq0OeHSLzCwH0+I8du/vpxeEd7e6lmdemUw9FSB+EyR9IDj2yrD9vlpX1DE+XxQicPIp3h9l+PEu5LQ7ioIHAJqpYY1B7YAlb/E8aWO7RP/xSl2ILxRhFIA7KQc/+R/bTh8VNmybpoIJqGZYbjRt1Qlj0hx36c/lIPIPv9dKKWrqIx5VzpZI5EkkhMqgFGaNsMOD3BI/Qg9tEdNex0YrkcqjOY9ry7sUHb1qkqLnHHRlCaaPqYnkPKzEkn3HT0L9Ade819se3RGLBTwVs9RTrJLKWkUwMc5iYNkgj1wSORyc6ub3Y7fX0H2+HEE44Lx9n+o7E6BNyW9qOoSMOsskUf3pQEA5+IYz3wCOfn8tM2tuhaqa5jxRQxJdYhvGmvF1p0roqO4JPNA4GJ+mRJHBzxzgADt762Ftjdu3981tpudgnaqoxNM7NICrxSpGV6GQ8oR1k/PGRkaxxv22rS07XJP7OTpV0H5wfUezKOfYgc9ho2/hp8QKOxV67YelIlava4rUAqpKiLy5Y5AeThMsmM9iMeuk/UYbOrum+K8FuyNPHLwv3JdN33bcMFjirIqtlWGW3IHdcBQhlj+Furg5cdY5ycY4PbjtratZtS++Hdno4Rf6exUsVTN5BXzFQZhzLjDfEvv6/Lhpw1UMkEsgkAAXnJ7HVJUX503OlgNlrGg+yNUvcAi+QCHx5J/qIOcfP66ViR5GnyRJCXvg14T1u3rrRbkvVQtHVRRlY6KlcOSGToPny4Af4fyIAoIBJYjOi2/NR2HfM96fzYlrbXGlW0EYZyIJj0Nj1x52D8se2iWa70FJSua2pjphAcM0jhVx6HJ47Y76Qv8QninYYLbUCyXgT3Cpts9LC9AyyiAySxZZ25UL0Bx7+3PI6wOkfuobpVOy7JHaN57m3tdqmOjiuksgoqF5epoUZ+rqkY+uAPhBOOfkND9fLFU3avrIyAtTVmZY/7o5AJ9iQe3fk6A/Bzbd73XvZo6euhK0cHmxpW1bKvlkdOVHxE9JP5QcZHYabPiHsG87Nt9Hfaqtt9VTTyrSlKd36ixDMpHUACMKdaDHmiYQy6PCUSwSFxed1xbbt5rq2itaSiI1FV5MbYyAWJC5+WSAdGthY/Yo47hEyyLmOQHuCGKkH9RoU2bHUPcKO5U7xoKSZZsSKch1PUAVx7geujKomhkkSKIlmXJkY8kuxySfn6/roh+oursgJHNr1VbdDTpK8MwaSQAoFXjjuDn0zxpweFljoLbYVrqWoSpkrQHaRVKqoHHQAeRjHOeSR9BoAiZKvbtdY47ZWzV9bVRSUsvk4j6FCgSBu5B+Mfr89NraltNqskNIww4yzD2J/+/vnSjqU1x6eN/ceaPwIqfq9PYr/2Q=='
 
     /** 六个配置字段的界面文案；field 与 host Config schema 对齐，fallback 为 schema 默认值。 */
     const CONFIG_FIELDS = [
@@ -50,12 +56,469 @@ window.__ModuleLoader__.load({
      * 但作用域是设置面板（不在 _markdown_ 容器内），所以单独一份而不是复用 --ds-*。
      */
     const CONFIG_STYLE_ID = 'dsh-structured-config-style'
-    const CONFIG_CSS = `
-[data-dsh-structured-config] button[id^="dsh-structured-theme-"]{position:relative}
-[data-dsh-structured-config] button[id^="dsh-structured-theme-"]::before{
-  content:"";display:inline-block;width:7px;height:7px;border-radius:50%;
-  margin-right:7px;vertical-align:baseline;background:var(--dsw-alias-label-tertiary,#9CA3AF);
+    const V5_TOKENS = `
+.dss-scope {
+  --dss-page:#f7f8fa;--dss-paper:#ffffff;--dss-paper-2:#f8fafc;
+  --dss-ink:#101828;--dss-ink-2:#475467;--dss-ink-3:#667085;
+  --dss-line:#e4e7ec;--dss-line-strong:#d0d5dd;
+  --dss-blue:#2563eb;--dss-blue-hover:#1d4ed8;--dss-blue-text:#1d4ed8;--dss-blue-soft:#eff6ff;
+  --dss-green:#067647;--dss-green-strong:#059669;--dss-green-text:#047857;--dss-green-soft:#f0faf4;
+  --dss-amber:#b54708;--dss-amber-strong:#d97706;--dss-amber-text:#b54708;--dss-amber-soft:#fffbf3;
+  --dss-red:#b42318;--dss-red-soft:#fef3f2;
+  --dss-head-bg:rgba(219,231,255,.5);--dss-zebra:rgba(255,255,255,.55);
+  --dss-code-bg:rgba(255,255,255,.72);--dss-code-border:#dbe7ff;--dss-code-text:#344054;
+  --dss-shadow:0 1px 3px rgba(16,24,40,.05);
+  --dss-sans:system-ui,-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC",sans-serif;
+  --dss-mono:ui-monospace,Consolas,"SFMono-Regular",monospace;
+  --dss-serif:Georgia,"Times New Roman","Noto Serif SC","SimSun",serif;
 }
+body[data-ds-dark-theme] .dss-scope {
+  --dss-page:#1a1b1e;--dss-paper:#242629;--dss-paper-2:#2b2e33;
+  --dss-ink:#e6e9ef;--dss-ink-2:#b7bdc9;--dss-ink-3:#8a92a0;
+  --dss-line:#363a41;--dss-line-strong:#4a4f59;
+  --dss-blue:#3b82f6;--dss-blue-hover:#60a5fa;--dss-blue-text:#8ab4ff;--dss-blue-soft:rgba(59,130,246,.16);
+  --dss-green:#34d399;--dss-green-strong:#10b981;--dss-green-text:#34d399;--dss-green-soft:rgba(16,185,129,.14);
+  --dss-amber:#fbbf24;--dss-amber-strong:#f59e0b;--dss-amber-text:#fbbf24;--dss-amber-soft:rgba(245,158,11,.12);
+  --dss-red:#f87171;--dss-red-soft:rgba(248,113,113,.16);
+  --dss-head-bg:rgba(59,130,246,.16);--dss-zebra:rgba(255,255,255,.03);
+  --dss-code-bg:rgba(0,0,0,.28);--dss-code-border:rgba(96,165,250,.28);--dss-code-text:#c9d2e0;
+  --dss-shadow:0 1px 3px rgba(0,0,0,.35);
+}
+`
+    const V5_COMPONENTS = `
+.dss-scope .dss-card {
+  margin:14px 0;padding:14px 16px;border:1px solid var(--dss-line);
+  border-left:3px solid var(--dss-blue);border-radius:12px;
+  background:linear-gradient(135deg,#eef4ff,#ffffff 62%);
+  box-shadow:var(--dss-shadow);color:var(--dss-ink-2);
+}
+.dss-scope .dss-card > p:first-child{margin-top:0}
+.dss-scope .dss-card > p:last-child{margin-bottom:0}
+.dss-scope .dss-card-conclusion,.dss-scope .dss-card-accept{
+  border-left-color:var(--dss-blue);
+  background:linear-gradient(135deg,#eef4ff,#ffffff 62%);
+}
+.dss-scope .dss-card-next{
+  border-left-color:var(--dss-green-strong);
+  background:linear-gradient(180deg,#f0faf4,#ffffff 72%);
+}
+.dss-scope .dss-card-risk{
+  border-left-color:var(--dss-amber-strong);
+  background:linear-gradient(180deg,#fffbf3,#ffffff 70%);
+}
+.dss-scope .dss-card-statement{
+  border-left-color:var(--dss-blue);
+  background:linear-gradient(135deg,#eef4ff,#ffffff 62%);
+}
+.dss-scope .dss-card-conclusion > p:first-child > strong:first-child,
+.dss-scope .dss-card-accept > p:first-child > strong:first-child,
+.dss-scope .dss-card-next > p:first-child > strong:first-child,
+.dss-scope .dss-card-risk > p:first-child > strong:first-child{
+  display:block;width:100%;margin:0 0 10px;padding:0 0 7px;
+  border-bottom:1px solid var(--dss-line);
+  font:700 12px/1.5 var(--dss-sans);letter-spacing:.04em;
+  color:var(--dss-blue-text);
+}
+.dss-scope .dss-card-next > p:first-child > strong:first-child{color:var(--dss-green-text)}
+.dss-scope .dss-card-risk > p:first-child > strong:first-child{color:var(--dss-amber-text)}
+.dss-scope .dss-card-conclusion > p,.dss-scope .dss-card-accept > p,
+.dss-scope .dss-card-next > p,.dss-scope .dss-card-risk > p{
+  margin:.45em 0;font-size:13.5px;line-height:1.7;color:var(--dss-ink-2);
+}
+.dss-scope .dss-card-conclusion > p:not(:first-child) > strong:first-child,
+.dss-scope .dss-card-accept > p:not(:first-child) > strong:first-child{
+  display:block;margin:0 0 6px;padding:0;border:0;
+  font:700 19px/1.45 var(--dss-serif);letter-spacing:.01em;color:var(--dss-ink);
+}
+.dss-scope .dss-card-conclusion > p strong,.dss-scope .dss-card-accept > p strong,
+.dss-scope .dss-card-next > p strong,.dss-scope .dss-card-risk > p strong{color:var(--dss-ink);font-weight:700}
+.dss-scope .dss-card-statement > p:first-child > strong:first-child{
+  display:block;margin:0 0 6px;padding:0;border:0;
+  font:700 19px/1.45 var(--dss-serif);letter-spacing:.01em;color:var(--dss-ink);
+}
+.dss-scope .dss-card-statement > p{font-size:13.5px;line-height:1.7;color:var(--dss-ink-2)}
+.dss-scope .dss-card-next ol{padding:0;margin:2px 0 0;list-style:none;counter-reset:dss-step}
+.dss-scope .dss-card-next li{
+  position:relative;margin:8px 0;padding:2px 0 0 30px;font-size:13.5px;line-height:1.7;
+  color:var(--dss-ink-2);counter-increment:dss-step;
+}
+.dss-scope .dss-card-next li::before{
+  content:counter(dss-step,decimal-leading-zero);position:absolute;left:0;top:0;
+  display:grid;place-items:center;width:22px;height:22px;border-radius:50%;
+  background:#dcf3e7;color:var(--dss-green-text);font:600 11px/1 var(--dss-mono);
+}
+.dss-scope .dss-card-risk p{color:var(--dss-ink-2)}
+.dss-scope .dss-table{
+  width:100%;margin:14px 0;border:1px solid var(--dss-line);border-left:3px solid var(--dss-blue);
+  border-radius:12px;border-collapse:separate;border-spacing:0;overflow:hidden;
+  background:linear-gradient(135deg,#eef4ff,#ffffff 62%);
+  box-shadow:var(--dss-shadow);font-size:13px;color:var(--dss-ink-2);
+}
+.dss-scope .dss-table thead th{
+  height:auto;padding:10px 16px!important;background:var(--dss-head-bg)!important;border-bottom:0;
+  color:var(--dss-blue-text)!important;font:600 11.5px/1.5 var(--dss-sans)!important;letter-spacing:.08em!important;text-align:left;
+}
+.dss-scope .dss-table th:nth-child(1),.dss-scope .dss-table td:nth-child(1){width:26%}
+.dss-scope .dss-table th:nth-child(2),.dss-scope .dss-table td:nth-child(2){width:18%}
+.dss-scope .dss-table tbody td{
+  padding:11px 16px!important;border-bottom:1px solid var(--dss-line)!important;background:transparent;
+  color:var(--dss-ink-2)!important;font-size:13px!important;line-height:1.55!important;vertical-align:middle;
+}
+.dss-scope .dss-table tbody td:first-child{color:var(--dss-ink)!important;font-weight:600!important;font-size:13.5px!important}
+.dss-scope .dss-table tbody tr:nth-child(even){background:var(--dss-zebra)}
+.dss-scope .dss-table tbody tr:last-child td{border-bottom:0}
+.dss-scope .dss-table td[data-dsh-structured-status-cell]{white-space:nowrap}
+.dss-scope .dss-status{
+  display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:999px;
+  font-size:11px;font-weight:600;line-height:1.5;
+}
+.dss-scope .dss-status::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.dss-scope .dss-status-success{background:#ecfdf3;color:#067647}
+.dss-scope .dss-status-warn{background:#fffaeb;color:#b54708}
+.dss-scope .dss-status-error{background:#fef3f2;color:#b42318}
+.dss-scope .dss-code{
+  margin:14px 0;padding:14px 16px;border:1px solid var(--dss-line);
+  border-left:3px solid var(--dss-blue);border-radius:12px;
+  background:linear-gradient(135deg,#eef4ff,#ffffff 62%);
+  box-shadow:var(--dss-shadow);
+}
+.dss-scope .dss-code > [class*="_bannerWrap"]{margin:0;padding:0;border:0;background:none}
+.dss-scope .dss-code [data-code-block-banner]{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  margin:0 0 10px;padding:2px 0 7px!important;border:0;border-bottom:1px solid var(--dss-line);
+  border-radius:0;background:transparent!important;color:var(--dss-blue-text)!important;
+  font:700 12px/1.5 var(--dss-sans)!important;letter-spacing:.04em;text-transform:none;
+}
+.dss-scope .dss-code [data-code-block-banner]::before{
+  content:"代码 · ";flex:none;color:var(--dss-blue-text);
+}
+.dss-scope .dss-code [data-code-block-banner] > [class*="_heading"]{
+  flex:1;min-width:0;justify-content:flex-start;text-align:left;color:inherit;
+}
+.dss-scope .dss-code [data-code-block-banner] > [class*="_actions"]{margin-left:auto;flex:none}
+.dss-scope .dss-code > [data-code-block-content]{padding:0}
+.dss-scope .dss-code pre{
+  margin:0;padding:12px 14px;border:1px solid var(--dss-code-border);border-radius:8px;
+  background:var(--dss-code-bg)!important;color:var(--dss-code-text)!important;
+  font:12.5px/1.7 var(--dss-mono)!important;overflow:auto;
+}
+.dss-scope .dss-copy{
+  display:grid;place-items:center;width:24px;height:24px;padding:0;border:0;border-radius:5px;
+  background:transparent;color:var(--dss-ink-3);cursor:pointer;
+}
+.dss-scope .dss-copy:hover{background:var(--dss-paper-2);color:var(--dss-ink)}
+.dss-scope .dss-copy-icon{position:relative;display:inline-block;width:13px;height:13px}
+.dss-scope .dss-copy-icon::before{content:"";position:absolute;inset:0 3px 3px 0;border:1.5px solid currentColor;border-radius:2px}
+.dss-scope .dss-copy-icon::after{content:"";position:absolute;inset:3px 0 0 3px;border:1.5px solid currentColor;border-radius:2px}
+.dss-scope .dss-copy-ok{display:none;font:700 12px/1 var(--dss-mono)}
+.dss-scope .dss-copy[data-copied="1"] .dss-copy-icon{display:none}
+.dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{display:inline;color:var(--dss-green)}
+body[data-ds-dark-theme] .dss-scope .dss-card-conclusion,
+body[data-ds-dark-theme] .dss-scope .dss-card-accept,
+body[data-ds-dark-theme] .dss-scope .dss-card-statement{
+  background:linear-gradient(135deg,rgba(37,99,235,.18),rgba(37,99,235,0) 62%),var(--dss-paper);
+}
+body[data-ds-dark-theme] .dss-scope .dss-card-next{
+  background:linear-gradient(180deg,rgba(16,185,129,.14),rgba(16,185,129,0) 72%),var(--dss-paper);
+  border-left-color:#10b981;
+}
+body[data-ds-dark-theme] .dss-scope .dss-card-risk{
+  background:linear-gradient(180deg,rgba(245,158,11,.12),rgba(245,158,11,0) 70%),var(--dss-paper);
+  border-left-color:#f59e0b;
+}
+body[data-ds-dark-theme] .dss-scope .dss-table,
+body[data-ds-dark-theme] .dss-scope .dss-code{
+  background:linear-gradient(135deg,rgba(37,99,235,.18),rgba(37,99,235,0) 62%),var(--dss-paper);
+}
+body[data-ds-dark-theme] .dss-scope .dss-status-success{background:rgba(52,211,153,.16);color:#4ade80}
+body[data-ds-dark-theme] .dss-scope .dss-status-warn{background:rgba(251,191,36,.14);color:#fbbf24}
+body[data-ds-dark-theme] .dss-scope .dss-status-error{background:rgba(248,113,113,.16);color:#f87171}
+body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{color:#34d399}
+`
+    const CONFIG_CSS = `
+.dss-scope {
+  --dss-page:#f7f8fa;--dss-paper:#ffffff;--dss-paper-2:#f8fafc;
+  --dss-ink:#101828;--dss-ink-2:#475467;--dss-ink-3:#667085;
+  --dss-line:#e4e7ec;--dss-line-strong:#d0d5dd;
+  --dss-blue:#2563eb;--dss-blue-hover:#1d4ed8;--dss-blue-text:#1d4ed8;--dss-blue-soft:#eff6ff;
+  --dss-green:#067647;--dss-green-strong:#059669;--dss-green-text:#047857;--dss-green-soft:#f0faf4;
+  --dss-amber:#b54708;--dss-amber-strong:#d97706;--dss-amber-text:#b54708;--dss-amber-soft:#fffbf3;
+  --dss-red:#b42318;--dss-red-soft:#fef3f2;
+  --dss-head-bg:rgba(219,231,255,.5);--dss-zebra:rgba(255,255,255,.55);
+  --dss-code-bg:rgba(255,255,255,.72);--dss-code-border:#dbe7ff;--dss-code-text:#344054;
+  --dss-shadow:0 1px 3px rgba(16,24,40,.05);
+  --dss-sans:system-ui,-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC",sans-serif;
+  --dss-mono:ui-monospace,Consolas,"SFMono-Regular",monospace;
+  --dss-serif:Georgia,"Times New Roman","Noto Serif SC","SimSun",serif;
+}
+body[data-ds-dark-theme] .dss-scope {
+  --dss-page:#1a1b1e;--dss-paper:#242629;--dss-paper-2:#2b2e33;
+  --dss-ink:#e6e9ef;--dss-ink-2:#b7bdc9;--dss-ink-3:#8a92a0;
+  --dss-line:#363a41;--dss-line-strong:#4a4f59;
+  --dss-blue:#3b82f6;--dss-blue-hover:#60a5fa;--dss-blue-text:#8ab4ff;--dss-blue-soft:rgba(59,130,246,.16);
+  --dss-green:#34d399;--dss-green-strong:#10b981;--dss-green-text:#34d399;--dss-green-soft:rgba(16,185,129,.14);
+  --dss-amber:#fbbf24;--dss-amber-strong:#f59e0b;--dss-amber-text:#fbbf24;--dss-amber-soft:rgba(245,158,11,.12);
+  --dss-red:#f87171;--dss-red-soft:rgba(248,113,113,.16);
+  --dss-head-bg:rgba(59,130,246,.16);--dss-zebra:rgba(255,255,255,.03);
+  --dss-code-bg:rgba(0,0,0,.28);--dss-code-border:rgba(96,165,250,.28);--dss-code-text:#c9d2e0;
+  --dss-shadow:0 1px 3px rgba(0,0,0,.35);
+}
+
+
+.dss-scope .dss-card {
+  margin:14px 0;padding:14px 16px;border:1px solid var(--dss-line);
+  border-left:3px solid var(--dss-blue);border-radius:12px;
+  background:linear-gradient(135deg,#eef4ff,#ffffff 62%);
+  box-shadow:var(--dss-shadow);color:var(--dss-ink-2);
+}
+.dss-scope .dss-card > p:first-child{margin-top:0}
+.dss-scope .dss-card > p:last-child{margin-bottom:0}
+.dss-scope .dss-card-conclusion,.dss-scope .dss-card-accept{
+  border-left-color:var(--dss-blue);
+  background:linear-gradient(135deg,#eef4ff,#ffffff 62%);
+}
+.dss-scope .dss-card-next{
+  border-left-color:var(--dss-green-strong);
+  background:linear-gradient(180deg,#f0faf4,#ffffff 72%);
+}
+.dss-scope .dss-card-risk{
+  border-left-color:var(--dss-amber-strong);
+  background:linear-gradient(180deg,#fffbf3,#ffffff 70%);
+}
+.dss-scope .dss-card-statement{
+  border-left-color:var(--dss-blue);
+  background:linear-gradient(135deg,#eef4ff,#ffffff 62%);
+}
+.dss-scope .dss-card-conclusion > p:first-child > strong:first-child,
+.dss-scope .dss-card-accept > p:first-child > strong:first-child,
+.dss-scope .dss-card-next > p:first-child > strong:first-child,
+.dss-scope .dss-card-risk > p:first-child > strong:first-child{
+  display:block;width:100%;margin:0 0 10px;padding:0 0 7px;
+  border-bottom:1px solid var(--dss-line);
+  font:700 12px/1.5 var(--dss-sans);letter-spacing:.04em;
+  color:var(--dss-blue-text);
+}
+.dss-scope .dss-card-next > p:first-child > strong:first-child{color:var(--dss-green-text)}
+.dss-scope .dss-card-risk > p:first-child > strong:first-child{color:var(--dss-amber-text)}
+.dss-scope .dss-card-conclusion > p,.dss-scope .dss-card-accept > p,
+.dss-scope .dss-card-next > p,.dss-scope .dss-card-risk > p{
+  margin:.45em 0;font-size:13.5px;line-height:1.7;color:var(--dss-ink-2);
+}
+.dss-scope .dss-card-conclusion > p:not(:first-child) > strong:first-child,
+.dss-scope .dss-card-accept > p:not(:first-child) > strong:first-child{
+  display:block;margin:0 0 6px;padding:0;border:0;
+  font:700 19px/1.45 var(--dss-serif);letter-spacing:.01em;color:var(--dss-ink);
+}
+.dss-scope .dss-card-conclusion > p strong,.dss-scope .dss-card-accept > p strong,
+.dss-scope .dss-card-next > p strong,.dss-scope .dss-card-risk > p strong{color:var(--dss-ink);font-weight:700}
+.dss-scope .dss-card-statement > p:first-child > strong:first-child{
+  display:block;margin:0 0 6px;padding:0;border:0;
+  font:700 19px/1.45 var(--dss-serif);letter-spacing:.01em;color:var(--dss-ink);
+}
+.dss-scope .dss-card-statement > p{font-size:13.5px;line-height:1.7;color:var(--dss-ink-2)}
+.dss-scope .dss-card-next ol{padding:0;margin:2px 0 0;list-style:none;counter-reset:dss-step}
+.dss-scope .dss-card-next li{
+  position:relative;margin:8px 0;padding:2px 0 0 30px;font-size:13.5px;line-height:1.7;
+  color:var(--dss-ink-2);counter-increment:dss-step;
+}
+.dss-scope .dss-card-next li::before{
+  content:counter(dss-step,decimal-leading-zero);position:absolute;left:0;top:0;
+  display:grid;place-items:center;width:22px;height:22px;border-radius:50%;
+  background:#dcf3e7;color:var(--dss-green-text);font:600 11px/1 var(--dss-mono);
+}
+.dss-scope .dss-card-risk p{color:var(--dss-ink-2)}
+.dss-scope .dss-table{
+  width:100%;margin:14px 0;border:1px solid var(--dss-line);border-left:3px solid var(--dss-blue);
+  border-radius:12px;border-collapse:separate;border-spacing:0;overflow:hidden;
+  background:linear-gradient(135deg,#eef4ff,#ffffff 62%);
+  box-shadow:var(--dss-shadow);font-size:13px;color:var(--dss-ink-2);
+}
+.dss-scope .dss-table thead th{
+  height:auto;padding:10px 16px!important;background:var(--dss-head-bg)!important;border-bottom:0;
+  color:var(--dss-blue-text)!important;font:600 11.5px/1.5 var(--dss-sans)!important;letter-spacing:.08em!important;text-align:left;
+}
+.dss-scope .dss-table th:nth-child(1),.dss-scope .dss-table td:nth-child(1){width:26%}
+.dss-scope .dss-table th:nth-child(2),.dss-scope .dss-table td:nth-child(2){width:18%}
+.dss-scope .dss-table tbody td{
+  padding:11px 16px!important;border-bottom:1px solid var(--dss-line)!important;background:transparent;
+  color:var(--dss-ink-2)!important;font-size:13px!important;line-height:1.55!important;vertical-align:middle;
+}
+.dss-scope .dss-table tbody td:first-child{color:var(--dss-ink)!important;font-weight:600!important;font-size:13.5px!important}
+.dss-scope .dss-table tbody tr:nth-child(even){background:var(--dss-zebra)}
+.dss-scope .dss-table tbody tr:last-child td{border-bottom:0}
+.dss-scope .dss-table td[data-dsh-structured-status-cell]{white-space:nowrap}
+.dss-scope .dss-status{
+  display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:999px;
+  font-size:11px;font-weight:600;line-height:1.5;
+}
+.dss-scope .dss-status::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.dss-scope .dss-status-success{background:#ecfdf3;color:#067647}
+.dss-scope .dss-status-warn{background:#fffaeb;color:#b54708}
+.dss-scope .dss-status-error{background:#fef3f2;color:#b42318}
+.dss-scope .dss-code{
+  margin:14px 0;padding:14px 16px;border:1px solid var(--dss-line);
+  border-left:3px solid var(--dss-blue);border-radius:12px;
+  background:linear-gradient(135deg,#eef4ff,#ffffff 62%);
+  box-shadow:var(--dss-shadow);
+}
+.dss-scope .dss-code > [class*="_bannerWrap"]{margin:0;padding:0;border:0;background:none}
+.dss-scope .dss-code [data-code-block-banner]{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  margin:0 0 10px;padding:2px 0 7px!important;border:0;border-bottom:1px solid var(--dss-line);
+  border-radius:0;background:transparent!important;color:var(--dss-blue-text)!important;
+  font:700 12px/1.5 var(--dss-sans)!important;letter-spacing:.04em;text-transform:none;
+}
+.dss-scope .dss-code [data-code-block-banner]::before{
+  content:"代码 · ";flex:none;color:var(--dss-blue-text);
+}
+.dss-scope .dss-code [data-code-block-banner] > [class*="_heading"]{
+  flex:1;min-width:0;justify-content:flex-start;text-align:left;color:inherit;
+}
+.dss-scope .dss-code [data-code-block-banner] > [class*="_actions"]{margin-left:auto;flex:none}
+.dss-scope .dss-code > [data-code-block-content]{padding:0}
+.dss-scope .dss-code pre{
+  margin:0;padding:12px 14px;border:1px solid var(--dss-code-border);border-radius:8px;
+  background:var(--dss-code-bg)!important;color:var(--dss-code-text)!important;
+  font:12.5px/1.7 var(--dss-mono)!important;overflow:auto;
+}
+.dss-scope .dss-copy{
+  display:grid;place-items:center;width:24px;height:24px;padding:0;border:0;border-radius:5px;
+  background:transparent;color:var(--dss-ink-3);cursor:pointer;
+}
+.dss-scope .dss-copy:hover{background:var(--dss-paper-2);color:var(--dss-ink)}
+.dss-scope .dss-copy-icon{position:relative;display:inline-block;width:13px;height:13px}
+.dss-scope .dss-copy-icon::before{content:"";position:absolute;inset:0 3px 3px 0;border:1.5px solid currentColor;border-radius:2px}
+.dss-scope .dss-copy-icon::after{content:"";position:absolute;inset:3px 0 0 3px;border:1.5px solid currentColor;border-radius:2px}
+.dss-scope .dss-copy-ok{display:none;font:700 12px/1 var(--dss-mono)}
+.dss-scope .dss-copy[data-copied="1"] .dss-copy-icon{display:none}
+.dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{display:inline;color:var(--dss-green)}
+body[data-ds-dark-theme] .dss-scope .dss-card-conclusion,
+body[data-ds-dark-theme] .dss-scope .dss-card-accept,
+body[data-ds-dark-theme] .dss-scope .dss-card-statement{
+  background:linear-gradient(135deg,rgba(37,99,235,.18),rgba(37,99,235,0) 62%),var(--dss-paper);
+}
+body[data-ds-dark-theme] .dss-scope .dss-card-next{
+  background:linear-gradient(180deg,rgba(16,185,129,.14),rgba(16,185,129,0) 72%),var(--dss-paper);
+  border-left-color:#10b981;
+}
+body[data-ds-dark-theme] .dss-scope .dss-card-risk{
+  background:linear-gradient(180deg,rgba(245,158,11,.12),rgba(245,158,11,0) 70%),var(--dss-paper);
+  border-left-color:#f59e0b;
+}
+body[data-ds-dark-theme] .dss-scope .dss-table,
+body[data-ds-dark-theme] .dss-scope .dss-code{
+  background:linear-gradient(135deg,rgba(37,99,235,.18),rgba(37,99,235,0) 62%),var(--dss-paper);
+}
+body[data-ds-dark-theme] .dss-scope .dss-status-success{background:rgba(52,211,153,.16);color:#4ade80}
+body[data-ds-dark-theme] .dss-scope .dss-status-warn{background:rgba(251,191,36,.14);color:#fbbf24}
+body[data-ds-dark-theme] .dss-scope .dss-status-error{background:rgba(248,113,113,.16);color:#f87171}
+body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{color:#34d399}
+
+.dss-scope.dss-config{width:100%;max-width:760px;color:var(--dss-ink);font:13px/1.55 var(--dss-sans)}
+.dss-config *{box-sizing:border-box}
+.dss-hidden{display:none!important}
+.dss-section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:10px}
+.dss-section-title{margin:0;color:var(--dss-ink);font:600 16px/1.4 var(--dss-sans)}
+.dss-note{margin:0 0 16px;color:var(--dss-ink-3);font-size:12px;line-height:1.65}
+.dss-profile{display:flex;align-items:center;gap:16px;margin:2px 0 18px;padding:0}
+.dss-profile-avatar{display:grid;place-items:center;width:88px;height:88px;flex:none;overflow:hidden;border:0;border-radius:50%;background:var(--dss-blue-soft);box-shadow:0 0 0 3px var(--dss-page),0 2px 10px rgba(16,24,40,.12);cursor:pointer;transition:box-shadow .14s}
+.dss-profile-avatar:hover{box-shadow:0 0 0 3px var(--dss-page),0 2px 10px rgba(16,24,40,.12),0 0 0 6px rgba(37,99,235,.18)}
+.dss-profile-avatar img{width:100%;height:100%;object-fit:cover}
+.dss-profile-info{min-width:0;flex:1}
+.dss-profile-name{display:block;width:100%;max-width:320px;height:30px;padding:0;border:0;border-bottom:1px solid transparent;border-radius:0;background:transparent;color:var(--dss-ink);font:600 19px/1.3 var(--dss-sans);letter-spacing:-.01em;outline:0}
+.dss-profile-name:hover{border-bottom-color:var(--dss-line-strong)}
+.dss-profile-name:focus{border-bottom-color:var(--dss-blue)}
+.dss-profile-sig{display:block;width:100%;max-width:380px;height:24px;margin-top:2px;padding:0;border:0;border-bottom:1px solid transparent;border-radius:0;background:transparent;color:var(--dss-ink-3);font:12px/1.6 var(--dss-mono);outline:0}
+.dss-profile-sig:hover{border-bottom-color:var(--dss-line)}
+.dss-profile-sig:focus{border-bottom-color:var(--dss-blue);color:var(--dss-ink-2)}
+.dss-source{position:relative;display:flex;align-items:center;gap:6px;min-width:0;flex:none;margin-left:auto}
+.dss-source-btn{display:inline-flex;align-items:center;gap:6px;max-width:240px;height:30px;padding:0 10px;border:1px solid #bfd3ff;border-radius:6px;background:var(--dss-blue-soft);color:var(--dss-blue);font-size:12.5px;font-weight:500;cursor:pointer}
+.dss-source-btn:hover{border-color:var(--dss-blue);background:#e3edff}
+.dss-caret{width:0;height:0;border-left:3px solid transparent;border-right:3px solid transparent;border-top:4px solid var(--dss-ink-3)}
+.dss-popover{position:absolute;top:34px;right:0;z-index:30;width:264px;padding:6px;border:1px solid var(--dss-line-strong);border-radius:8px;background:var(--dss-paper);box-shadow:0 12px 32px rgba(16,24,40,.12)}
+.dss-template-list{display:grid;gap:2px}
+.dss-template-row{position:relative}
+.dss-template-option{display:flex;gap:9px;align-items:center;width:100%;min-height:44px;padding:7px 40px 7px 8px;border:0;border-radius:6px;background:transparent;text-align:left;cursor:pointer;color:var(--dss-ink)}
+.dss-template-option:hover{background:var(--dss-paper-2)}
+.dss-template-option[aria-checked="true"]{background:var(--dss-blue-soft)}
+.dss-template-option .mark{display:grid;place-items:center;width:24px;height:24px;flex:none;border-radius:50%;background:var(--dss-paper-2);border:1px solid var(--dss-line);color:var(--dss-ink-2);font-size:11px}
+.dss-template-option[aria-checked="true"] .mark{border-color:#bfd3ff;background:var(--dss-paper);color:var(--dss-blue)}
+.dss-template-option strong{display:block;font-size:12.5px;font-weight:500}
+.dss-template-option em{display:block;margin-top:1px;color:var(--dss-ink-3);font-size:11px;font-style:normal}
+.dss-template-del{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:26px;height:26px;padding:0;border:0;border-radius:4px;background:transparent;color:var(--dss-ink-3);font-size:15px;line-height:1;opacity:.5;cursor:pointer}
+.dss-template-row:hover .dss-template-del{opacity:1}
+.dss-template-del:hover{background:var(--dss-red-soft);color:var(--dss-red)}
+.dss-template-empty{padding:10px 8px;color:var(--dss-ink-3);font-size:11.5px}
+.dss-template-foot{margin-top:4px;padding:6px 4px 2px;border-top:1px solid var(--dss-line)}
+.dss-template-save{display:block;width:100%;padding:8px;border:0;border-radius:6px;background:transparent;color:var(--dss-blue);font-size:12px;text-align:left;cursor:pointer}
+.dss-template-save:hover{background:var(--dss-blue-soft)}
+.dss-field{margin-bottom:14px}
+.dss-field-label{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:6px}
+.dss-field-label label{font-size:13px;font-weight:600;color:var(--dss-ink)}
+.dss-hint{color:var(--dss-ink-3);font-size:11.5px}
+.dss-input,.dss-textarea{display:block;width:100%;padding:7px 10px;border:1px solid var(--dss-line-strong);border-radius:6px;background:var(--dss-paper);color:var(--dss-ink);font:13px/1.6 var(--dss-sans);outline:0;transition:border-color .14s,box-shadow .14s}
+.dss-input:focus,.dss-textarea:focus{border-color:var(--dss-blue);box-shadow:0 0 0 3px rgba(37,99,235,.12)}
+.dss-textarea{min-height:96px;resize:none}
+.dss-control{position:relative}
+.dss-control .dss-input{padding-right:38px}
+.dss-icon-btn{position:absolute;right:6px;top:50%;transform:translateY(-50%);display:grid;place-items:center;width:26px;height:26px;padding:0;border:1px solid var(--dss-line);border-radius:5px;background:var(--dss-paper-2);color:var(--dss-ink-2);font-size:14px;cursor:pointer}
+.dss-icon-btn:hover{border-color:#bfd3ff;background:var(--dss-blue-soft)}
+.dss-emoji-panel{display:none;position:absolute;top:calc(100% + 4px);right:0;z-index:20;width:232px;grid-template-columns:repeat(8,1fr);gap:1px;padding:6px;border:1px solid var(--dss-line-strong);border-radius:6px;background:var(--dss-paper);box-shadow:0 12px 28px rgba(16,24,40,.12)}
+.dss-emoji-panel.is-open{display:grid}
+.dss-emoji-panel button{display:grid;place-items:center;width:24px;height:24px;padding:0;border:0;border-radius:4px;background:transparent;font-size:15px;cursor:pointer}
+.dss-emoji-panel button:hover{background:var(--dss-blue-soft)}
+.dss-field-meta{display:flex;justify-content:flex-end;margin-top:4px;min-height:14px}
+.dss-counter{color:var(--dss-ink-3);font:10.5px/1.4 var(--dss-mono)}
+.dss-rules{margin:14px 0 0;color:var(--dss-ink-3);font-size:11.5px;line-height:1.65}
+.dss-save{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:4px}
+.dss-save-state{color:var(--dss-ink-3);font-size:12px;line-height:1.5}
+.dss-save-state.is-error{color:var(--dss-red)}
+.dss-save-actions{display:flex;gap:10px}
+.dss-btn{height:34px;padding:0 14px;border:1px solid var(--dss-line-strong);border-radius:6px;background:var(--dss-paper);color:var(--dss-ink-2);font-size:12.5px;white-space:nowrap;cursor:pointer}
+.dss-btn:hover{background:var(--dss-paper-2)}
+.dss-btn:disabled{opacity:.5;cursor:default}
+.dss-btn-primary{border-color:var(--dss-blue);background:var(--dss-blue);color:#fff;font-weight:500}
+.dss-btn-primary:hover{background:var(--dss-blue-hover)}
+.dss-preview{margin-top:30px;border-top:1px solid var(--dss-line)}
+.dss-preview-head{display:block}
+.dss-preview-title-row{display:flex;align-items:center;min-height:40px}
+.dss-preview-title{margin:0;color:var(--dss-ink);font:600 16px/1.4 var(--dss-sans)}
+.dss-preview-tabs-row{display:flex;align-items:center;gap:10px;padding:4px 0 10px}
+.dss-preview-tabs{display:flex;gap:2px;padding:2px;border:1px solid var(--dss-line);border-radius:6px;background:var(--dss-paper-2)}
+.dss-preview-tab{height:26px;padding:0 10px;border:0;border-radius:4px;background:transparent;color:var(--dss-ink-2);font-size:11.5px;cursor:pointer}
+.dss-preview-tab[aria-selected="true"]{background:var(--dss-paper);color:var(--dss-ink);font-weight:500;box-shadow:0 1px 2px rgba(16,24,40,.06)}
+.dss-chat-card{padding:14px 4px 6px}
+.dss-chat-card.is-off .dss-chat-body{filter:grayscale(.92);opacity:.7}
+.dss-chat-head{display:flex;align-items:center;gap:12px;padding:0 0 10px}
+.dss-chat-avatar{position:relative;display:grid;place-items:center;width:38px;height:38px;flex:none;overflow:hidden;border-radius:50%;background:var(--dss-blue-soft);box-shadow:0 0 0 3px var(--dss-page),0 2px 10px rgba(16,24,40,.18)}
+.dss-chat-avatar img{width:100%;height:100%;object-fit:cover}
+.dss-chat-id{min-width:0}
+.dss-chat-name{display:block;color:var(--dss-ink);font-size:16px;font-weight:650;line-height:1.3}
+.dss-chat-meta{display:block;color:var(--dss-ink-3);font:12px/1.5 var(--dss-mono);overflow-wrap:anywhere}
+.dss-chat-body{display:grid;gap:12px;padding:6px 0 0 50px}
+.dss-msg-prefix{margin:0;color:var(--dss-ink-3);font:12.5px/1.7 var(--dss-mono)}
+.dss-msg-structure{display:grid;gap:12px;min-width:0}
+.dss-msg-suffix{margin:0;padding-top:8px;border-top:1px dotted var(--dss-line-strong);color:var(--dss-ink-3);font:12px/1.65 var(--dss-mono);overflow-wrap:anywhere}
+.dss-msg-lead{margin:0;color:var(--dss-ink-2);font-size:13.5px;line-height:1.7}
+.dss-line-title{display:flex;align-items:center;width:100%;margin:0 0 10px;padding:0 0 7px;border-bottom:1px solid var(--dss-line);font:700 12px/1.5 var(--dss-sans);letter-spacing:.04em;color:var(--dss-blue-text)}
+.dss-card-next .dss-line-title{color:var(--dss-green-text)}
+.dss-card-risk .dss-line-title{color:var(--dss-amber-text)}
+.dss-msg-title{margin:0;color:var(--dss-ink);font:700 19px/1.45 var(--dss-serif);letter-spacing:.01em;overflow-wrap:anywhere}
+.dss-msg-sub{margin:6px 0 0;color:var(--dss-ink-2);font-size:13.5px;line-height:1.7;overflow-wrap:anywhere}
+.dss-msg-steps{display:grid;gap:8px;margin:2px 0 0;padding:0;list-style:none}
+.dss-msg-steps li{display:grid;grid-template-columns:26px minmax(0,1fr);gap:8px;align-items:start}
+.dss-scope .dss-preview .dss-card-next li{position:relative;display:grid;grid-template-columns:26px minmax(0,1fr);gap:8px;padding:2px 0 0}
+.dss-scope .dss-preview .dss-card-next li::before{display:none}
+.dss-msg-num{display:grid;place-items:center;width:22px;height:22px;padding-top:0;border-radius:50%;background:#dcf3e7;color:var(--dss-green-text);font:600 11px/1.6 var(--dss-mono);font-variant-numeric:tabular-nums}
+.dss-msg-step,.dss-msg-risk-text{margin:0;color:var(--dss-ink-2);font-size:13.5px;line-height:1.7;overflow-wrap:anywhere}
+.dss-pane-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 10px;padding:2px 0 7px;border-bottom:1px solid var(--dss-line);font:700 12px/1.5 var(--dss-sans);letter-spacing:.04em;color:var(--dss-blue-text)}
+.dss-code-body{margin:0;padding:12px 14px;border:1px solid var(--dss-code-border);border-radius:8px;background:var(--dss-code-bg);color:var(--dss-code-text);font:12.5px/1.7 var(--dss-mono);overflow:auto}
+body[data-ds-dark-theme] .dss-scope .dss-msg-num{background:rgba(52,211,153,.16);color:#34d399}
+body[data-ds-dark-theme] .dss-scope .dss-source-btn{border-color:rgba(96,165,250,.4)}
+body[data-ds-dark-theme] .dss-scope .dss-source-btn:hover{background:rgba(59,130,246,.22)}
+body[data-ds-dark-theme] .dss-scope .dss-template-option[aria-checked="true"] .mark{border-color:rgba(96,165,250,.4)}
+[data-dsh-structured-config] button[id^="dsh-structured-theme-"]{position:relative}
+[data-dsh-structured-config] button[id^="dsh-structured-theme-"]::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:7px;vertical-align:baseline;background:var(--dsw-alias-label-tertiary,#9CA3AF)}
 [data-dsh-structured-config] button#dsh-structured-theme-deepseek::before{background:#2563EB}
 [data-dsh-structured-config] button#dsh-structured-theme-codex::before{background:#10A37F}
 [data-dsh-structured-config] button#dsh-structured-theme-anthropic::before{background:#CC785C}
@@ -108,211 +571,233 @@ body[data-ds-dark-theme] [data-dsh-structured-config] button#dsh-structured-them
     ]
 
     const CSS = `
-[class*="_markdown_"]{
-  --ds-surface:#FFFFFF;--ds-surface-2:#F4F7FB;--ds-text:#0F172A;--ds-muted:#5B6B82;
-  --ds-border:#E2E8F0;--ds-accent:#2563EB;--ds-accent-text:#2563EB;--ds-success:#166534;--ds-warn:#92400E;--ds-error:#991B1B;
-  --ds-code-bg:#F6F8FA;--ds-code-text:#0F172A;
-  font-size:15px;line-height:1.72;letter-spacing:.01em;
+.dss-scope {
+  --dss-page:#f7f8fa;--dss-paper:#ffffff;--dss-paper-2:#f8fafc;
+  --dss-ink:#101828;--dss-ink-2:#475467;--dss-ink-3:#667085;
+  --dss-line:#e4e7ec;--dss-line-strong:#d0d5dd;
+  --dss-blue:#2563eb;--dss-blue-hover:#1d4ed8;--dss-blue-text:#1d4ed8;--dss-blue-soft:#eff6ff;
+  --dss-green:#067647;--dss-green-strong:#059669;--dss-green-text:#047857;--dss-green-soft:#f0faf4;
+  --dss-amber:#b54708;--dss-amber-strong:#d97706;--dss-amber-text:#b54708;--dss-amber-soft:#fffbf3;
+  --dss-red:#b42318;--dss-red-soft:#fef3f2;
+  --dss-head-bg:rgba(219,231,255,.5);--dss-zebra:rgba(255,255,255,.55);
+  --dss-code-bg:rgba(255,255,255,.72);--dss-code-border:#dbe7ff;--dss-code-text:#344054;
+  --dss-shadow:0 1px 3px rgba(16,24,40,.05);
+  --dss-sans:system-ui,-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC",sans-serif;
+  --dss-mono:ui-monospace,Consolas,"SFMono-Regular",monospace;
+  --dss-serif:Georgia,"Times New Roman","Noto Serif SC","SimSun",serif;
 }
-body[data-ds-dark-theme] [class*="_markdown_"]{
-  --ds-surface:#111827;--ds-surface-2:#1F2937;--ds-text:#E5E7EB;--ds-muted:#9CA3AF;
-  --ds-border:#374151;--ds-accent:#60A5FA;--ds-accent-text:#60A5FA;--ds-success:#4ADE80;--ds-warn:#FBBF24;--ds-error:#F87171;
-  --ds-code-bg:#0B1220;--ds-code-text:#E5E7EB;
+body[data-ds-dark-theme] .dss-scope {
+  --dss-page:#1a1b1e;--dss-paper:#242629;--dss-paper-2:#2b2e33;
+  --dss-ink:#e6e9ef;--dss-ink-2:#b7bdc9;--dss-ink-3:#8a92a0;
+  --dss-line:#363a41;--dss-line-strong:#4a4f59;
+  --dss-blue:#3b82f6;--dss-blue-hover:#60a5fa;--dss-blue-text:#8ab4ff;--dss-blue-soft:rgba(59,130,246,.16);
+  --dss-green:#34d399;--dss-green-strong:#10b981;--dss-green-text:#34d399;--dss-green-soft:rgba(16,185,129,.14);
+  --dss-amber:#fbbf24;--dss-amber-strong:#f59e0b;--dss-amber-text:#fbbf24;--dss-amber-soft:rgba(245,158,11,.12);
+  --dss-red:#f87171;--dss-red-soft:rgba(248,113,113,.16);
+  --dss-head-bg:rgba(59,130,246,.16);--dss-zebra:rgba(255,255,255,.03);
+  --dss-code-bg:rgba(0,0,0,.28);--dss-code-border:rgba(96,165,250,.28);--dss-code-text:#c9d2e0;
+  --dss-shadow:0 1px 3px rgba(0,0,0,.35);
 }
-body[data-dsh-structured-theme="codex"] [class*="_markdown_"]{
-  --ds-surface:#FFFFFF;--ds-surface-2:#F0F7F4;--ds-text:#0D1117;--ds-muted:#4F625A;
-  --ds-border:#CFE3DB;--ds-accent:#10A37F;--ds-accent-text:#0B6B4F;--ds-success:#116329;--ds-warn:#7D4E00;--ds-error:#A40E26;
-  --ds-code-bg:#F0F7F4;--ds-code-text:#0D1117;
+
+
+.dss-scope .dss-card {
+  margin:14px 0;padding:14px 16px;border:1px solid var(--dss-line);
+  border-left:3px solid var(--dss-blue);border-radius:12px;
+  background:linear-gradient(135deg,#eef4ff,#ffffff 62%);
+  box-shadow:var(--dss-shadow);color:var(--dss-ink-2);
 }
-body[data-ds-dark-theme][data-dsh-structured-theme="codex"] [class*="_markdown_"]{
-  --ds-surface:#0B1512;--ds-surface-2:#12211B;--ds-text:#E6F2EC;--ds-muted:#9DB2A8;
-  --ds-border:#233A31;--ds-accent:#34D399;--ds-accent-text:#6EE7B7;--ds-success:#3FB950;--ds-warn:#D29922;--ds-error:#F85149;
-  --ds-code-bg:#07100D;--ds-code-text:#E6F2EC;
+.dss-scope .dss-card > p:first-child{margin-top:0}
+.dss-scope .dss-card > p:last-child{margin-bottom:0}
+.dss-scope .dss-card-conclusion,.dss-scope .dss-card-accept{
+  border-left-color:var(--dss-blue);
+  background:linear-gradient(135deg,#eef4ff,#ffffff 62%);
 }
-body[data-dsh-structured-theme="anthropic"] [class*="_markdown_"]{
-  --ds-surface:#FAF9F5;--ds-surface-2:#F5F1E8;--ds-text:#141413;--ds-muted:#6B6359;
-  --ds-border:#E5E0D5;--ds-accent:#CC785C;--ds-accent-text:#A14A2E;--ds-success:#266B4D;--ds-warn:#806000;--ds-error:#8C1D18;
-  --ds-code-bg:#F5F1E8;--ds-code-text:#141413;
+.dss-scope .dss-card-next{
+  border-left-color:var(--dss-green-strong);
+  background:linear-gradient(180deg,#f0faf4,#ffffff 72%);
 }
-body[data-ds-dark-theme][data-dsh-structured-theme="anthropic"] [class*="_markdown_"]{
-  --ds-surface:#1F1E1D;--ds-surface-2:#2A2825;--ds-text:#F5F1E8;--ds-muted:#A8A29A;
-  --ds-border:#3A3733;--ds-accent:#E8A087;--ds-accent-text:#E8A087;--ds-success:#6FBF9A;--ds-warn:#EAB308;--ds-error:#F28B82;
-  --ds-code-bg:#171614;--ds-code-text:#F5F1E8;
+.dss-scope .dss-card-risk{
+  border-left-color:var(--dss-amber-strong);
+  background:linear-gradient(180deg,#fffbf3,#ffffff 70%);
 }
-[class*="_markdown_"] p{margin:.72em 0}
+.dss-scope .dss-card-statement{
+  border-left-color:var(--dss-blue);
+  background:linear-gradient(135deg,#eef4ff,#ffffff 62%);
+}
+.dss-scope .dss-card-conclusion > p:first-child > strong:first-child,
+.dss-scope .dss-card-accept > p:first-child > strong:first-child,
+.dss-scope .dss-card-next > p:first-child > strong:first-child,
+.dss-scope .dss-card-risk > p:first-child > strong:first-child{
+  display:block;width:100%;margin:0 0 10px;padding:0 0 7px;
+  border-bottom:1px solid var(--dss-line);
+  font:700 12px/1.5 var(--dss-sans);letter-spacing:.04em;
+  color:var(--dss-blue-text);
+}
+.dss-scope .dss-card-next > p:first-child > strong:first-child{color:var(--dss-green-text)}
+.dss-scope .dss-card-risk > p:first-child > strong:first-child{color:var(--dss-amber-text)}
+.dss-scope .dss-card-conclusion > p,.dss-scope .dss-card-accept > p,
+.dss-scope .dss-card-next > p,.dss-scope .dss-card-risk > p{
+  margin:.45em 0;font-size:13.5px;line-height:1.7;color:var(--dss-ink-2);
+}
+.dss-scope .dss-card-conclusion > p:not(:first-child) > strong:first-child,
+.dss-scope .dss-card-accept > p:not(:first-child) > strong:first-child{
+  display:block;margin:0 0 6px;padding:0;border:0;
+  font:700 19px/1.45 var(--dss-serif);letter-spacing:.01em;color:var(--dss-ink);
+}
+.dss-scope .dss-card-conclusion > p strong,.dss-scope .dss-card-accept > p strong,
+.dss-scope .dss-card-next > p strong,.dss-scope .dss-card-risk > p strong{color:var(--dss-ink);font-weight:700}
+.dss-scope .dss-card-statement > p:first-child > strong:first-child{
+  display:block;margin:0 0 6px;padding:0;border:0;
+  font:700 19px/1.45 var(--dss-serif);letter-spacing:.01em;color:var(--dss-ink);
+}
+.dss-scope .dss-card-statement > p{font-size:13.5px;line-height:1.7;color:var(--dss-ink-2)}
+.dss-scope .dss-card-next ol{padding:0;margin:2px 0 0;list-style:none;counter-reset:dss-step}
+.dss-scope .dss-card-next li{
+  position:relative;margin:8px 0;padding:2px 0 0 30px;font-size:13.5px;line-height:1.7;
+  color:var(--dss-ink-2);counter-increment:dss-step;
+}
+.dss-scope .dss-card-next li::before{
+  content:counter(dss-step,decimal-leading-zero);position:absolute;left:0;top:0;
+  display:grid;place-items:center;width:22px;height:22px;border-radius:50%;
+  background:#dcf3e7;color:var(--dss-green-text);font:600 11px/1 var(--dss-mono);
+}
+.dss-scope .dss-card-risk p{color:var(--dss-ink-2)}
+.dss-scope .dss-table{
+  width:100%;margin:14px 0;border:1px solid var(--dss-line);border-left:3px solid var(--dss-blue);
+  border-radius:12px;border-collapse:separate;border-spacing:0;overflow:hidden;
+  background:linear-gradient(135deg,#eef4ff,#ffffff 62%);
+  box-shadow:var(--dss-shadow);font-size:13px;color:var(--dss-ink-2);
+}
+.dss-scope .dss-table thead th{
+  height:auto;padding:10px 16px!important;background:var(--dss-head-bg)!important;border-bottom:0;
+  color:var(--dss-blue-text)!important;font:600 11.5px/1.5 var(--dss-sans)!important;letter-spacing:.08em!important;text-align:left;
+}
+.dss-scope .dss-table th:nth-child(1),.dss-scope .dss-table td:nth-child(1){width:26%}
+.dss-scope .dss-table th:nth-child(2),.dss-scope .dss-table td:nth-child(2){width:18%}
+.dss-scope .dss-table tbody td{
+  padding:11px 16px!important;border-bottom:1px solid var(--dss-line)!important;background:transparent;
+  color:var(--dss-ink-2)!important;font-size:13px!important;line-height:1.55!important;vertical-align:middle;
+}
+.dss-scope .dss-table tbody td:first-child{color:var(--dss-ink)!important;font-weight:600!important;font-size:13.5px!important}
+.dss-scope .dss-table tbody tr:nth-child(even){background:var(--dss-zebra)}
+.dss-scope .dss-table tbody tr:last-child td{border-bottom:0}
+.dss-scope .dss-table td[data-dsh-structured-status-cell]{white-space:nowrap}
+.dss-scope .dss-status{
+  display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:999px;
+  font-size:11px;font-weight:600;line-height:1.5;
+}
+.dss-scope .dss-status::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.dss-scope .dss-status-success{background:#ecfdf3;color:#067647}
+.dss-scope .dss-status-warn{background:#fffaeb;color:#b54708}
+.dss-scope .dss-status-error{background:#fef3f2;color:#b42318}
+.dss-scope .dss-code{
+  margin:14px 0;padding:14px 16px;border:1px solid var(--dss-line);
+  border-left:3px solid var(--dss-blue);border-radius:12px;
+  background:linear-gradient(135deg,#eef4ff,#ffffff 62%);
+  box-shadow:var(--dss-shadow);
+}
+.dss-scope .dss-code > [class*="_bannerWrap"]{margin:0;padding:0;border:0;background:none}
+.dss-scope .dss-code [data-code-block-banner]{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  margin:0 0 10px;padding:2px 0 7px!important;border:0;border-bottom:1px solid var(--dss-line);
+  border-radius:0;background:transparent!important;color:var(--dss-blue-text)!important;
+  font:700 12px/1.5 var(--dss-sans)!important;letter-spacing:.04em;text-transform:none;
+}
+.dss-scope .dss-code [data-code-block-banner]::before{
+  content:"代码 · ";flex:none;color:var(--dss-blue-text);
+}
+.dss-scope .dss-code [data-code-block-banner] > [class*="_heading"]{
+  flex:1;min-width:0;justify-content:flex-start;text-align:left;color:inherit;
+}
+.dss-scope .dss-code [data-code-block-banner] > [class*="_actions"]{margin-left:auto;flex:none}
+.dss-scope .dss-code > [data-code-block-content]{padding:0}
+.dss-scope .dss-code pre{
+  margin:0;padding:12px 14px;border:1px solid var(--dss-code-border);border-radius:8px;
+  background:var(--dss-code-bg)!important;color:var(--dss-code-text)!important;
+  font:12.5px/1.7 var(--dss-mono)!important;overflow:auto;
+}
+.dss-scope .dss-copy{
+  display:grid;place-items:center;width:24px;height:24px;padding:0;border:0;border-radius:5px;
+  background:transparent;color:var(--dss-ink-3);cursor:pointer;
+}
+.dss-scope .dss-copy:hover{background:var(--dss-paper-2);color:var(--dss-ink)}
+.dss-scope .dss-copy-icon{position:relative;display:inline-block;width:13px;height:13px}
+.dss-scope .dss-copy-icon::before{content:"";position:absolute;inset:0 3px 3px 0;border:1.5px solid currentColor;border-radius:2px}
+.dss-scope .dss-copy-icon::after{content:"";position:absolute;inset:3px 0 0 3px;border:1.5px solid currentColor;border-radius:2px}
+.dss-scope .dss-copy-ok{display:none;font:700 12px/1 var(--dss-mono)}
+.dss-scope .dss-copy[data-copied="1"] .dss-copy-icon{display:none}
+.dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{display:inline;color:var(--dss-green)}
+body[data-ds-dark-theme] .dss-scope .dss-card-conclusion,
+body[data-ds-dark-theme] .dss-scope .dss-card-accept,
+body[data-ds-dark-theme] .dss-scope .dss-card-statement{
+  background:linear-gradient(135deg,rgba(37,99,235,.18),rgba(37,99,235,0) 62%),var(--dss-paper);
+}
+body[data-ds-dark-theme] .dss-scope .dss-card-next{
+  background:linear-gradient(180deg,rgba(16,185,129,.14),rgba(16,185,129,0) 72%),var(--dss-paper);
+  border-left-color:#10b981;
+}
+body[data-ds-dark-theme] .dss-scope .dss-card-risk{
+  background:linear-gradient(180deg,rgba(245,158,11,.12),rgba(245,158,11,0) 70%),var(--dss-paper);
+  border-left-color:#f59e0b;
+}
+body[data-ds-dark-theme] .dss-scope .dss-table,
+body[data-ds-dark-theme] .dss-scope .dss-code{
+  background:linear-gradient(135deg,rgba(37,99,235,.18),rgba(37,99,235,0) 62%),var(--dss-paper);
+}
+body[data-ds-dark-theme] .dss-scope .dss-status-success{background:rgba(52,211,153,.16);color:#4ade80}
+body[data-ds-dark-theme] .dss-scope .dss-status-warn{background:rgba(251,191,36,.14);color:#fbbf24}
+body[data-ds-dark-theme] .dss-scope .dss-status-error{background:rgba(248,113,113,.16);color:#f87171}
+body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{color:#34d399}
+
+[class*="_markdown_"]{font-size:13.5px;line-height:1.7;letter-spacing:.01em;color:var(--dss-ink-2)}
+[class*="_markdown_"] p{margin:.7em 0}
 [class*="_markdown_"] h1,[class*="_markdown_"] h2,[class*="_markdown_"] h3,
 [class*="_markdown_"] h4,[class*="_markdown_"] h5,[class*="_markdown_"] h6{
-  color:var(--ds-text);line-height:1.32;letter-spacing:-.01em;
+  color:var(--dss-ink);font-family:var(--dss-serif);line-height:1.32;letter-spacing:-.01em;
 }
-[class*="_markdown_"] h1{font-size:26px;font-weight:700;margin:32px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--ds-border)}
-[class*="_markdown_"] h2{font-size:21px;font-weight:700;margin:28px 0 10px;padding-left:12px;border-left:3px solid var(--ds-accent)}
-[class*="_markdown_"] h3{font-size:17px;font-weight:650;margin:22px 0 8px}
-[class*="_markdown_"] h2[${ICON_ATTR}]{padding-left:42px;text-indent:-30px}
-[class*="_markdown_"] h3[${ICON_ATTR}]{padding-left:30px;text-indent:-30px}
+[class*="_markdown_"] h1{font-size:26px;font-weight:700;margin:32px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--dss-line)}
+[class*="_markdown_"] h2{font-size:21px;font-weight:700;margin:28px 0 10px;padding-left:12px;border-left:3px solid var(--dss-blue)}
+[class*="_markdown_"] h3{font-size:19px;font-weight:650;margin:22px 0 8px}
+[class*="_markdown_"] h2[data-dsh-structured-icon]{padding-left:42px;text-indent:-30px}
+[class*="_markdown_"] h3[data-dsh-structured-icon]{padding-left:30px;text-indent:-30px}
 [class*="_markdown_"] h4{font-size:15px;font-weight:650;margin:16px 0 6px}
-[class*="_markdown_"] h5,[class*="_markdown_"] h6{font-size:13px;font-weight:700;margin:14px 0 6px;color:var(--ds-muted);text-transform:uppercase;letter-spacing:.06em}
-[class*="_markdown_"] h2[${ICON_ATTR}]::before,
-[class*="_markdown_"] h3[${ICON_ATTR}]::before{
-  content:attr(${ICON_ATTR});
-  display:inline-flex;align-items:center;justify-content:center;
+[class*="_markdown_"] h5,[class*="_markdown_"] h6{font-size:13px;font-weight:700;margin:14px 0 6px;color:var(--dss-ink-3);text-transform:uppercase;letter-spacing:.06em}
+[class*="_markdown_"] h2[data-dsh-structured-icon]::before,
+[class*="_markdown_"] h3[data-dsh-structured-icon]::before{
+  content:attr(data-dsh-structured-icon);display:inline-flex;align-items:center;justify-content:center;
   width:22px;height:22px;margin-right:8px;text-indent:0;border-radius:6px;
-  background:color-mix(in srgb,var(--ds-accent) 12%,transparent);
-  color:var(--ds-accent-text);font-size:12px;font-weight:700;vertical-align:2px;
+  background:var(--dss-blue-soft);color:var(--dss-blue-text);font-family:var(--dss-sans);font-size:12px;font-weight:700;vertical-align:2px;
 }
-[class*="_markdown_"] strong{font-weight:700;color:var(--ds-text)}
-[class*="_markdown_"] a{color:var(--ds-accent-text);text-decoration:none;border-bottom:1px solid color-mix(in srgb,var(--ds-accent) 38%,transparent)}
-[class*="_markdown_"] a:hover{border-bottom-color:var(--ds-accent)}
+[class*="_markdown_"] strong{font-weight:700;color:var(--dss-ink)}
+[class*="_markdown_"] a{color:var(--dss-blue-text);text-decoration:none;border-bottom:1px solid rgba(37,99,235,.38)}
+[class*="_markdown_"] a:hover{border-bottom-color:var(--dss-blue)}
 [class*="_markdown_"] ul,[class*="_markdown_"] ol{padding-left:1.5em;margin:.6em 0}
 [class*="_markdown_"] li{margin:.28em 0}
-[class*="_markdown_"] li::marker{color:var(--ds-accent-text)}
-[class*="_markdown_"] hr{height:1px;border:0;margin:28px 0;background:linear-gradient(90deg,transparent,var(--ds-border),transparent)}
-[class*="_markdown_"] table:not([${SKIP_ATTR}]){
-  width:100%;margin:16px 0;border-collapse:separate;border-spacing:0;
-  border:1px solid var(--ds-border);border-radius:12px;overflow:hidden;font-size:12.5px;
-  box-shadow:0 1px 2px rgba(0,0,0,.03);
+[class*="_markdown_"] li::marker{color:var(--dss-blue-text)}
+[class*="_markdown_"] hr{height:1px;border:0;margin:28px 0;background:linear-gradient(90deg,transparent,var(--dss-line),transparent)}
+[class*="_markdown_"] blockquote:not(.dss-card){
+  margin:14px 0;padding:10px 14px;border-left:3px solid var(--dss-line-strong);
+  background:var(--dss-paper-2);border-radius:0 10px 10px 0;color:var(--dss-ink-2);
 }
-[class*="_markdown_"] table:not([${SKIP_ATTR}]) thead th{
-  height:38px;background:var(--ds-surface-2);
-  font-size:13px!important;letter-spacing:0!important;
-  color:color-mix(in srgb,var(--ds-text) 78%,var(--ds-muted));
-  font-weight:700!important;text-align:left;padding:0 18px!important;vertical-align:middle;
-  border-bottom:1px solid var(--ds-border);
-}
-[class*="_markdown_"] table:not([${SKIP_ATTR}]) tbody td{
-  padding:12px 18px!important;line-height:1.55;vertical-align:middle;border-left:0;border-right:0;
-  border-bottom:1px solid color-mix(in srgb,var(--ds-border) 55%,transparent);
-  word-break:break-word;
-}
-[class*="_markdown_"] table:not([${SKIP_ATTR}]) tbody tr:nth-child(even){background:color-mix(in srgb,var(--ds-surface-2) 45%,transparent)}
-[class*="_markdown_"] table:not([${SKIP_ATTR}]) tbody tr:hover{background:color-mix(in srgb,var(--ds-accent) 5%,transparent)}
-[class*="_markdown_"] table:not([${SKIP_ATTR}]) tbody tr:last-child td{border-bottom:0}
-[class*="_markdown_"] table:not([${SKIP_ATTR}]):has(thead th:nth-child(2):last-child) th:first-child,
-[class*="_markdown_"] table:not([${SKIP_ATTR}]):has(thead th:nth-child(2):last-child) td:first-child{width:30%}
-[class*="_markdown_"] table:not([${SKIP_ATTR}]):not([${STATUS_TABLE_ATTR}]):has(thead th:nth-child(3):last-child) th:first-child,
-[class*="_markdown_"] table:not([${SKIP_ATTR}]):not([${STATUS_TABLE_ATTR}]):has(thead th:nth-child(3):last-child) td:first-child{width:24%}
-[class*="_markdown_"] table:not([${SKIP_ATTR}]):not([${STATUS_TABLE_ATTR}]):has(thead th:nth-child(3):last-child) th:nth-child(2),
-[class*="_markdown_"] table:not([${SKIP_ATTR}]):not([${STATUS_TABLE_ATTR}]):has(thead th:nth-child(3):last-child) td:nth-child(2){width:22%}
-[class*="_markdown_"] table:not([${SKIP_ATTR}])[${STATUS_TABLE_ATTR}] th:first-child,
-[class*="_markdown_"] table:not([${SKIP_ATTR}])[${STATUS_TABLE_ATTR}] td:first-child{
-  width:68px;text-align:center;padding:4px 8px!important;font-size:10px;font-weight:700;
-  white-space:nowrap;vertical-align:middle;border-radius:6px;
-}
-[class*="_markdown_"] table:not([${SKIP_ATTR}])[${STATUS_TABLE_ATTR}] tbody tr[${ROW_ATTR}="success"] td:first-child{background:color-mix(in srgb,var(--ds-success) 12%,transparent);color:var(--ds-success)}
-[class*="_markdown_"] table:not([${SKIP_ATTR}])[${STATUS_TABLE_ATTR}] tbody tr[${ROW_ATTR}="warn"] td:first-child{background:color-mix(in srgb,var(--ds-warn) 12%,transparent);color:var(--ds-warn)}
-[class*="_markdown_"] table:not([${SKIP_ATTR}])[${STATUS_TABLE_ATTR}] tbody tr[${ROW_ATTR}="error"] td:first-child{background:color-mix(in srgb,var(--ds-error) 12%,transparent);color:var(--ds-error)}
-[class*="_markdown_"] p[${LEAD_ATTR}="table"]{
-  border:0;padding:0;margin:12px 0 8px;
-  font-size:13px;color:var(--ds-text);
-}
-[class*="_markdown_"] p[${LEAD_ATTR}="table"] strong{font-size:14px;font-weight:700;color:var(--ds-text)}
-[class*="_markdown_"] h2+table,[class*="_markdown_"] h2+p,[class*="_markdown_"] h3+table,[class*="_markdown_"] h3+p{margin-top:8px}
+[class*="_markdown_"] p[data-dsh-structured-lead="table"]{border:0;padding:0;margin:12px 0 8px;font-size:13.5px;color:var(--dss-ink-2)}
+[class*="_markdown_"] p[data-dsh-structured-lead="table"] strong{font-size:13.5px;font-weight:650;color:var(--dss-ink)}
 [class*="_markdown_"] :not(pre)>code{
-  background:var(--ds-surface-2);border:1px solid var(--ds-border);border-radius:6px;
-  padding:.12em .38em;font-size:.9em;color:var(--ds-accent-text);overflow-wrap:anywhere;
+  background:var(--dss-paper-2);border:1px solid var(--dss-line);border-radius:6px;
+  padding:.12em .38em;font-size:.9em;color:var(--dss-blue-text);overflow-wrap:anywhere;
 }
-[class*="_markdown_"] .md-code-block[${CODE_ATTR}="1"]{
-  margin:16px 0;border:1px solid var(--ds-border);border-radius:12px;overflow:hidden;
-  background:var(--ds-code-bg);box-shadow:0 1px 2px rgba(0,0,0,.04);
-}
-[class*="_markdown_"] .md-code-block[${CODE_ATTR}="1"] > [class*="_bannerWrap"]{
-  margin:0;padding:0;border:0;background:none;
-}
-[class*="_markdown_"] .md-code-block[${CODE_ATTR}="1"] [data-code-block-banner]{
-  display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0;border-radius:0;
-  padding:6px 12px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
-  color:var(--ds-muted);border-bottom:1px solid var(--ds-border);
-  background:linear-gradient(90deg,color-mix(in srgb,var(--ds-code-accent,var(--ds-accent)) 14%,transparent),transparent 72%);
-}
-[class*="_markdown_"] .md-code-block[${CODE_ATTR}="1"] [data-code-block-banner] > [class*="_heading"]{
-  flex:1;min-width:0;justify-content:flex-start;text-align:left;
-}
-[class*="_markdown_"] .md-code-block[${CODE_ATTR}="1"] [data-code-block-banner] > [class*="_actions"]{
-  margin-left:auto;flex:none;
-}
-[class*="_markdown_"] .md-code-block[${CODE_ATTR}="1"] > [data-code-block-content]{padding:0}
-[class*="_markdown_"] .md-code-block[${CODE_ATTR}="1"] [data-code-block-banner]::before{
-  content:"";width:8px;height:8px;border-radius:50%;flex:none;
-  background:var(--ds-code-accent,var(--ds-accent));
-  box-shadow:0 0 0 3px color-mix(in srgb,var(--ds-code-accent,var(--ds-accent)) 18%,transparent);
-}
-[class*="_markdown_"] .md-code-block[${CODE_ATTR}="1"] pre{margin:0;padding:14px 16px;font-size:13px;line-height:1.65;overflow:auto;color:var(--ds-code-text)}
-[class*="_markdown_"] .md-code-block[${CODE_ATTR}="1"][data-dsh-structured-lang="js"]{--ds-code-accent:#eab308}
-[class*="_markdown_"] .md-code-block[${CODE_ATTR}="1"][data-dsh-structured-lang="ts"],
-[class*="_markdown_"] .md-code-block[${CODE_ATTR}="1"][data-dsh-structured-lang="tsx"]{--ds-code-accent:#3b82f6}
-[class*="_markdown_"] .md-code-block[${CODE_ATTR}="1"][data-dsh-structured-lang="py"],
-[class*="_markdown_"] .md-code-block[${CODE_ATTR}="1"][data-dsh-structured-lang="python"]{--ds-code-accent:#22c55e}
-[class*="_markdown_"] .md-code-block[${CODE_ATTR}="1"][data-dsh-structured-lang="bash"],
-[class*="_markdown_"] .md-code-block[${CODE_ATTR}="1"][data-dsh-structured-lang="sh"],
-[class*="_markdown_"] .md-code-block[${CODE_ATTR}="1"][data-dsh-structured-lang="powershell"]{--ds-code-accent:#14b8a6}
-[class*="_markdown_"] .md-code-block[${CODE_ATTR}="1"][data-dsh-structured-lang="json"]{--ds-code-accent:#a855f7}
-[class*="_markdown_"] .md-code-block[${CODE_ATTR}="1"][data-dsh-structured-lang="html"],
-[class*="_markdown_"] .md-code-block[${CODE_ATTR}="1"][data-dsh-structured-lang="css"]{--ds-code-accent:#f97316}
-[class*="_markdown_"] .md-code-block[${CODE_ATTR}="1"][data-dsh-structured-lang="sql"]{--ds-code-accent:#06b6d4}
-[class*="_markdown_"] blockquote{
-  margin:14px 0;padding:10px 14px;border-left:3px solid var(--ds-accent);
-  background:color-mix(in srgb,var(--ds-accent) 6%,transparent);border-radius:0 10px 10px 0;
-}
-[class*="_markdown_"] blockquote[${TONE_ATTR}="warn"]{--ds-accent:var(--ds-warn);--ds-accent-text:var(--ds-warn)}
-[class*="_markdown_"] blockquote[${TONE_ATTR}="success"]{--ds-accent:var(--ds-success);--ds-accent-text:var(--ds-success)}
-[class*="_markdown_"] blockquote[${CARD_ATTR}="1"]{
-  border:1px solid color-mix(in srgb,var(--ds-accent) 18%,var(--ds-border));
-  border-left:3px solid var(--ds-accent);
-  border-radius:12px;padding:18px;
-  background:linear-gradient(135deg,color-mix(in srgb,var(--ds-accent) 5%,var(--ds-surface)),var(--ds-surface) 62%);
-  box-shadow:0 1px 2px rgba(0,0,0,.04);
-}
-[class*="_markdown_"] blockquote[${CARD_ATTR}="1"]>p:first-child>strong:first-child{
-  display:block;position:static;
-  font-size:14px;line-height:1.3;letter-spacing:0;text-transform:none;
-  color:var(--ds-accent-text);margin-bottom:6px;
-}
-[class*="_markdown_"] blockquote[${CARD_ATTR}="1"]>p{font-size:13px;line-height:1.6;font-weight:400;color:var(--ds-text)}
-[class*="_markdown_"] blockquote[${CARD_ATTR}="1"]>p strong{font-weight:700;color:var(--ds-text)}
-[class*="_markdown_"] blockquote[${TONE_ATTR}]>p:first-child>strong:first-child{color:var(--ds-accent-text)}
-[class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="risk"]{--ds-accent:var(--ds-warn);--ds-accent-text:var(--ds-warn)}
-[class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="accept"]{--ds-accent:var(--ds-success);--ds-accent-text:var(--ds-success)}
-[class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="statement"]>p:first-child>strong:first-child{
-  font-size:24px;line-height:1.25;letter-spacing:-.02em;text-transform:none;
-  color:var(--ds-text);margin-bottom:0;
-}
-[class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="statement"]>p:first-child>strong:first-child::after{
-  content:"";display:block;height:1px;margin:12px 0;
-  background:var(--ds-border);
-}
-[class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="statement"]>p{font-size:13.5px;line-height:1.6;font-weight:400}
-[class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="statement"]>p:first-child{margin-bottom:0}
-[class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="next"]{
-  background:none;border:0;border-top:1px solid var(--ds-border);border-radius:0;
-  box-shadow:none;padding:14px 0 0 14px;margin:18px 0;position:relative;
-}
-[class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="next"]::before{
-  content:"";position:absolute;left:0;top:17px;width:0;height:0;
-  border-top:5px solid transparent;border-bottom:5px solid transparent;border-left:9px solid #C2410C;
-}
-[class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="next"]>p:first-child>strong:first-child{
-  font-size:16px;line-height:1.3;color:var(--ds-text);margin-bottom:8px;
-}
-[class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="next"]>p,
-[class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="next"] li{font-size:13px;line-height:1.6}
-[class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="next"] ol,
-[class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="next"] ul{padding-left:0;margin:.4em 0 0;list-style-position:inside}
-[class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="next"] li{padding-left:0}
-body[data-ds-dark-theme] [class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="next"]::before{border-left-color:#FB923C}
-[class*="_markdown_"] blockquote[${CARD_ATTR}="1"]>p:first-child{margin-top:0}
-[class*="_markdown_"] blockquote[${CARD_ATTR}="1"]>p:last-child{margin-bottom:0}
-[class*="_markdown_"] p[${STATUS_ATTR}],[class*="_markdown_"] li[${STATUS_ATTR}]{
-  border-left:3px solid var(--ds-accent);background:color-mix(in srgb,var(--ds-accent) 7%,transparent);
+[class*="_markdown_"] p[data-dsh-structured-status],[class*="_markdown_"] li[data-dsh-structured-status]{
+  border-left:3px solid var(--dss-blue);background:var(--dss-blue-soft);
   border-radius:0 6px 6px 0;padding:4px 10px;margin:.4em 0;
 }
-[class*="_markdown_"] p[${STATUS_ATTR}="success"],[class*="_markdown_"] li[${STATUS_ATTR}="success"]{--ds-accent:var(--ds-success)}
-[class*="_markdown_"] p[${STATUS_ATTR}="warn"],[class*="_markdown_"] li[${STATUS_ATTR}="warn"]{--ds-accent:var(--ds-warn)}
-[class*="_markdown_"] p[${STATUS_ATTR}="error"],[class*="_markdown_"] li[${STATUS_ATTR}="error"]{--ds-accent:var(--ds-error)}
+[class*="_markdown_"] p[data-dsh-structured-status="success"],[class*="_markdown_"] li[data-dsh-structured-status="success"]{--dss-blue:var(--dss-green);--dss-blue-soft:var(--dss-green-soft)}
+[class*="_markdown_"] p[data-dsh-structured-status="warn"],[class*="_markdown_"] li[data-dsh-structured-status="warn"]{--dss-blue:var(--dss-amber);--dss-blue-soft:var(--dss-amber-soft)}
+[class*="_markdown_"] p[data-dsh-structured-status="error"],[class*="_markdown_"] li[data-dsh-structured-status="error"]{--dss-blue:var(--dss-red);--dss-blue-soft:var(--dss-red-soft)}
 @media (max-width:720px){
-  [class*="_markdown_"]{font-size:14.5px}
+  [class*="_markdown_"]{font-size:13px}
   [class*="_markdown_"] h1{font-size:22px}
   [class*="_markdown_"] h2{font-size:18px}
-  [class*="_markdown_"] table:not([${SKIP_ATTR}]){font-size:13px}
-  [class*="_markdown_"] table:not([${SKIP_ATTR}]) thead th,[class*="_markdown_"] table:not([${SKIP_ATTR}]) tbody td{padding:7px 9px}
+  [class*="_markdown_"] .dss-table{font-size:12px}
+  [class*="_markdown_"] .dss-table thead th,[class*="_markdown_"] .dss-table tbody td{padding:8px 10px}
 }
 @media (prefers-reduced-motion:reduce){
   [class*="_markdown_"] *{transition:none!important;animation:none!important}
@@ -403,7 +888,103 @@ body[data-ds-dark-theme] [class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="nex
       return rest.trim().length > 0 || secondBody
     }
 
+    const CARD_CLASSES = {
+      conclusion: 'dss-card-conclusion',
+      decision: 'dss-card-conclusion',
+      metric: 'dss-card-conclusion',
+      key: 'dss-card-conclusion',
+      next: 'dss-card-next',
+      risk: 'dss-card-risk',
+      accept: 'dss-card-accept',
+      statement: 'dss-card-statement',
+    }
+    const ALL_CARD_CLASSES = ['dss-card', ...new Set(Object.values(CARD_CLASSES))]
+
+    const classListOf = (element) => (element && element.classList && typeof element.classList.add === 'function' ? element.classList : null)
+
+    const setCardClass = (block, type) => {
+      const list = classListOf(block)
+      if (!list) return
+      for (const name of ALL_CARD_CLASSES) list.remove(name)
+      if (type === null) return
+      list.add('dss-card')
+      const name = CARD_CLASSES[type]
+      if (name) list.add(name)
+    }
+
+    const toggleClass = (element, name, on) => {
+      const list = classListOf(element)
+      if (!list) return
+      if (on) list.add(name)
+      else list.remove(name)
+    }
+
+    const markScopes = (root) => {
+      const scopes = []
+      if (root && typeof root.matches === 'function' && root.matches('[class*="_markdown_"]')) scopes.push(root)
+      for (const element of root?.querySelectorAll?.('[class*="_markdown_"]') ?? []) scopes.push(element)
+      for (const element of scopes) toggleClass(element, 'dss-scope', true)
+    }
+
+    const STATUS_LABELS = { success: '通过', warn: '观察', error: '阻断' }
+
+    const ensureStatusPill = (cell, status) => {
+      if (!cell || typeof cell.appendChild !== 'function') return
+      let pill = typeof cell.querySelector === 'function' ? cell.querySelector(`[${STATUS_PILL_ATTR}]`) : null
+      if (!pill) {
+        const doc = cell.ownerDocument ?? (typeof document !== 'undefined' ? document : null)
+        if (!doc || typeof doc.createElement !== 'function') return
+        pill = doc.createElement('span')
+        pill.setAttribute(STATUS_PILL_ATTR, '1')
+        cell.textContent = ''
+        cell.appendChild(pill)
+      }
+      pill.className = 'dss-status dss-status-' + status
+      pill.textContent = STATUS_LABELS[status] ?? status
+    }
+
+    const clearStatusPills = (row) => {
+      for (const cell of row?.cells ?? []) {
+        cell?.removeAttribute?.(STATUS_CELL_ATTR)
+        const pill = typeof cell?.querySelector === 'function' ? cell.querySelector(`[${STATUS_PILL_ATTR}]`) : null
+        pill?.remove?.()
+      }
+    }
+
+    const ensureCodeCopy = (code) => {
+      const banner = code?.querySelector?.('[data-code-block-banner]')
+      if (!banner || typeof banner.appendChild !== 'function') return
+      if (banner.querySelector?.(`[${COPY_ATTR}]`) || banner.querySelector?.('button')) return
+      const doc = code.ownerDocument ?? (typeof document !== 'undefined' ? document : null)
+      if (!doc || typeof doc.createElement !== 'function') return
+      const button = doc.createElement('button')
+      button.setAttribute('type', 'button')
+      button.setAttribute('class', 'dss-copy')
+      button.setAttribute(COPY_ATTR, '1')
+      button.setAttribute('aria-label', '复制代码')
+      const icon = doc.createElement('span')
+      icon.setAttribute('class', 'dss-copy-icon')
+      const ok = doc.createElement('span')
+      ok.setAttribute('class', 'dss-copy-ok')
+      ok.textContent = '✓'
+      button.appendChild(icon)
+      button.appendChild(ok)
+      button.addEventListener?.('click', async () => {
+        const pre = code.querySelector?.('pre')
+        const text = pre?.textContent ?? code.textContent ?? ''
+        try {
+          if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) await navigator.clipboard.writeText(text)
+        } catch {
+          // 剪贴板被宿主拒绝时保留反馈，不阻断渲染。
+        }
+        button.setAttribute('data-copied', '1')
+        try { setTimeout(() => button.removeAttribute('data-copied'), 1200) } catch {}
+      })
+      banner.appendChild(button)
+    }
+
     function decorate(root) {
+      markScopes(root)
       for (const heading of root.querySelectorAll('[class*="_markdown_"] h2, [class*="_markdown_"] h3')) {
         if (inGenui(heading) || inDiff(heading)) continue
         const icon = iconFor((heading.textContent ?? '').trim())
@@ -420,12 +1001,19 @@ body[data-ds-dark-theme] [class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="nex
           block.removeAttribute(CARD_TYPE_ATTR)
           block.removeAttribute(LEAD_ATTR)
           block.removeAttribute(TONE_ATTR)
+          setCardClass(block, null)
           continue
         }
         block.setAttribute(CARD_ATTR, '1')
         block.setAttribute(CARD_TYPE_ATTR, type)
         block.removeAttribute(LEAD_ATTR)
         block.setAttribute(TONE_ATTR, type === 'risk' ? 'warn' : type === 'accept' ? 'success' : 'info')
+        setCardClass(block, type)
+        if (type !== 'statement') {
+          const label = labelOf(block)
+          const strong = firstParagraph(block)?.firstElementChild
+          if (label && strong?.tagName === 'STRONG') strong.textContent = label
+        }
       }
 
       for (const element of root.querySelectorAll('[class*="_markdown_"] p, [class*="_markdown_"] li')) {
@@ -438,32 +1026,62 @@ body[data-ds-dark-theme] [class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="nex
         else element.setAttribute(STATUS_ATTR, status)
       }
 
-      for (const row of root.querySelectorAll('[class*="_markdown_"] table tr')) {
-        if (inGenui(row) || inDiff(row) || row.closest('thead') || row.closest(`[${SKIP_ATTR}="table"]`)) {
-          row.removeAttribute(ROW_ATTR)
-          continue
-        }
-        const status = statusFor((row.textContent ?? '').trimStart())
-        if (status === null) row.removeAttribute(ROW_ATTR)
-        else row.setAttribute(ROW_ATTR, status)
-      }
-
       for (const table of root.querySelectorAll('[class*="_markdown_"] table')) {
         if (inGenui(table)) {
           table.removeAttribute(SKIP_ATTR)
           table.removeAttribute(STATUS_TABLE_ATTR)
+          toggleClass(table, 'dss-table', false)
           continue
         }
         if (inDiff(table)) {
           table.setAttribute(SKIP_ATTR, 'table')
           table.removeAttribute(STATUS_TABLE_ATTR)
+          toggleClass(table, 'dss-table', false)
           continue
         }
         table.removeAttribute(SKIP_ATTR)
+        toggleClass(table, 'dss-table', true)
         const rows = [...table.querySelectorAll('tbody tr')]
-        const statusTable =
-          rows.length > 0 &&
-          rows.every((row) => statusFor((row.cells?.[0]?.textContent ?? '').trimStart()) !== null)
+        let statusTable = rows.length > 0
+        for (const row of rows) {
+          if (row.closest?.('thead') || row.closest?.(`[${SKIP_ATTR}="table"]`)) {
+            row.removeAttribute(ROW_ATTR)
+            statusTable = false
+            continue
+          }
+          const cells = [...(row.cells ?? [])]
+          let status = null
+          let statusCell = null
+          for (const cell of cells) {
+            const candidate = statusFor((cell.textContent ?? '').trimStart())
+            if (candidate !== null) {
+              status = candidate
+              statusCell = cell
+              break
+            }
+          }
+          if (status === null) {
+            const previous = row.getAttribute?.(ROW_ATTR)
+            if (previous) {
+              status = previous
+              statusCell = cells.find((cell) => cell.getAttribute?.(STATUS_CELL_ATTR) === '1') ?? null
+            }
+          }
+          for (const cell of cells) {
+            if (cell === statusCell) continue
+            cell.removeAttribute?.(STATUS_CELL_ATTR)
+            const pill = typeof cell.querySelector === 'function' ? cell.querySelector(`[${STATUS_PILL_ATTR}]`) : null
+            pill?.remove?.()
+          }
+          if (status === null) {
+            row.removeAttribute(ROW_ATTR)
+            statusTable = false
+          } else {
+            row.setAttribute(ROW_ATTR, status)
+            statusCell?.setAttribute?.(STATUS_CELL_ATTR, '1')
+            ensureStatusPill(statusCell, status)
+          }
+        }
         if (statusTable) table.setAttribute(STATUS_TABLE_ATTR, '1')
         else table.removeAttribute(STATUS_TABLE_ATTR)
       }
@@ -482,19 +1100,23 @@ body[data-ds-dark-theme] [class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="nex
           code.removeAttribute(LANG_ATTR)
           code.removeAttribute(CODE_ATTR)
           code.removeAttribute(SKIP_ATTR)
+          toggleClass(code, 'dss-code', false)
           continue
         }
         if (inDiff(code) || isDiffCode(code)) {
           code.removeAttribute(LANG_ATTR)
           code.removeAttribute(CODE_ATTR)
           code.setAttribute(SKIP_ATTR, 'code')
+          toggleClass(code, 'dss-code', false)
           continue
         }
         code.removeAttribute(SKIP_ATTR)
         code.setAttribute(CODE_ATTR, '1')
+        toggleClass(code, 'dss-code', true)
         const lang = bannerLanguage(code)
         if (lang.length === 0) code.removeAttribute(LANG_ATTR)
         else code.setAttribute(LANG_ATTR, lang)
+        ensureCodeCopy(code)
       }
     }
 
@@ -627,90 +1249,306 @@ body[data-ds-dark-theme] [class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="nex
         }
       }
 
+      const EMOJIS = ['🐳', '💗', '🐟', '🌊', '😄', '😎', '🥹', '🤔', '✨', '🔥', '🚀', '💡', '📌', '✅', '⚠️', '🎯', '🧠', '🛠️', '📊', '🌎', '🌙', '☕', '🍚', '🐋', '🫧', '💙', '🙌', '👀', '😤', '😭', '🤝', '💬', '😀', '😂', '🤣', '😊', '😍', '🥰', '😉', '🤗', '🤭', '😴', '😮', '😲', '🥳', '🤯', '😇', '🙃', '👍', '👎', '👌', '✌️', '🤞', '👏', '🙏', '💪', '⚡', '🎉', '❤️', '💜', '🍀', '🌈', '📢', '📝']
+      const TEMPLATE_KEY = 'dsh-structured.tone.v5.templates'
+      const readTemplateState = () => {
+        try {
+          const storage = typeof window !== 'undefined' ? window.localStorage : null
+          const parsed = JSON.parse(storage?.getItem(TEMPLATE_KEY) ?? 'null')
+          if (parsed && Array.isArray(parsed.deletedIds) && Array.isArray(parsed.customs)) return parsed
+        } catch {}
+        return { deletedIds: [], customs: [] }
+      }
+      const writeTemplateState = (next) => {
+        try {
+          if (typeof window !== 'undefined') window.localStorage?.setItem(TEMPLATE_KEY, JSON.stringify(next))
+        } catch {}
+      }
+      const defaultTone = () => {
+        const parsed = parseToneJson(PERSONA_WHALE_JSON)
+        return parsed.ok ? cloneTone(parsed.doc) : emptyTone()
+      }
+      const DEFAULT_TEMPLATE = { id: 'whale', builtin: true, label: '蓝色大肥鱼', name: DEFAULT_PROFILE_NAME, signature: DEFAULT_PROFILE_SIGNATURE, desc: '默认预设' }
+      const templateList = (templateState) => [DEFAULT_TEMPLATE, ...(templateState.customs ?? [])].filter((item) => !(templateState.deletedIds ?? []).includes(item.id))
+      const templateDoc = (item) => {
+        if (item.builtin) return defaultTone()
+        return { ...emptyTone(), ...(item.doc ?? {}), schema: TONE_SCHEMA, skipIn: [...TONE_SKIP_DEFAULT] }
+      }
+      const PREVIEW_SAMPLES = {
+        playful: {
+          tableLead: '两条主线，先看验收状态：',
+          codeLead: '动态加载这一处，改成这样：',
+          normal: {
+            lead: '这版能上，但别一步到位。',
+            sub: '先灰度一周；回滚脚本没验收前，不加自动更新。',
+            steps: ['先拿现网账号跑一条真实链路。', '把失败 / 回滚 / 权限边界写进验收。', '灰度一周，再决定要不要默认开启。'],
+            risk: '自动更新会跳过手动确认；回滚没演练，等于没有。',
+          },
+        },
+        direct: {
+          tableLead: '两条主线，先看验收状态：',
+          codeLead: '动态加载这一处，改成这样：',
+          normal: {
+            lead: '能上，分两步走。',
+            sub: '灰度一周；回滚没验收，不动自动更新。',
+            steps: ['跑通一条真实链路。', '验收失败 / 回滚 / 权限边界。', '一周后决定默认开关。'],
+            risk: '自动更新跳过确认；回滚未演练。',
+          },
+        },
+        soft: {
+          tableLead: '两条主线，先看验收状态：',
+          codeLead: '动态加载这一处，改成这样：',
+          normal: {
+            lead: '可以先上一版，稳一点。',
+            sub: '建议先灰度一周；自动更新等回滚验收后再加。',
+            steps: ['先用现网账号跑一条链路看看。', '把回滚和权限边界补进验收。', '观察一周，我们再定默认开启。'],
+            risk: '自动更新会跳过确认，回滚还没演练过，先别开。',
+          },
+        },
+      }
+      const PREVIEW_TABLE = {
+        head: ['模块', '状态', '说明'],
+        rows: [
+          ['注入链路', 'success', '新会话 system prompt 命中'],
+          ['表格渲染', 'success', '斑马纹与状态列生效'],
+          ['代码皮肤', 'success', '横幅与语言色点正常'],
+          ['暗色主题', 'warn', '部分色值对比度待校'],
+          ['子代理注入', 'warn', '默认关闭，待拍板'],
+          ['自动更新', 'error', '回滚脚本未验收'],
+        ],
+      }
+      const PREVIEW_STATUS = { success: ['dss-status-success', '通过'], warn: ['dss-status-warn', '观察'], error: ['dss-status-error', '阻断'] }
+      const PREVIEW_CODE = [
+        "const KEY = 'dsh-structured.tone'",
+        'export function loadTone() {',
+        '  try {',
+        '    const raw = localStorage.getItem(KEY)',
+        '    if (!raw) return DEFAULT_TONE',
+        '    const doc = JSON.parse(raw)',
+        '    return parseTone(doc) ?? DEFAULT_TONE',
+        '  } catch {',
+        '    return DEFAULT_TONE // fail-open：读失败不阻断会话',
+        '  }',
+        '}',
+      ]
+      const previewVariant = (styleText) => {
+        if (styleText.includes('直接')) return PREVIEW_SAMPLES.direct
+        if (styleText.includes('温和')) return PREVIEW_SAMPLES.soft
+        return PREVIEW_SAMPLES.playful
+      }
+      const useEffect = typeof react.useEffect === 'function' ? react.useEffect : () => {}
+
       const PersonaEditor = ({ state, setField, mutateFields, readFields, tabGuard }) => {
-        const initialRaw = fieldValue(state.value, { field: 'persona', fallback: PERSONA_WHALE_JSON })
+        const initialRaw = String(fieldValue(state.value, { field: 'persona', fallback: PERSONA_WHALE_JSON }) ?? '')
         const initialParsed = parseToneJson(initialRaw)
-        const [doc, setDoc] = react.useState(initialParsed.ok ? initialParsed.doc : emptyTone())
-        const [jsonText, setJsonText] = react.useState(initialParsed.ok ? toneJson(initialParsed.doc) : String(initialRaw ?? ''))
+        const [doc, setDoc] = react.useState(initialParsed.ok ? initialParsed.doc : defaultTone())
         const [enabled, setEnabled] = react.useState(fieldValue(state.value, { field: 'personaEnabled', fallback: false }) === true)
-        const [template, setTemplate] = react.useState('whale')
-        const [mode, setMode] = react.useState(initialParsed.ok ? 'basic' : 'advanced')
-        const [status, setStatus] = react.useState(initialParsed.ok ? (enabled ? 'saved' : 'off') : 'importInvalid')
-        const [error, setError] = react.useState(initialParsed.ok ? '' : initialParsed.error + ' (' + initialParsed.pointer + ')')
+        const [name, setName] = react.useState(String(fieldValue(state.value, { field: 'personaName', fallback: DEFAULT_PROFILE_NAME }) ?? DEFAULT_PROFILE_NAME))
+        const [signature, setSignature] = react.useState(String(fieldValue(state.value, { field: 'personaSignature', fallback: DEFAULT_PROFILE_SIGNATURE }) ?? DEFAULT_PROFILE_SIGNATURE))
+        const [avatar, setAvatar] = react.useState(String(fieldValue(state.value, { field: 'personaAvatar', fallback: '' }) ?? ''))
+        const [templateId, setTemplateId] = react.useState('whale')
+        const [templates, setTemplates] = react.useState(readTemplateState)
+        const [status, setStatus] = react.useState(initialParsed.ok ? (enabled ? 'saved' : 'off') : 'dirty')
+        const [error, setError] = react.useState(initialParsed.ok ? '' : '当前配置不是有效的 tone@1，已载入默认模板；保存会覆盖。')
+        const [notice, setNotice] = react.useState('')
+        const [open, setOpen] = react.useState(false)
+        const [emojiFor, setEmojiFor] = react.useState(null)
+        const [sample, setSample] = react.useState('normal')
+        const [copied, setCopied] = react.useState(false)
         const readonly = state.writable === false
         const busy = status === 'saving'
-        const invalid = status === 'importInvalid' || status === 'tooLarge'
-        const formLocked = readonly || busy || invalid
-        const dirty = ['dirty', 'draftOff', 'failed', 'importInvalid', 'tooLarge'].includes(status)
+        const formLocked = readonly || busy
+        const dirty = ['dirty', 'draftOff', 'failed'].includes(status)
+        const canSave = !readonly && !busy && dirty
         const confirmDirty = () => !dirty || typeof window === 'undefined' || typeof window.confirm !== 'function' || window.confirm('有未保存修改，确认丢弃？')
         if (tabGuard) tabGuard.confirm = confirmDirty
-        const updateTone = (next) => {
-          setDoc(next)
-          setJsonText(toneJson(next))
+        const markDirty = () => {
           setStatus('dirty')
           setError('')
+          setNotice('')
         }
-        const onBasic = (key, value) => {
+        const updateTone = (key, value) => {
           if (formLocked) return
-          const next = cloneTone(doc)
-          next[key] = value
-          updateTone(next)
+          setDoc((current) => ({ ...current, [key]: value }))
+          markDirty()
         }
-        const onJson = (text) => {
-          setMode('advanced')
-          setJsonText(text)
-          const parsed = parseToneJson(text)
-          if (parsed.ok) {
-            setDoc(parsed.doc)
-            setStatus('dirty')
-            setError('')
-          } else {
-            setStatus('importInvalid')
-            setError(describeInvalidTone(text, parsed))
-          }
+        const updateProfile = (key, value) => {
+          if (formLocked) return
+          if (key === 'name') setName(value)
+          else if (key === 'signature') setSignature(value)
+          markDirty()
         }
-        const loadTemplate = (value) => {
-          if (readonly || busy) return
-          if (!confirmDirty()) return
-          if (value === 'whale') {
-            const parsed = parseToneJson(PERSONA_WHALE_JSON)
-            if (!parsed.ok) { setStatus('importInvalid'); setError(parsed.error); return }
-            updateTone(parsed.doc); setTemplate('whale'); setMode('basic')
-          } else {
-            updateTone(emptyTone()); setTemplate('custom'); setMode('basic')
+        const selectTemplate = (id) => {
+          if (formLocked) return
+          const item = templateList(templates).find((entry) => entry.id === id)
+          if (!item) return
+          setDoc(templateDoc(item))
+          setName(item.name ?? DEFAULT_PROFILE_NAME)
+          setSignature(item.signature ?? DEFAULT_PROFILE_SIGNATURE)
+          setTemplateId(item.id)
+          setOpen(false)
+          markDirty()
+        }
+        const deleteTemplate = (id) => {
+          if (formLocked) return
+          const next = id === 'whale'
+            ? { ...templates, deletedIds: [...new Set([...(templates.deletedIds ?? []), 'whale'])] }
+            : { ...templates, customs: (templates.customs ?? []).filter((item) => item.id !== id) }
+          setTemplates(next)
+          writeTemplateState(next)
+          if (templateId === id) setTemplateId(null)
+        }
+        const saveAsTemplate = () => {
+          if (formLocked) return
+          const label = name.trim() || '我的模板'
+          const item = {
+            id: 'cus-' + Date.now(),
+            builtin: false,
+            label,
+            name,
+            signature,
+            desc: '自定义 · ' + new Date().toLocaleDateString(),
+            doc: { ...doc },
           }
+          const next = { ...templates, customs: [...(templates.customs ?? []), item] }
+          setTemplates(next)
+          writeTemplateState(next)
+          setNotice('已另存为模板：' + label)
         }
         const resetDefault = () => {
-          if (readonly || busy) return
+          if (formLocked) return
           if (!confirmDirty()) return
-          const parsed = parseToneJson(PERSONA_WHALE_JSON)
-          if (!parsed.ok) return
-          setDoc(parsed.doc); setJsonText(toneJson(parsed.doc)); setEnabled(false); setStatus('draftOff'); setTemplate('whale'); setMode('basic'); setError('')
+          setDoc(defaultTone())
+          setName(DEFAULT_PROFILE_NAME)
+          setSignature(DEFAULT_PROFILE_SIGNATURE)
+          setAvatar('')
+          setEnabled(false)
+          setStatus('draftOff')
+          setError('')
+          setNotice('已恢复默认模板')
+          setTemplateId('whale')
+          setTemplates({ deletedIds: [], customs: [] })
+          writeTemplateState({ deletedIds: [], customs: [] })
         }
+        const handleAvatar = (event) => {
+          const file = event.target?.files?.[0]
+          if (event.target) event.target.value = ''
+          if (!file || formLocked) return
+          if (!/^image\/(png|jpeg|webp)$/.test(file.type)) {
+            setError('头像仅支持 png / jpeg / webp')
+            setStatus('failed')
+            return
+          }
+          if (typeof FileReader === 'undefined' || typeof Image === 'undefined' || typeof document === 'undefined') return
+          const reader = new FileReader()
+          reader.onload = () => {
+            const image = new Image()
+            image.onload = () => {
+              try {
+                const canvas = document.createElement('canvas')
+                canvas.width = 128
+                canvas.height = 128
+                const context = canvas.getContext('2d')
+                const side = Math.min(image.naturalWidth, image.naturalHeight)
+                context.drawImage(image, (image.naturalWidth - side) / 2, (image.naturalHeight - side) / 2, side, side, 0, 0, 128, 128)
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.85)
+                if (dataUrl.length > 64 * 1024) {
+                  setError('头像压缩后仍超过 64KB，请换一张更小的图')
+                  setStatus('failed')
+                  return
+                }
+                setAvatar(dataUrl)
+                markDirty()
+                setNotice('头像已更新，保存后生效')
+              } catch (avatarError) {
+                setError('头像处理失败：' + String(avatarError.message ?? avatarError))
+                setStatus('failed')
+              }
+            }
+            image.onerror = () => { setError('头像图片无法读取'); setStatus('failed') }
+            image.src = String(reader.result)
+          }
+          reader.onerror = () => { setError('头像读取失败'); setStatus('failed') }
+          reader.readAsDataURL(file)
+        }
+        const insertEmoji = (field, emoji) => {
+          if (formLocked) return
+          const current = String(doc[field] ?? '')
+          const input = typeof document !== 'undefined' ? document.getElementById('dss-' + field) : null
+          const start = input && Number.isInteger(input.selectionStart) ? input.selectionStart : current.length
+          const end = input && Number.isInteger(input.selectionEnd) ? input.selectionEnd : start
+          updateTone(field, current.slice(0, start) + emoji + current.slice(end))
+          setEmojiFor(null)
+          try {
+            requestAnimationFrame(() => {
+              input?.focus?.()
+              input?.setSelectionRange?.(start + emoji.length, start + emoji.length)
+            })
+          } catch {}
+        }
+        const copyPreviewCode = async () => {
+          try {
+            if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) await navigator.clipboard.writeText(PREVIEW_CODE.join('\n'))
+          } catch {}
+          setCopied(true)
+          try { setTimeout(() => setCopied(false), 1200) } catch {}
+        }
+        useEffect(() => {
+          if (typeof document === 'undefined' || (!open && emojiFor === null)) return
+          const onDocumentClick = (event) => {
+            const target = event.target
+            if (open && !target?.closest?.('.dss-source')) setOpen(false)
+            if (emojiFor !== null && !target?.closest?.('.dss-control')) setEmojiFor(null)
+          }
+          const onDocumentKey = (event) => {
+            if (event.key === 'Escape') {
+              setOpen(false)
+              setEmojiFor(null)
+            }
+          }
+          document.addEventListener('click', onDocumentClick)
+          document.addEventListener('keydown', onDocumentKey)
+          return () => {
+            document.removeEventListener('click', onDocumentClick)
+            document.removeEventListener('keydown', onDocumentKey)
+          }
+        }, [open, emojiFor])
         const save = async () => {
-          if (!personaUiFlags({ status, writable: state.writable }).canSave) return
-          const parsed = parseToneJson(jsonText)
-          if (!parsed.ok) { setStatus('importInvalid'); setError(describeInvalidTone(jsonText, parsed)); return }
-          const previousRaw = String(fieldValue(state.value, { field: 'persona', fallback: PERSONA_WHALE_JSON }) ?? '')
-          const previousEnabled = fieldValue(state.value, { field: 'personaEnabled', fallback: false }) === true
-          const previousRevision = Number(fieldValue(state.value, { field: 'personaRevision', fallback: 0 })) || 0
+          if (!canSave) return
+          const parsed = parseToneJson(JSON.stringify(doc))
+          if (!parsed.ok) {
+            setStatus('failed')
+            setError(describeInvalidTone(JSON.stringify(doc), parsed))
+            return
+          }
           const nextRaw = JSON.stringify(parsed.doc, null, 2)
-          const nextRevision = previousRevision + 1
+          const nextRevision = (Number(fieldValue(state.value, { field: 'personaRevision', fallback: 0 })) || 0) + 1
+          const previous = {
+            persona: String(fieldValue(state.value, { field: 'persona', fallback: PERSONA_WHALE_JSON }) ?? ''),
+            personaEnabled: fieldValue(state.value, { field: 'personaEnabled', fallback: false }) === true,
+            personaRevision: Number(fieldValue(state.value, { field: 'personaRevision', fallback: 0 })) || 0,
+            personaName: String(fieldValue(state.value, { field: 'personaName', fallback: DEFAULT_PROFILE_NAME }) ?? DEFAULT_PROFILE_NAME),
+            personaSignature: String(fieldValue(state.value, { field: 'personaSignature', fallback: DEFAULT_PROFILE_SIGNATURE }) ?? DEFAULT_PROFILE_SIGNATURE),
+            personaAvatar: String(fieldValue(state.value, { field: 'personaAvatar', fallback: '' }) ?? ''),
+          }
+          const writes = [
+            ['persona', nextRaw],
+            ['personaEnabled', enabled],
+            ['personaRevision', nextRevision],
+            ['personaName', name],
+            ['personaSignature', signature],
+            ['personaAvatar', avatar],
+          ]
           const finishSaved = () => {
             setDoc(parsed.doc)
-            setJsonText(toneJson(parsed.doc))
             setStatus(enabled ? 'saved' : 'savedOff')
             setError('')
+            setNotice('')
           }
           setStatus('saving')
-
           if (typeof mutateFields === 'function') {
             try {
-              const accepted = await mutateFields([
-                { op: 'set', path: ['persona'], value: nextRaw },
-                { op: 'set', path: ['personaEnabled'], value: enabled },
-                { op: 'set', path: ['personaRevision'], value: nextRevision },
-              ], state.revision)
+              const accepted = await mutateFields(writes.map(([field, value]) => ({ op: 'set', path: [field], value })), state.revision)
               if (accepted === false) throw new Error('批量写入被宿主拒绝')
               finishSaved()
             } catch (saveError) {
@@ -719,20 +1557,13 @@ body[data-ds-dark-theme] [class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="nex
             }
             return
           }
-
-          let personaWritten = false
-          let enabledWritten = false
-          let revisionWritten = false
+          const written = []
           try {
-            const personaResult = await setField('persona', nextRaw)
-            if (personaResult === false) throw new Error('persona write rejected')
-            personaWritten = true
-            const enabledResult = await setField('personaEnabled', enabled)
-            if (enabledResult === false) throw new Error('personaEnabled write rejected')
-            enabledWritten = true
-            const revisionResult = await setField('personaRevision', nextRevision)
-            if (revisionResult === false) throw new Error('personaRevision write rejected')
-            revisionWritten = true
+            for (const [field, value] of writes) {
+              const result = await setField(field, value)
+              if (result === false) throw new Error(field + ' write rejected')
+              written.push([field, previous[field]])
+            }
             if (typeof readFields !== 'function') throw new Error('缺少配置读回接口，无法校验保存结果')
             const snapshot = await readFields()
             const current = snapshot && typeof snapshot === 'object' ? snapshot.value : undefined
@@ -740,6 +1571,9 @@ body[data-ds-dark-theme] [class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="nex
             if (!current || current.persona !== nextRaw) mismatched.push('persona')
             if (!current || current.personaEnabled !== enabled) mismatched.push('personaEnabled')
             if (!current || current.personaRevision !== nextRevision) mismatched.push('personaRevision')
+            if (!current || current.personaName !== name) mismatched.push('personaName')
+            if (!current || current.personaSignature !== signature) mismatched.push('personaSignature')
+            if (!current || current.personaAvatar !== avatar) mismatched.push('personaAvatar')
             if (mismatched.length) throw new Error('写后读回校验失败：' + mismatched.join(', '))
             finishSaved()
           } catch (saveError) {
@@ -748,45 +1582,311 @@ body[data-ds-dark-theme] [class*="_markdown_"] blockquote[${CARD_TYPE_ATTR}="nex
               const result = await setField(field, value)
               if (result === false) throw new Error('rejected')
             }
-            if (revisionWritten) { try { await rollback('personaRevision', previousRevision) } catch (error) { rollbackErrors.push('revision: ' + String(error.message ?? error)) } }
-            if (enabledWritten) { try { await rollback('personaEnabled', previousEnabled) } catch (error) { rollbackErrors.push('enabled: ' + String(error.message ?? error)) } }
-            if (personaWritten) { try { await rollback('persona', previousRaw) } catch (error) { rollbackErrors.push('persona: ' + String(error.message ?? error)) } }
+            for (const [field, value] of written.reverse()) {
+              try { await rollback(field, value) } catch (rollbackError) { rollbackErrors.push(field + ': ' + String(rollbackError.message ?? rollbackError)) }
+            }
             const base = String(saveError.message ?? saveError)
             setStatus('failed')
             setError(rollbackErrors.length ? '回滚失败，profile 可能半保存：' + base + '；' + rollbackErrors.join('；') : base)
           }
         }
-        const modeButton = (id, label) => jsx('button', {
-          type: 'button', role: 'tab', 'aria-selected': mode === id, disabled: id === 'basic' && invalid,
-          onClick: () => { if (id === 'basic' && invalid) return; setMode(id) },
-          style: { ...tabButtonStyle, ...(mode === id ? tabActiveStyle : {}) }, children: label,
+        const variant = previewVariant(String(doc.style ?? ''))
+        const statusText = error || notice || statusLabels[status] || ''
+        const profileAvatar = avatar || DEFAULT_AVATAR
+        const previewBody = () => {
+          if (sample === 'table') {
+            return [
+              jsx('p', { className: 'dss-msg-lead', children: variant.tableLead }),
+              jsxs('table', {
+                className: 'dss-table',
+                children: [
+                  jsx('thead', { children: jsx('tr', { children: PREVIEW_TABLE.head.map((head) => jsx('th', { children: head })) }) }),
+                  jsx('tbody', {
+                    children: PREVIEW_TABLE.rows.map(([module, state, note]) => {
+                      const [className, label] = PREVIEW_STATUS[state]
+                      return jsx('tr', {
+                        children: [
+                          jsx('td', { children: module }),
+                          jsx('td', { children: jsx('span', { className: 'dss-status ' + className, children: label }) }),
+                          jsx('td', { children: note }),
+                        ],
+                      })
+                    }),
+                  }),
+                ],
+              }),
+            ]
+          }
+          if (sample === 'code') {
+            return [
+              jsx('p', { className: 'dss-msg-lead', children: variant.codeLead }),
+              jsxs('section', {
+                className: 'dss-code',
+                children: [
+                  jsxs('div', {
+                    className: 'dss-pane-head',
+                    children: [
+                      jsx('span', { children: '代码 · tone-loader.js' }),
+                      jsxs('button', {
+                        type: 'button',
+                        className: 'dss-copy',
+                        'data-copied': copied ? '1' : undefined,
+                        'aria-label': '复制代码',
+                        onClick: copyPreviewCode,
+                        children: [
+                          jsx('span', { className: 'dss-copy-icon' }),
+                          jsx('span', { className: 'dss-copy-ok', children: '✓' }),
+                        ],
+                      }),
+                    ],
+                  }),
+                  jsx('pre', { className: 'dss-code-body', children: PREVIEW_CODE.join('\n') }),
+                ],
+              }),
+            ]
+          }
+          return [
+            jsxs('section', {
+              className: 'dss-card dss-card-conclusion',
+              children: [
+                jsx('div', { className: 'dss-line-title', children: '结论' }),
+                jsx('h3', { className: 'dss-msg-title', children: variant.normal.lead }),
+                jsx('p', { className: 'dss-msg-sub', children: variant.normal.sub }),
+              ],
+            }),
+            jsxs('section', {
+              className: 'dss-card dss-card-next',
+              children: [
+                jsx('div', { className: 'dss-line-title', children: '下一步' }),
+                jsx('ol', {
+                  className: 'dss-msg-steps',
+                  children: variant.normal.steps.map((step, index) => jsxs('li', {
+                    children: [
+                      jsx('span', { className: 'dss-msg-num', children: String(index + 1).padStart(2, '0') }),
+                      jsx('span', { className: 'dss-msg-step', children: step }),
+                    ],
+                  })),
+                }),
+              ],
+            }),
+            jsxs('section', {
+              className: 'dss-card dss-card-risk',
+              children: [
+                jsx('div', { className: 'dss-line-title', children: '风险' }),
+                jsx('p', { className: 'dss-msg-risk-text', children: variant.normal.risk }),
+              ],
+            }),
+          ]
+        }
+        const profileRows = () => {
+          const list = templateList(templates)
+          if (list.length === 0) return jsx('div', { className: 'dss-template-empty', children: '模板已全部删除 · 用底部「恢复默认」找回' })
+          return jsx('div', {
+            className: 'dss-template-list',
+            children: list.map((item) => jsxs('div', {
+              className: 'dss-template-row',
+              children: [
+                jsxs('button', {
+                  type: 'button',
+                  role: 'radio',
+                  className: 'dss-template-option',
+                  'aria-checked': String(templateId === item.id),
+                  onClick: () => selectTemplate(item.id),
+                  children: [
+                    jsx('span', { className: 'mark', children: String(item.name || '?').charAt(0) }),
+                    jsxs('span', { children: [jsx('strong', { children: item.label }), jsx('em', { children: item.desc })] }),
+                  ],
+                }),
+                jsx('button', {
+                  type: 'button',
+                  className: 'dss-template-del',
+                  title: '删除模板',
+                  'aria-label': '删除模板',
+                  onClick: (event) => { event.stopPropagation(); deleteTemplate(item.id) },
+                  children: '×',
+                }),
+              ],
+            })),
+          })
+        }
+        return jsxs('div', {
+          className: 'dss-config dss-scope',
+          'data-dsh-persona': '1',
+          children: [
+            jsxs('div', {
+              className: 'dss-section-head',
+              children: [
+                jsx('h2', { className: 'dss-section-title', children: '语气风格' }),
+                jsx(ui.Switch, {
+                  checked: enabled,
+                  disabled: formLocked,
+                  label: '启用语气风格',
+                  onChange: (next) => {
+                    if (formLocked) return
+                    setEnabled(next)
+                    setStatus(next ? 'dirty' : 'draftOff')
+                    setError('')
+                    setNotice('')
+                  },
+                }),
+              ],
+            }),
+            jsx('p', { className: 'dss-note', children: '保存后全局生效（新消息使用）；当前正在生成的回合不回溯。' }),
+            jsxs('section', {
+              className: 'dss-profile',
+              children: [
+                jsxs('label', {
+                  className: 'dss-profile-avatar',
+                  title: '点击更换头像',
+                  children: [
+                    jsx('input', { type: 'file', accept: 'image/png,image/jpeg,image/webp', className: 'dss-hidden', disabled: formLocked, onChange: handleAvatar }),
+                    jsx('img', { src: profileAvatar, alt: '头像' }),
+                  ],
+                }),
+                jsxs('div', {
+                  className: 'dss-profile-info',
+                  children: [
+                    jsx('input', { className: 'dss-profile-name', value: name, maxLength: 40, disabled: formLocked, 'aria-label': '显示名', placeholder: '显示名', onChange: (event) => updateProfile('name', event.target.value) }),
+                    jsx('input', { className: 'dss-profile-sig', value: signature, maxLength: 60, disabled: formLocked, 'aria-label': '个性签名', placeholder: '个性签名', onChange: (event) => updateProfile('signature', event.target.value) }),
+                  ],
+                }),
+                jsxs('div', {
+                  className: 'dss-source',
+                  children: [
+                    jsxs('button', {
+                      type: 'button',
+                      className: 'dss-source-btn',
+                      'aria-haspopup': 'true',
+                      'aria-expanded': String(open),
+                      disabled: formLocked,
+                      onClick: (event) => { event.stopPropagation(); setOpen(!open) },
+                      children: [jsx('span', { children: '切换人格' }), jsx('span', { className: 'dss-caret', 'aria-hidden': 'true' })],
+                    }),
+                    open ? jsxs('div', {
+                      className: 'dss-popover',
+                      role: 'radiogroup',
+                      'aria-label': '选择起点模板',
+                      children: [
+                        profileRows(),
+                        jsx('div', { className: 'dss-template-foot', children: jsx('button', { type: 'button', className: 'dss-template-save', onClick: saveAsTemplate, children: '＋ 将当前草稿另存为模板' }) }),
+                      ],
+                    }) : null,
+                  ],
+                }),
+              ],
+            }),
+            jsxs('div', {
+              className: 'dss-field',
+              children: [
+                jsxs('div', { className: 'dss-field-label', children: [jsx('label', { htmlFor: 'dss-prefix', children: '开场' }), jsx('span', { className: 'dss-hint', children: '放在最前面 · 可留空' })] }),
+                jsxs('div', {
+                  className: 'dss-control',
+                  children: [
+                    jsx('input', { id: 'dss-prefix', className: 'dss-input', value: doc.prefix ?? '', maxLength: 80, disabled: formLocked, onChange: (event) => updateTone('prefix', event.target.value) }),
+                    jsx('button', { type: 'button', className: 'dss-icon-btn', title: '插入表情', onClick: (event) => { event.stopPropagation(); setEmojiFor(emojiFor === 'prefix' ? null : 'prefix') }, children: '☺' }),
+                    emojiFor === 'prefix' ? jsx('div', {
+                      className: 'dss-emoji-panel is-open',
+                      'aria-label': '选择表情',
+                      children: EMOJIS.map((emoji) => jsx('button', { type: 'button', onClick: (event) => { event.stopPropagation(); insertEmoji('prefix', emoji) }, children: emoji })),
+                    }) : null,
+                  ],
+                }),
+                jsx('div', { className: 'dss-field-meta', children: jsx('span', { className: 'dss-counter', children: String(doc.prefix ?? '').length + ' / 80' }) }),
+              ],
+            }),
+            jsxs('div', {
+              className: 'dss-field',
+              children: [
+                jsxs('div', { className: 'dss-field-label', children: [jsx('label', { htmlFor: 'dss-style', children: '性格' }), jsx('span', { className: 'dss-hint', children: '角色 / 语气 / 表达习惯' })] }),
+                jsx('textarea', { id: 'dss-style', className: 'dss-textarea', value: doc.style ?? '', maxLength: 1200, rows: 4, disabled: formLocked, onChange: (event) => updateTone('style', event.target.value) }),
+                jsx('div', { className: 'dss-field-meta', children: jsx('span', { className: 'dss-counter', children: String(doc.style ?? '').length + ' / 1200' }) }),
+              ],
+            }),
+            jsxs('div', {
+              className: 'dss-field',
+              children: [
+                jsxs('div', { className: 'dss-field-label', children: [jsx('label', { htmlFor: 'dss-suffix', children: '收尾' }), jsx('span', { className: 'dss-hint', children: '放在最后 · 不是总结' })] }),
+                jsxs('div', {
+                  className: 'dss-control',
+                  children: [
+                    jsx('input', { id: 'dss-suffix', className: 'dss-input', value: doc.suffix ?? '', maxLength: 80, disabled: formLocked, onChange: (event) => updateTone('suffix', event.target.value) }),
+                    jsx('button', { type: 'button', className: 'dss-icon-btn', title: '插入表情', onClick: (event) => { event.stopPropagation(); setEmojiFor(emojiFor === 'suffix' ? null : 'suffix') }, children: '☺' }),
+                    emojiFor === 'suffix' ? jsx('div', {
+                      className: 'dss-emoji-panel is-open',
+                      'aria-label': '选择表情',
+                      children: EMOJIS.map((emoji) => jsx('button', { type: 'button', onClick: (event) => { event.stopPropagation(); insertEmoji('suffix', emoji) }, children: emoji })),
+                    }) : null,
+                  ],
+                }),
+                jsx('div', { className: 'dss-field-meta', children: jsx('span', { className: 'dss-counter', children: String(doc.suffix ?? '').length + ' / 80' }) }),
+              ],
+            }),
+            jsx('p', { className: 'dss-rules', children: '代码 / diff / 报错 / 日志 / 表格 / 正式文档 / 高风险结论的正文固定中性；开场与收尾只在界面展示、复制不带。' }),
+            jsxs('div', {
+              className: 'dss-save',
+              children: [
+                jsx('span', { className: 'dss-save-state' + (error ? ' is-error' : ''), children: statusText }),
+                jsxs('div', {
+                  className: 'dss-save-actions',
+                  children: [
+                    jsx('button', { type: 'button', className: 'dss-btn', disabled: formLocked, onClick: resetDefault, children: '恢复默认' }),
+                    jsx('button', { type: 'button', className: 'dss-btn dss-btn-primary', disabled: !canSave, onClick: save, children: '保存' }),
+                  ],
+                }),
+              ],
+            }),
+            jsxs('section', {
+              className: 'dss-preview',
+              children: [
+                jsxs('div', {
+                  className: 'dss-preview-head',
+                  children: [
+                    jsx('div', { className: 'dss-preview-title-row', children: jsx('h2', { className: 'dss-preview-title', children: '样式预览' }) }),
+                    jsx('div', {
+                      className: 'dss-preview-tabs-row',
+                      children: jsx('div', {
+                        className: 'dss-preview-tabs',
+                        role: 'tablist',
+                        'aria-label': '预览形态',
+                        children: ['normal', 'table', 'code'].map((id) => jsx('button', {
+                          type: 'button',
+                          role: 'tab',
+                          className: 'dss-preview-tab',
+                          'aria-selected': String(sample === id),
+                          onClick: () => setSample(id),
+                          children: id === 'normal' ? '普通' : id === 'table' ? '表格' : '代码',
+                        })),
+                      }),
+                    }),
+                  ],
+                }),
+                jsxs('div', {
+                  className: 'dss-chat-card' + (enabled ? '' : ' is-off'),
+                  children: [
+                    jsxs('div', {
+                      className: 'dss-chat-head',
+                      children: [
+                        jsx('span', { className: 'dss-chat-avatar', children: jsx('img', { src: profileAvatar, alt: '' }) }),
+                        jsxs('div', { className: 'dss-chat-id', children: [
+                          jsx('strong', { className: 'dss-chat-name', children: name }),
+                          jsx('span', { className: 'dss-chat-meta', children: signature }),
+                        ] }),
+                      ],
+                    }),
+                    jsxs('div', {
+                      className: 'dss-chat-body',
+                      children: [
+                        enabled && String(doc.prefix ?? '').trim() ? jsx('p', { className: 'dss-msg-prefix', children: doc.prefix }) : null,
+                        jsx('div', { className: 'dss-msg-structure', children: previewBody() }),
+                        enabled && String(doc.suffix ?? '').trim() ? jsx('p', { className: 'dss-msg-suffix', children: doc.suffix }) : null,
+                      ],
+                    }),
+                  ],
+                }),
+              ],
+            }),
+          ],
         })
-        const footer = jsxs('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }, children: [
-          ((statusLabels[status] ?? status) || error) ? jsx('span', { style: { ...noteStyle, color: invalid ? 'var(--dsw-alias-state-error-primary, #b91c1c)' : 'var(--dsw-alias-label-tertiary, inherit)' }, children: [(statusLabels[status] ?? status), error].filter(Boolean).join(' · ') }) : null,
-          jsxs('div', { style: { display: 'flex', gap: '8px' }, children: [
-            jsx('button', { type: 'button', disabled: readonly || busy, onClick: resetDefault, style: secondaryButtonStyle, children: '恢复默认' }),
-            jsx('button', { type: 'button', disabled: !personaUiFlags({ status, writable: state.writable }).canSave, onClick: save, style: primaryButtonStyle, children: '保存' }),
-          ] }),
-        ] })
-        return jsxs('div', { 'data-dsh-persona': '1', style: { display: 'flex', flexDirection: 'column', gap: '12px' }, children: [
-          jsxs('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }, children: [
-            jsx('div', { style: { ...labelStyle, fontSize: '15px', fontWeight: 600 }, children: '语气风格' }),
-            jsx(ui.Switch, { checked: enabled, disabled: readonly || busy || invalid, label: '启用语气风格', onChange: (next) => { if (readonly || busy || invalid) return; setEnabled(next); setStatus(next ? 'dirty' : 'draftOff') } }),
-          ] }),
-          jsx('p', { style: noteStyle, children: '保存后全局生效（新消息使用）；当前正在生成的回合不回溯。' }),
-          jsxs('div', { style: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }, children: [
-            jsx('select', { disabled: readonly || busy, value: template, onChange: (event) => loadTemplate(event.target.value), style: { ...inputStyle, width: '180px' }, children: [jsx('option', { value: 'whale', children: '蓝色大肥鱼' }), jsx('option', { value: 'custom', children: '自定义' })] }),
-          ] }),
-          jsxs('div', { role: 'tablist', style: { display: 'flex', gap: '6px' }, children: [modeButton('basic', '基础'), modeButton('advanced', '进阶')] }),
-          mode === 'basic' ? jsxs('div', { style: { display: 'flex', flexDirection: 'column', gap: '10px' }, children: [
-            jsxs('label', { style: fieldStyle, children: [jsx('span', { style: labelStyle, children: '开头前缀' }), jsx('input', { disabled: formLocked, value: doc.prefix ?? '', onChange: (event) => onBasic('prefix', event.target.value), style: inputStyle })] }),
-            jsxs('label', { style: fieldStyle, children: [jsx('span', { style: labelStyle, children: '中间风格' }), jsx('textarea', { disabled: formLocked, rows: 4, value: doc.style ?? '', onChange: (event) => onBasic('style', event.target.value), style: inputStyle })] }),
-            jsxs('label', { style: fieldStyle, children: [jsx('span', { style: labelStyle, children: '结尾后缀' }), jsx('input', { disabled: formLocked, value: doc.suffix ?? '', onChange: (event) => onBasic('suffix', event.target.value), style: inputStyle })] }),
-          ] }) : jsxs('div', { style: { display: 'flex', flexDirection: 'column', gap: '8px' }, children: [
-            jsx('textarea', { value: jsonText, disabled: readonly || busy, onChange: (event) => onJson(event.target.value), spellCheck: false, style: { ...inputStyle, minHeight: '320px', fontFamily: 'var(--ds-font-family-code, monospace)', fontSize: '12px', whiteSpace: 'pre' } }),
-          ] }),
-          footer,
-        ] })
       }
 
       personaTestApi = { parseToneJson, emptyTone, byteLength, statusLabels, personaUiFlags, PersonaEditor }

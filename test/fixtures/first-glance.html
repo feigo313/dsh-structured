@@ -3,26 +3,15 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>dsh-structured 0.9.6 fixture</title>
+<title>dsh-structured v5 fixture</title>
 <style>
-  html,body{margin:0;padding:0;background:#f4f6f8;color:#111827;font-family:system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif}
-  .stage{padding:40px 28px 64px;display:flex;justify-content:center}
-  .reply{width:980px;max-width:calc(100vw - 56px)}
-  .meta{font-size:12px;color:#6b7280;margin:0 0 16px 2px}
-  .surface{background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:28px}
-  .markdown{font-size:15px;line-height:1.72}
-  body[data-dsh-structured-theme="codex"]{background:#f7fbf9}
-  body[data-dsh-structured-theme="anthropic"]{background:#f5f1e8}
-  body[data-dsh-structured-theme="anthropic"] .surface{background:#faf9f5;border-color:#e5e0d5}
-  body[data-ds-dark-theme]{background:#0b1220;color:#e5e7eb}
-  body[data-ds-dark-theme] .surface{background:#111827;border-color:#374151}
-  body[data-ds-dark-theme][data-dsh-structured-theme="codex"]{background:#07100d}
-  body[data-ds-dark-theme][data-dsh-structured-theme="codex"] .surface{background:#0b1512;border-color:#233a31}
-  body[data-ds-dark-theme][data-dsh-structured-theme="anthropic"]{background:#141413}
-  body[data-ds-dark-theme][data-dsh-structured-theme="anthropic"] .surface{background:#1f1e1d;border-color:#3a3733}
-  html:has(body[data-ds-dark-theme]){background:#0b1220}
-  html:has(body[data-ds-dark-theme][data-dsh-structured-theme="codex"]){background:#07100d}
-  html:has(body[data-ds-dark-theme][data-dsh-structured-theme="anthropic"]){background:#141413}
+  html,body{margin:0;padding:0;background:#f7f8fa;color:#101828;font-family:system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif}
+  .stage{padding:36px 28px 64px;display:flex;justify-content:center}
+  .reply{width:760px;max-width:calc(100vw - 56px)}
+  .meta{font-size:12px;color:#667085;margin:0 0 16px 2px}
+  .surface{background:transparent;border:0;padding:0}
+  .markdown{font-size:13.5px;line-height:1.7}
+  body[data-ds-dark-theme]{background:#1a1b1e;color:#e6e9ef}
 </style>
 </head>
 <body>
@@ -31,22 +20,15 @@
     <div class="meta">助手回复</div>
     <div class="surface">
       <div class="_markdown_fixture markdown">
-        <blockquote data-dsh-structured-card="1" data-dsh-structured-card-type="statement" data-dsh-structured-tone="info">
+        <blockquote>
           <p><strong>这个方案可以推进，但先补一次真实用户验证</strong><br>方向、成本、排期都成立；真实用户验证是唯一缺口。</p>
         </blockquote>
-        <p data-dsh-structured-lead="table"><strong>表格结论：</strong> 三项里两项成立，一项待验证。</p>
-        <table data-dsh-structured-status-table="1">
-          <thead><tr><th>项</th><th>状态</th><th>说明</th></tr></thead>
-          <tbody>
-            <tr data-dsh-structured-row="success"><td>✅ 完成</td><td>方向</td><td>和现有目标一致</td></tr>
-            <tr data-dsh-structured-row="success"><td>✅ 完成</td><td>成本</td><td>不新增预算</td></tr>
-            <tr data-dsh-structured-row="warn"><td>⚠️ 待做</td><td>用户验证</td><td>需要 5 个真实用户</td></tr>
-          </tbody>
-        </table>
-        <blockquote data-dsh-structured-card="1" data-dsh-structured-card-type="risk" data-dsh-structured-tone="warn">
-          <p><strong>风险</strong><br>用户验证没做，直接推进会把假设当结论。</p>
+        <blockquote>
+          <p><strong>结论</strong></p>
+          <p><strong>这版能上，但别一步到位。</strong></p>
+          <p>先灰度一周；回滚脚本没验收前，不加自动更新。</p>
         </blockquote>
-        <blockquote data-dsh-structured-card="1" data-dsh-structured-card-type="next" data-dsh-structured-tone="info">
+        <blockquote>
           <p><strong>下一步</strong></p>
           <ol>
             <li>找 5 个真实用户，跑核心路径。</li>
@@ -54,6 +36,33 @@
             <li>验证过了再排期，没过就停。</li>
           </ol>
         </blockquote>
+        <blockquote>
+          <p><strong>风险</strong></p>
+          <p>用户验证没做，直接推进会把假设当结论。</p>
+        </blockquote>
+        <p data-dsh-structured-lead="table"><strong>表格结论：</strong> 三条链路，两条已通过，一条待验收。</p>
+        <table>
+          <thead><tr><th>模块</th><th>状态</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr><td>注入链路</td><td>✅ 通过</td><td>新会话 system prompt 命中</td></tr>
+            <tr><td>表格渲染</td><td>✅ 通过</td><td>斑马纹与状态列生效</td></tr>
+            <tr><td>代码皮肤</td><td>✅ 通过</td><td>线标题与浅色代码面</td></tr>
+            <tr><td>自动更新</td><td>❌ 阻断</td><td>回滚脚本未验收</td></tr>
+          </tbody>
+        </table>
+        <div class="md-code-block">
+          <div class="bannerWrap"><div data-code-block-banner><span class="_heading_v5">js</span><div class="_actions_v5"></div></div></div>
+          <div data-code-block-content><pre>const KEY = 'dsh-structured.tone'
+export function loadTone() {
+  try {
+    const raw = localStorage.getItem(KEY)
+    if (!raw) return DEFAULT_TONE
+    return parseTone(JSON.parse(raw)) ?? DEFAULT_TONE
+  } catch {
+    return DEFAULT_TONE // fail-open
+  }
+}</pre></div>
+        </div>
       </div>
     </div>
   </div>

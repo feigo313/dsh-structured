@@ -9,11 +9,28 @@ const whale = readFileSync('docs/1.0-PERSONA-WHALE.json', 'utf8')
 function makeDom() {
   const element = () => ({ children: [], appendChild() {}, remove() {}, setAttribute() {}, removeAttribute() {}, querySelectorAll() { return [] }, closest() { return null } })
   const styles = new Map()
-  const style = () => { const item = element(); item.id = ''; item.textContent = ''; item.remove = () => { if (item.id) styles.delete(item.id) }; return item }
+  const style = () => {
+    const item = element()
+    item.id = ''
+    item.textContent = ''
+    item.remove = () => { if (item.id) styles.delete(item.id) }
+    return item
+  }
   return {
     body: element(), documentElement: { setAttribute() {}, removeAttribute() {} },
     head: { appendChild(item) { if (item.id) styles.set(item.id, item) } },
-    createElement: (tag) => tag === 'style' ? style() : element(),
+    createElement: (tag) => {
+      if (tag === 'style') return style()
+      if (tag === 'canvas') {
+        return {
+          width: 0,
+          height: 0,
+          getContext: () => ({ drawImage() {} }),
+          toDataURL: () => 'data:image/jpeg;base64,AAAA',
+        }
+      }
+      return element()
+    },
     getElementById: (id) => styles.get(id) ?? null,
     querySelectorAll: () => [],
   }
@@ -36,6 +53,17 @@ function allNodes(tree) {
   }
   visit(tree)
   return out
+}
+
+function storage() {
+  const map = new Map()
+  return {
+    getItem: (key) => map.has(key) ? map.get(key) : null,
+    setItem: (key, value) => map.set(key, String(value)),
+    removeItem: (key) => map.delete(key),
+    clear: () => map.clear(),
+    dump: () => Object.fromEntries(map),
+  }
 }
 
 function makeHarness(state, setField, extraProps = {}) {
@@ -68,9 +96,24 @@ function makeHarness(state, setField, extraProps = {}) {
     throw new Error('unexpected require ' + spec)
   }
   let definition = null
-  const window = { __ModuleLoader__: { load(value) { definition = value } }, confirm: () => true }
+  const window = { __ModuleLoader__: { load(value) { definition = value } }, confirm: () => true, localStorage: storage() }
+  class FakeFileReader {
+    readAsDataURL() {
+      this.result = 'data:image/png;base64,AAAA'
+      this.onload?.()
+    }
+  }
+  class FakeImage {
+    set src(value) {
+      this._src = value
+      this.naturalWidth = 200
+      this.naturalHeight = 100
+      this.onload?.()
+    }
+    get src() { return this._src }
+  }
   vm.runInNewContext(readFileSync('lib/client.js', 'utf8'), {
-    window, document: makeDom(), TextEncoder,
+    window, document: makeDom(), TextEncoder, FileReader: FakeFileReader, Image: FakeImage,
     MutationObserver: class { observe() {} disconnect() {} },
     requestAnimationFrame: (fn) => fn(), cancelAnimationFrame() {}, setTimeout: (fn) => fn(), clearTimeout() {},
     console: { info() {}, warn() {}, error() {} },
@@ -89,156 +132,70 @@ function makeHarness(state, setField, extraProps = {}) {
   const nodes = () => allNodes(tree)
   const findButton = (label) => nodes().find((item) => item.type === 'button' && textOf(item.props.children) === label)
   const findTextarea = (needle = '') => nodes().find((item) => item.type === 'textarea' && String(item.props.value ?? '').includes(needle))
-  const click = async (label) => { const button = findButton(label); assert.ok(button, 'missing button ' + label); await button.props.onClick?.() }
+  const click = async (label) => {
+    const button = findButton(label)
+    assert.ok(button, 'missing button ' + label)
+    await button.props.onClick?.({ stopPropagation() {} })
+  }
   return {
-    api,
-    nodes, findButton, findTextarea, click,
+    api, window, nodes, findButton, findTextarea, click,
     inputByValue(value) { return nodes().find((item) => item.type === 'input' && item.props.value === value) },
+    nodeByClass(name) { return nodes().find((item) => String(item.props?.className ?? '').split(/\s+/).includes(name)) },
     setWindowConfirm(value) { window.confirm = () => value },
   }
 }
 
-test('tone 基础表单：只有前缀/风格/后缀三字段，旧 Persona 字段不出现', () => {
-  const harness = makeHarness({ status: 'ready', writable: true, value: { persona: whale, personaEnabled: false } }, async () => true)
-  assert.ok(harness.nodes().some((item) => item.type === 'div' && String(textOf(item.props.children)).includes('语气风格')))
-  assert.ok(harness.inputByValue('Boss，'))
-  assert.ok(harness.findTextarea('轻松 / 略傲娇'))
-  assert.ok(String(harness.findTextarea('像朋友说话').props.value).includes('表格数据保持中性'))
-  assert.ok(harness.inputByValue('——本鲸鱼娘可不背锅'))
+const baseState = { status: 'ready', writable: true, revision: 0, value: { persona: whale, personaEnabled: false, personaRevision: 0 } }
+
+test('v5 语气设置：档案行 + 三字段 + 规则行 + 样式预览，不再有基础/进阶/JSON', () => {
+  const harness = makeHarness(baseState, async () => true)
   const text = harness.nodes().map((item) => String(textOf(item.props.children))).join(' ')
-  for (const removed of ['作者', '许可', '示例', '专业场景', '语气禁区', '口头禅', '意象', '禁忌', '署名链', '校验', '上传', '下载', '非官方', '有未保存修改']) {
-    assert.doesNotMatch(text, new RegExp(removed), 'removed field must not appear: ' + removed)
-  }
-  assert.doesNotMatch(String(harness.findTextarea('像朋友说话').props.value), /、/)
+  assert.match(text, /语气风格/)
+  assert.match(text, /样式预览/)
+  assert.match(text, /切换人格/)
+  assert.match(text, /开场/)
+  assert.match(text, /性格/)
+  assert.match(text, /收尾/)
+  assert.match(text, /放在最前面 · 可留空/)
+  assert.match(text, /代码 \/ diff \/ 报错/)
+  assert.doesNotMatch(text, /基础|进阶|JSON 编辑|开头前缀|中间风格|结尾后缀/)
+  assert.equal(harness.findButton('保存').props.disabled, true)
+  assert.ok(harness.nodeByClass('dss-config'))
+  assert.ok(harness.nodeByClass('dss-preview'))
+  assert.ok(harness.inputByValue('Boss，'))
+  assert.ok(harness.findTextarea('搞怪 / 傲娇怪'))
+  assert.ok(harness.inputByValue('蓝色大肥鱼'))
+  assert.ok(harness.inputByValue('主人，再来一碗白米饭！！~'))
+  assert.equal(harness.nodes().some((item) => item.type === 'select'), false)
+  const avatar = harness.nodes().find((item) => item.type === 'img' && item.props.src?.startsWith('data:image/jpeg;base64,'))
+  assert.ok(avatar, 'default whale avatar must be a real image')
+  assert.equal(harness.nodes().filter((item) => item.type === 'button' && textOf(item.props.children) === '普通').length, 1)
 })
 
-test('tone 基础编辑 → 保存 persona → enabled → revision，失败回滚保留草稿', async () => {
+test('v5 编辑三字段/名称/签名 → 保存 persona + enabled + revision + 档案字段', async () => {
   const calls = []
-  const harness = makeHarness({ status: 'ready', writable: true, value: { persona: whale, personaEnabled: false } }, async (field, value) => calls.push([field, value]))
-  assert.equal(harness.findButton('保存').props.disabled, true, 'clean off must disable save')
-  harness.nodes().find((item) => item.type?.name === 'Switch').props.onChange(true)
+  const harness = makeHarness(baseState, async (field, value) => { calls.push([field, value]) })
   harness.inputByValue('Boss，').props.onChange({ target: { value: '老板，' } })
-  harness.findTextarea('轻松 / 略傲娇').props.onChange({ target: { value: '直接 / 克制' } })
+  harness.findTextarea('搞怪 / 傲娇怪').props.onChange({ target: { value: '直接 / 克制' } })
   harness.inputByValue('——本鲸鱼娘可不背锅').props.onChange({ target: { value: '——收工' } })
+  harness.inputByValue('蓝色大肥鱼').props.onChange({ target: { value: '新名字' } })
+  harness.inputByValue('主人，再来一碗白米饭！！~').props.onChange({ target: { value: '新签名' } })
+  assert.equal(harness.findButton('保存').props.disabled, false)
   await harness.click('保存')
-  assert.equal(calls[0][0], 'persona')
-  assert.equal(calls[1][0], 'personaEnabled')
-  assert.equal(calls[2][0], 'personaRevision')
+  assert.deepEqual(calls.map(([field]) => field), ['persona', 'personaEnabled', 'personaRevision', 'personaName', 'personaSignature', 'personaAvatar'])
   assert.equal(calls[2][1], 1)
   const saved = JSON.parse(calls[0][1])
   assert.equal(saved.schema, 'dsh-structured/tone@1')
   assert.equal(saved.prefix, '老板，')
   assert.equal(saved.style, '直接 / 克制')
   assert.equal(saved.suffix, '——收工')
-  assert.ok(harness.nodes().some((item) => item.type === 'span' && String(textOf(item.props.children)).includes('已保存，全局生效（新消息使用）')))
-  assert.equal(harness.findButton('保存').props.disabled, true, 'saved must disable save')
-  await harness.click('恢复默认')
-  assert.equal(harness.findButton('保存').props.disabled, false, 'reset draftOff must enable save')
-
-  const rollback = []
-  const failHarness = makeHarness({ status: 'ready', writable: true, value: { persona: whale, personaEnabled: false } }, async (field, value) => {
-    rollback.push([field, value])
-    if (field === 'personaEnabled') throw new Error('write failed')
-    return true
-  })
-  failHarness.inputByValue('Boss，').props.onChange({ target: { value: '回滚前草稿' } })
-  await failHarness.click('保存')
-  assert.ok(failHarness.inputByValue('回滚前草稿'))
-  assert.ok(failHarness.nodes().some((item) => item.type === 'span' && String(textOf(item.props.children)).includes('保存失败')))
-  assert.ok(rollback.some(([field, value]) => field === 'persona' && value.includes('Boss，')))
-
-  let flip = false
-  const rollbackFailHarness = makeHarness({ status: 'ready', writable: true, value: { persona: whale, personaEnabled: false } }, async (field) => {
-    if (field === 'persona' && flip) throw new Error('rollback persona failed')
-    if (field === 'personaEnabled') { flip = true; throw new Error('enabled write failed') }
-    return true
-  })
-  rollbackFailHarness.inputByValue('Boss，').props.onChange({ target: { value: '回滚失败草稿' } })
-  await rollbackFailHarness.click('保存')
-  assert.ok(rollbackFailHarness.inputByValue('回滚失败草稿'))
-  assert.ok(rollbackFailHarness.nodes().some((item) => item.type === 'span' && String(textOf(item.props.children)).includes('回滚失败，profile 可能半保存')))
-})
-
-test('tone 进阶：有效 JSON 可保存，invalid JSON 禁用保存并保留文本', async () => {
-  const calls = []
-  const harness = makeHarness({ status: 'ready', writable: true, value: { persona: whale, personaEnabled: false } }, async (field, value) => calls.push([field, value]))
-  await harness.click('进阶')
-  const textarea = harness.findTextarea('"schema"')
-  assert.ok(textarea)
-  textarea.props.onChange({ target: { value: '{"schema":"wrong"}' } })
+  assert.equal(calls[3][1], '新名字')
+  assert.equal(calls[4][1], '新签名')
+  assert.ok(harness.nodes().some((item) => item.type === 'span' && String(textOf(item.props.children)).includes('已保存，未启用')))
   assert.equal(harness.findButton('保存').props.disabled, true)
-  assert.equal(harness.findButton('基础').props.disabled, true)
-  assert.ok(harness.nodes().some((item) => item.type === 'span' && String(textOf(item.props.children)).includes('/schema')))
-  assert.equal(harness.findTextarea('"schema"').props.value, '{"schema":"wrong"}')
-
-  harness.findTextarea('"schema"').props.onChange({ target: { value: '{"schema":"dsh-structured/persona@1","meta":{},"style":"旧格式"}' } })
-  assert.ok(harness.nodes().some((item) => item.type === 'span' && String(textOf(item.props.children)).includes('旧格式')))
-  assert.equal(harness.findButton('保存').props.disabled, true)
-
-  const valid = JSON.stringify({ schema: 'dsh-structured/tone@1', prefix: 'Boss / ', style: '冷静 / 直接', suffix: '——完毕', skipIn: ['code', 'diff'] })
-  harness.findTextarea('"schema"').props.onChange({ target: { value: valid } })
-  assert.equal(harness.findButton('保存').props.disabled, false)
-  await harness.click('保存')
-  assert.equal(JSON.parse(calls[0][1]).schema, 'dsh-structured/tone@1')
-  assert.equal(JSON.parse(calls[0][1]).style, '冷静 / 直接')
 })
 
-test('tone 进阶：只有 JSON textarea，无校验/上传/下载；64KB 粘贴拒绝', async () => {
-  const harness = makeHarness({ status: 'ready', writable: true, value: { persona: whale, personaEnabled: false } }, async () => true)
-  await harness.click('进阶')
-  assert.equal(harness.findButton('校验'), undefined)
-  assert.equal(harness.findButton('上传 JSON'), undefined)
-  assert.equal(harness.findButton('下载'), undefined)
-  const textarea = harness.findTextarea('"schema"')
-  textarea.props.onChange({ target: { value: 'x'.repeat(65537) } })
-  assert.equal(harness.findButton('保存').props.disabled, true)
-  assert.equal(harness.findButton('基础').props.disabled, true)
-})
-
-test('tone readonly：基础字段/保存禁用，无上传/下载', async () => {
-  const harness = makeHarness({ status: 'ready', writable: false, value: { persona: whale, personaEnabled: true } }, async () => true)
-  assert.equal(harness.inputByValue('Boss，').props.disabled, true)
-  assert.equal(harness.findTextarea('轻松 / 略傲娇').props.disabled, true)
-  assert.equal(harness.findButton('保存').props.disabled, true)
-  assert.equal(harness.findButton('恢复默认').props.disabled, true)
-  await harness.click('进阶')
-  assert.equal(harness.findTextarea('"schema"').props.disabled, true)
-  assert.equal(harness.nodes().some((item) => item.type === 'input' && item.props.type === 'file'), false)
-})
-
-test('tone dirty：模板取消不改 select，自定义有中性默认 style', async () => {
-  const harness = makeHarness({ status: 'ready', writable: true, value: { persona: whale, personaEnabled: false } }, async () => true)
-  harness.inputByValue('Boss，').props.onChange({ target: { value: '未保存前缀' } })
-  harness.setWindowConfirm(false)
-  const select = () => harness.nodes().find((item) => item.type === 'select')
-  select().props.onChange({ target: { value: 'custom' } })
-  assert.ok(harness.inputByValue('未保存前缀'))
-  assert.equal(select().props.value, 'whale')
-  harness.setWindowConfirm(true)
-  select().props.onChange({ target: { value: 'custom' } })
-  assert.equal(select().props.value, 'custom')
-  assert.ok(harness.inputByValue('Boss，'))
-  assert.ok(String(harness.findTextarea('像朋友说话').props.value).length > 0)
-  assert.ok(!harness.nodes().some((item) => item.type === 'span' && String(textOf(item.props.children)).includes('已保存')))
-
-  const offHarness = makeHarness({ status: 'ready', writable: true, value: { persona: whale, personaEnabled: true } }, async () => true)
-  offHarness.nodes().find((item) => item.type?.name === 'Switch').props.onChange(false)
-  assert.ok(!offHarness.nodes().some((item) => item.type === 'span' && String(textOf(item.props.children)).includes('已保存')))
-  assert.equal(offHarness.findButton('保存').props.disabled, false)
-})
-
-test('tone tabGuard：dirty 时确认，clean 时放行', () => {
-  const guard = {}
-  const harness = makeHarness({ status: 'ready', writable: true, value: { persona: whale, personaEnabled: false } }, async () => true, { tabGuard: guard })
-  assert.equal(guard.confirm(), true)
-  harness.inputByValue('Boss，').props.onChange({ target: { value: '草稿' } })
-  harness.setWindowConfirm(false)
-  assert.equal(guard.confirm(), false)
-  harness.setWindowConfirm(true)
-  assert.equal(guard.confirm(), true)
-})
-
-test('tone 保存：宿主 mutate 一次批量写 persona/enabled/revision', async () => {
+test('v5 批量保存：payload 六字段一次提交，revision 从快照读取', async () => {
   const calls = []
   let batch = null
   const harness = makeHarness(
@@ -249,16 +206,18 @@ test('tone 保存：宿主 mutate 一次批量写 persona/enabled/revision', asy
   harness.inputByValue('Boss，').props.onChange({ target: { value: '批量前缀' } })
   await harness.click('保存')
   assert.equal(calls.length, 0, 'batch path must not call setField')
-  assert.ok(batch, 'batch must be called')
-  assert.equal(JSON.stringify(batch.ops.map((op) => [op.op, op.path[0]])), JSON.stringify([['set', 'persona'], ['set', 'personaEnabled'], ['set', 'personaRevision']]))
+  assert.ok(batch)
+  assert.equal(JSON.stringify(batch.ops.map((op) => [op.op, op.path[0]])), JSON.stringify([
+    ['set', 'persona'], ['set', 'personaEnabled'], ['set', 'personaRevision'],
+    ['set', 'personaName'], ['set', 'personaSignature'], ['set', 'personaAvatar'],
+  ]))
   assert.match(batch.ops[0].value, /批量前缀/)
-  assert.equal(batch.ops[1].value, false)
   assert.equal(batch.ops[2].value, 4)
   assert.equal(batch.revision, 9)
   assert.ok(harness.nodes().some((item) => item.type === 'span' && String(textOf(item.props.children)).includes('已保存，未启用')))
 })
 
-test('tone 保存：批量写被拒绝保留草稿并允许重试', async () => {
+test('v5 批量保存被拒绝：保留草稿并允许重试', async () => {
   let batchCalls = 0
   const harness = makeHarness(
     { status: 'ready', writable: true, revision: 2, value: { persona: whale, personaEnabled: false } },
@@ -274,12 +233,13 @@ test('tone 保存：批量写被拒绝保留草稿并允许重试', async () => 
   assert.equal(harness.findButton('保存').props.disabled, false)
 })
 
-test('tone 保存：persona 写失败不继续写 enabled/revision', async () => {
+test('v5 回滚：persona 失败不继续写后续字段', async () => {
   const calls = []
-  const harness = makeHarness(
-    { status: 'ready', writable: true, value: { persona: whale, personaEnabled: false } },
-    async (field, value) => { calls.push([field, value]); if (field === 'persona') throw new Error('persona failed'); return true },
-  )
+  const harness = makeHarness(baseState, async (field, value) => {
+    calls.push([field, value])
+    if (field === 'persona') throw new Error('persona failed')
+    return true
+  })
   harness.inputByValue('Boss，').props.onChange({ target: { value: 'persona 失败草稿' } })
   await harness.click('保存')
   assert.deepEqual(calls.map(([field]) => field), ['persona'])
@@ -287,71 +247,127 @@ test('tone 保存：persona 写失败不继续写 enabled/revision', async () =>
   assert.ok(harness.nodes().some((item) => item.type === 'span' && String(textOf(item.props.children)).includes('persona failed')))
 })
 
-test('tone 保存：revision 写失败回滚 enabled/persona', async () => {
+test('v5 回滚：revision 失败回滚 enabled/persona', async () => {
   const calls = []
-  const harness = makeHarness(
-    { status: 'ready', writable: true, value: { persona: whale, personaEnabled: false } },
-    async (field, value) => {
-      calls.push([field, value])
-      if (field === 'personaRevision') throw new Error('revision failed')
-      return true
-    },
-  )
+  const harness = makeHarness(baseState, async (field, value) => {
+    calls.push([field, value])
+    if (field === 'personaRevision') throw new Error('revision failed')
+    return true
+  })
   harness.inputByValue('Boss，').props.onChange({ target: { value: 'revision 失败草稿' } })
   await harness.click('保存')
   assert.deepEqual(calls.map(([field]) => field), ['persona', 'personaEnabled', 'personaRevision', 'personaEnabled', 'persona'])
   assert.equal(calls[3][1], false)
   assert.equal(calls[4][1], whale)
   assert.ok(harness.inputByValue('revision 失败草稿'))
-  assert.ok(harness.nodes().some((item) => item.type === 'span' && String(textOf(item.props.children)).includes('revision failed')))
 })
 
-test('tone 保存：写后读回不一致触发回滚', async () => {
+test('v5 回滚：写后读回不一致触发六字段回滚', async () => {
   const calls = []
   const harness = makeHarness(
-    { status: 'ready', writable: true, value: { persona: whale, personaEnabled: false } },
+    baseState,
     async (field, value) => { calls.push([field, value]); return true },
-    { readFields: () => ({ status: 'ready', writable: true, value: { persona: 'not-the-doc', personaEnabled: true, personaRevision: 99 } }) },
+    { readFields: () => ({ status: 'ready', writable: true, value: { persona: 'not-the-doc', personaEnabled: true, personaRevision: 99, personaName: 'x', personaSignature: 'y', personaAvatar: 'z' } }) },
   )
   harness.inputByValue('Boss，').props.onChange({ target: { value: '读回失败草稿' } })
   await harness.click('保存')
   assert.ok(harness.inputByValue('读回失败草稿'))
   assert.ok(harness.nodes().some((item) => item.type === 'span' && String(textOf(item.props.children)).includes('写后读回校验失败')))
-  assert.deepEqual(calls.map(([field]) => field), ['persona', 'personaEnabled', 'personaRevision', 'personaRevision', 'personaEnabled', 'persona'])
+  assert.deepEqual(calls.map(([field]) => field), [
+    'persona', 'personaEnabled', 'personaRevision', 'personaName', 'personaSignature', 'personaAvatar',
+    'personaAvatar', 'personaSignature', 'personaName', 'personaRevision', 'personaEnabled', 'persona',
+  ])
 })
 
-test('tone 保存：缺少读回接口时不宣布保存成功', async () => {
-  const harness = makeHarness(
-    { status: 'ready', writable: true, value: { persona: whale, personaEnabled: false } },
-    async () => true,
-    { readFields: undefined },
-  )
+test('v5 缺少读回接口：不宣布保存成功', async () => {
+  const harness = makeHarness(baseState, async () => true, { readFields: undefined })
   harness.inputByValue('Boss，').props.onChange({ target: { value: '无读回草稿' } })
   await harness.click('保存')
   assert.ok(harness.inputByValue('无读回草稿'))
   assert.ok(harness.nodes().some((item) => item.type === 'span' && String(textOf(item.props.children)).includes('缺少配置读回接口')))
 })
 
-test('tone 保存：回滚返回 false 也显示回滚失败', async () => {
-  const calls = []
-  const harness = makeHarness(
-    { status: 'ready', writable: true, value: { persona: whale, personaEnabled: false } },
-    async (field, value) => {
-      calls.push([field, value])
-      if (field === 'personaEnabled') throw new Error('enabled failed')
-      if (field === 'persona' && value === whale) return false
-      return true
-    },
-  )
-  harness.inputByValue('Boss，').props.onChange({ target: { value: '回滚 false 草稿' } })
-  await harness.click('保存')
-  assert.ok(harness.inputByValue('回滚 false 草稿'))
-  assert.ok(harness.nodes().some((item) => item.type === 'span' && String(textOf(item.props.children)).includes('回滚失败，profile 可能半保存')))
-  assert.ok(calls.some(([field, value]) => field === 'persona' && value === whale))
+test('v5 readonly：档案行/字段/保存/恢复默认全部禁用', () => {
+  const harness = makeHarness({ status: 'ready', writable: false, value: { persona: whale, personaEnabled: true } }, async () => true)
+  assert.equal(harness.findButton('保存').props.disabled, true)
+  assert.equal(harness.findButton('恢复默认').props.disabled, true)
+  assert.equal(harness.inputByValue('Boss，').props.disabled, true)
+  assert.equal(harness.findTextarea('搞怪 / 傲娇怪').props.disabled, true)
+  assert.equal(harness.nodes().some((item) => item.type === 'input' && item.props.type === 'file'), true)
+  const file = harness.nodes().find((item) => item.type === 'input' && item.props.type === 'file')
+  assert.equal(file.props.disabled, true)
 })
 
-test('tone Client/Host parity：同一无害/恶意 JSON 结果一致', () => {
-  const harness = makeHarness({ status: 'ready', writable: true, value: { persona: whale, personaEnabled: false } }, async () => true)
+test('v5 头像：上传后裁压到 128px JPEG，保存 personaAvatar；恢复默认清空', async () => {
+  const calls = []
+  const harness = makeHarness(baseState, async (field, value) => { calls.push([field, value]) })
+  const fileInput = harness.nodes().find((item) => item.type === 'input' && item.props.type === 'file')
+  assert.ok(fileInput)
+  fileInput.props.onChange({ target: { files: [{ type: 'image/png' }], value: '' } })
+  const avatars = harness.nodes().filter((item) => item.type === 'img' && item.props.src === 'data:image/jpeg;base64,AAAA')
+  assert.equal(avatars.length, 2, 'profile and preview avatar must sync')
+  assert.equal(harness.findButton('保存').props.disabled, false)
+  await harness.click('保存')
+  assert.ok(calls.some(([field, value]) => field === 'personaAvatar' && value === 'data:image/jpeg;base64,AAAA'))
+  await harness.click('恢复默认')
+  assert.equal(harness.nodes().some((item) => item.type === 'img' && item.props.src === 'data:image/jpeg;base64,AAAA'), false)
+  const defaultAvatar = harness.nodes().find((item) => item.type === 'img' && String(item.props.src).startsWith('data:image/jpeg;base64,/9j/'))
+  assert.ok(defaultAvatar, 'reset must restore the built-in whale avatar')
+})
+
+test('v5 tabGuard：dirty 时确认，clean 时放行', () => {
+  const guard = {}
+  const harness = makeHarness(baseState, async () => true, { tabGuard: guard })
+  assert.equal(guard.confirm(), true)
+  harness.inputByValue('Boss，').props.onChange({ target: { value: '草稿' } })
+  harness.setWindowConfirm(false)
+  assert.equal(guard.confirm(), false)
+  harness.setWindowConfirm(true)
+  assert.equal(guard.confirm(), true)
+})
+
+test('v5 模板：默认鲸鱼可删空后提示恢复默认；另存模板不自动选中', async () => {
+  const harness = makeHarness(baseState, async () => true)
+  await harness.click('切换人格')
+  assert.ok(harness.findButton('×'))
+  await harness.click('×')
+  const text = harness.nodes().map((item) => String(textOf(item.props.children))).join(' ')
+  assert.match(text, /模板已全部删除 · 用底部「恢复默认」找回/)
+  await harness.click('＋ 将当前草稿另存为模板')
+  const saved = JSON.parse(harness.window.localStorage.getItem('dsh-structured.tone.v5.templates'))
+  assert.equal(saved.customs.length, 1)
+  assert.equal(saved.customs[0].name, '蓝色大肥鱼')
+  assert.equal(saved.customs[0].signature, '主人，再来一碗白米饭！！~')
+  assert.equal(harness.findButton('保存').props.disabled, true, 'save-as-template must not select the new template')
+})
+
+test('v5 emoji：64 格面板，点选插入开场并更新计数器', async () => {
+  const harness = makeHarness(baseState, async () => true)
+  await harness.click('☺')
+  const panel = harness.nodeByClass('dss-emoji-panel')
+  assert.ok(panel)
+  assert.equal(panel.props.children.length, 64)
+  const first = panel.props.children[0]
+  await first.props.onClick({ stopPropagation() {} })
+  const prefix = harness.nodes().find((item) => item.type === 'input' && item.props.id === 'dss-prefix')
+  assert.ok(String(prefix.props.value).includes('🐳'))
+  assert.ok(harness.nodes().some((item) => item.type === 'span' && String(textOf(item.props.children)).endsWith(' / 80')))
+})
+
+test('v5 预览：普通 / 表格 / 代码三态可切换', async () => {
+  const harness = makeHarness(baseState, async () => true)
+  assert.ok(harness.findButton('普通'))
+  await harness.click('表格')
+  assert.ok(harness.nodes().some((item) => String(textOf(item.props.children)).includes('注入链路')))
+  await harness.click('代码')
+  assert.ok(harness.nodes().some((item) => String(textOf(item.props.children)).includes('代码 · tone-loader.js')))
+  assert.ok(harness.findButton('复制代码') || harness.nodeByClass('dss-copy'))
+  await harness.click('普通')
+  assert.ok(harness.nodes().some((item) => String(textOf(item.props.children)).includes('这版能上')))
+})
+
+test('v5 Client/Host parity：同一无害/恶意 JSON 结果一致', () => {
+  const harness = makeHarness(baseState, async () => true)
   const base = JSON.parse(whale)
   const cases = [
     base,

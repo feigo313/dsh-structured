@@ -7,21 +7,24 @@ import { checkHueSeparation } from '../scripts/theme-hue-distance.mjs'
 
 const value = (field) => (field && typeof field.get === 'function' ? field.get() : field)
 
-test('0.9.0 Config：theme 默认 deepseek，三值可选', () => {
+test('1.0 Config：theme 默认 deepseek，三值可选；v5 档案字段有默认值', () => {
   assert.deepEqual(THEMES, ['deepseek', 'codex', 'anthropic'])
   assert.equal(value(Config({}).theme), 'deepseek')
   assert.equal(value(Config({ theme: 'codex' }).theme), 'codex')
   assert.equal(value(Config({ theme: 'anthropic' }).theme), 'anthropic')
   assert.equal(value(Config({ defaultEnabled: false }).defaultEnabled), false)
+  assert.equal(value(Config({}).personaName), '蓝色大肥鱼')
+  assert.equal(value(Config({}).personaSignature), '主人，再来一碗白米饭！！~')
+  assert.equal(value(Config({}).personaAvatar), '')
 })
 
-test('0.9.8 accent/status hue 分离：12 项通过', () => {
+test('0.9.8 accent/status hue 分离：12 项通过（v5 统一蓝）', () => {
   const { results, failures } = checkHueSeparation()
   assert.equal(failures.length, 0, JSON.stringify(failures, null, 2))
   assert.equal(results.length, 12)
 })
 
-test('0.9.8 Config：六个字段的默认值与显式值', () => {
+test('0.9.8 Config：六个基础字段的默认值与显式值', () => {
   const defaults = Config({})
   assert.equal(value(defaults.theme), 'deepseek')
   assert.equal(value(defaults.visual), true)
@@ -45,25 +48,33 @@ test('0.9.8 Config：六个字段的默认值与显式值', () => {
   assert.equal(value(custom.genui), 'on')
 })
 
-test('0.9.1 Config：六个字段全部 volatile，且带中英 description', () => {
+test('0.9.1 Config：六个基础字段全部 volatile，且带中英 description', () => {
   for (const field of ['theme', 'visual', 'defaultEnabled', 'tailReminder', 'includeSubagents', 'genui']) {
     const meta = Config.dict[field].meta
     assert.ok(meta, `${field} meta`)
     assert.equal(meta.volatile, true, `${field} volatile=true`)
     assert.ok(String(meta.description ?? '').length > 8, `${field} description`)
   }
+  for (const field of ['personaName', 'personaSignature', 'personaAvatar']) {
+    assert.ok(Config.dict[field].meta, `${field} meta`)
+    assert.ok(String(Config.dict[field].meta.description ?? '').length > 8, `${field} description`)
+  }
 })
 
-test('0.9.1 client：token 语义色/代码块实际使用', () => {
+test('v5 client：单一强调色、卡片/表格/代码 class 与深色 scope 实际存在', () => {
   const client = readFileSync(new URL('../src/client.js', import.meta.url), 'utf8')
-  assert.match(client, /THEMES\.includes\(theme\)/)
-  assert.match(client, /body\[data-dsh-structured-theme="codex"\]/)
-  assert.match(client, /body\[data-ds-dark-theme\]\[data-dsh-structured-theme="anthropic"\]/)
-  assert.match(client, /\.md-code-block\[\$\{CODE_ATTR\}="1"\]\{[^}]*background:var\(--ds-code-bg\)/s)
-  assert.match(client, /\.md-code-block\[\$\{CODE_ATTR\}="1"\] pre\{[^}]*color:var\(--ds-code-text\)/s)
-  assert.match(client, /var\(--ds-success\)/)
-  assert.match(client, /var\(--ds-warn\)/)
-  assert.match(client, /var\(--ds-error\)/)
+  assert.match(client, /--dss-blue:#2563eb/)
+  assert.match(client, /--dss-green:#067647/)
+  assert.match(client, /--dss-amber:#b54708/)
+  assert.match(client, /--dss-code-bg/)
+  assert.match(client, /--dss-code-text/)
+  assert.match(client, /body\[data-ds-dark-theme\] \.dss-scope/)
+  assert.match(client, /\.dss-scope \.dss-card/)
+  assert.match(client, /\.dss-scope \.dss-table/)
+  assert.match(client, /\.dss-scope \.dss-code/)
+  assert.match(client, /\.dss-scope \.dss-status-success/)
+  assert.match(client, /data-dsh-structured-theme/)
+  assert.doesNotMatch(client, /--ds-code-bg/)
 })
 
 test('0.9.0 statusText：显示 theme 与 visual', () => {
@@ -78,39 +89,23 @@ test('0.9.0 statusText：显示 theme 与 visual', () => {
   assert.match(text, /视觉层：已关闭/)
 })
 
-test('0.9.0 client：主题 token/暗色 selector/code token 存在，旧 selector 已删', () => {
-  const client = readFileSync(new URL('../src/client.js', import.meta.url), 'utf8')
-  assert.match(client, /body\[data-ds-dark-theme\]/)
-  assert.match(client, /data-dsh-structured-theme/)
-  assert.match(client, /--ds-code-bg/)
-  assert.match(client, /--ds-code-text/)
-  assert.match(client, /--ds-accent-text/)
-  assert.doesNotMatch(client, /\[data-theme="dark"\]/)
-  assert.doesNotMatch(client, /--dsw-alias-state-(success|warn)-primary/)
-  assert.match(client, /--ds-accent:#2563EB/)
-  for (const theme of ['codex', 'anthropic']) assert.match(client, new RegExp(`data-dsh-structured-theme="${theme}"`))
-})
-
-test('0.9.1 主题 v2：三套 token 精确值与 accentText', () => {
+test('v5 token：三主题统一为软面卡片 token，深色可读性达标', () => {
   assert.equal(THEME_TOKENS.deepseek.light.accent, '#2563EB')
-  assert.equal(THEME_TOKENS.deepseek.light.accentText, '#2563EB')
-  assert.equal(THEME_TOKENS.deepseek.dark.accentText, '#60A5FA')
-  assert.equal(THEME_TOKENS.codex.light.accent, '#10A37F')
-  assert.equal(THEME_TOKENS.codex.light.accentText, '#0B6B4F')
-  assert.equal(THEME_TOKENS.codex.light.surface2, '#F0F7F4')
-  assert.equal(THEME_TOKENS.codex.dark.accent, '#34D399')
-  assert.equal(THEME_TOKENS.codex.dark.accentText, '#6EE7B7')
-  assert.equal(THEME_TOKENS.codex.dark.surface, '#0B1512')
-  assert.equal(THEME_TOKENS.anthropic.light.accent, '#CC785C')
-  assert.equal(THEME_TOKENS.anthropic.light.accentText, '#A14A2E')
-  assert.equal(THEME_TOKENS.anthropic.light.surface, '#FAF9F5')
-  assert.equal(THEME_TOKENS.anthropic.light.text, '#141413')
-  assert.equal(THEME_TOKENS.anthropic.dark.accent, '#E8A087')
+  assert.equal(THEME_TOKENS.deepseek.light.accentText, '#1D4ED8')
+  assert.equal(THEME_TOKENS.deepseek.light.surface2, '#F8FAFC')
+  assert.equal(THEME_TOKENS.deepseek.dark.surface, '#242629')
+  assert.equal(THEME_TOKENS.deepseek.dark.surface2, '#2B2E33')
+  assert.equal(THEME_TOKENS.deepseek.dark.accent, '#3B82F6')
+  assert.equal(THEME_TOKENS.deepseek.dark.accentText, '#8AB4FF')
+  assert.equal(THEME_TOKENS.codex.light.accent, '#2563EB')
+  assert.equal(THEME_TOKENS.codex.dark.surface, '#242629')
+  assert.equal(THEME_TOKENS.anthropic.light.surface2, '#F8FAFC')
+  assert.equal(THEME_TOKENS.anthropic.dark.muted, '#8A92A0')
   const client = readFileSync(new URL('../src/client.js', import.meta.url), 'utf8')
-  assert.match(client, /--ds-accent:#10A37F;--ds-accent-text:#0B6B4F/)
-  assert.match(client, /--ds-accent:#CC785C;--ds-accent-text:#A14A2E/)
-  assert.match(client, /blockquote\[\$\{TONE_ATTR\}="warn"\]\{--ds-accent:var\(--ds-warn\);--ds-accent-text:var\(--ds-warn\)\}/)
-  assert.match(client, /blockquote\[\$\{TONE_ATTR\}="success"\]\{--ds-accent:var\(--ds-success\);--ds-accent-text:var\(--ds-success\)\}/)
+  assert.match(client, /--dss-blue:#2563eb/)
+  assert.match(client, /--dss-green:#067647/)
+  assert.match(client, /--dss-amber:#b54708/)
+  assert.match(client, /--dss-ink-3:#8a92a0/)
 })
 
 test('0.9.0 对比度：3×2 全组 60 项通过', () => {
