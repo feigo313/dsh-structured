@@ -1144,10 +1144,12 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
 
     const removePersonaHeads = (root) => {
       for (const head of root?.querySelectorAll?.(`[${PERSONA_HEAD_ATTR}]`) ?? []) head.remove()
-      for (const element of root?.querySelectorAll?.(`[${PERSONA_KIND_ATTR}], [${PERSONA_FALLBACK_ATTR}], [${PERSONA_TABLE_ATTR}]`) ?? []) {
+      for (const element of root?.querySelectorAll?.(`[${PERSONA_KIND_ATTR}], [${PERSONA_FALLBACK_ATTR}], [${PERSONA_TABLE_ATTR}], .dss-persona-prefix, .dss-persona-suffix`) ?? []) {
         element.removeAttribute?.(PERSONA_KIND_ATTR)
         element.removeAttribute?.(PERSONA_FALLBACK_ATTR)
         element.removeAttribute?.(PERSONA_TABLE_ATTR)
+        element.classList?.remove?.('dss-persona-prefix')
+        element.classList?.remove?.('dss-persona-suffix')
       }
     }
 

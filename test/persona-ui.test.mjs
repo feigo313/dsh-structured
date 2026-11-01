@@ -493,10 +493,20 @@ test('PersonaMode：table/code/short 例外和关闭清理', () => {
   assert.equal(wrongLabel.markdown.getAttribute('data-dsh-persona-kind'), 'fallback', 'one non-short card must fallback')
   const shortWithSuffix = makeFlow('<p>Boss，</p><blockquote><p><strong>短答</strong></p><p>现在三点。</p></blockquote><p>——完</p>')
   assert.equal(shortWithSuffix.markdown.getAttribute('data-dsh-persona-kind'), 'fallback', 'short with suffix must fallback')
+  const normal = makeFlow(harness.api.previewRawHtml('normal', '搞怪', persona))
+  assert.equal(normal.markdown.getAttribute('data-dsh-persona-kind'), 'normal')
+  assert.ok(normal.markdown.querySelector('.dss-persona-prefix'))
+  assert.ok(normal.markdown.querySelector('.dss-persona-suffix'))
   harness.plugin.__test.setPersonaModeConfig({ ...config, personaEnabled: false })
+  harness.plugin.__test.decorate(normal.flow)
   harness.plugin.__test.decorate(short.flow)
-  assert.equal(short.flow.querySelectorAll('[data-dsh-persona-head]').length, 0)
-  assert.equal(short.markdown.getAttribute('data-dsh-persona-kind'), null)
+  for (const item of [normal, short]) {
+    assert.equal(item.flow.querySelectorAll('[data-dsh-persona-head]').length, 0)
+    assert.equal(item.markdown.getAttribute('data-dsh-persona-kind'), null)
+    assert.equal(item.markdown.getAttribute('data-dsh-persona-fallback'), null)
+    assert.equal(item.markdown.querySelectorAll('.dss-persona-prefix, .dss-persona-suffix').length, 0)
+  }
+  assert.ok(normal.markdown.querySelectorAll('blockquote').length === 3, 'generic cards remain after close')
 })
 
 test('v5 emptyTone 兜底只写语言风格，不写结构要求', () => {
