@@ -346,6 +346,8 @@ test('PersonaMode：互斥注入与 /structured 行为', () => {
     assert.match(onPersona.text(mainContext('session-a')), /> \*\*下一步\*\*/)
     assert.match(onPersona.text(mainContext('session-a')), /> \*\*风险\*\*/)
     assert.match(onPersona.text(mainContext('session-a')), /无已知风险/)
+    assert.match(onPersona.text(mainContext('session-a')), /> \*\*短答\*\*/)
+    assert.match(onPersona.text(mainContext('session-a')), /判定矩阵/)
     assert.match(onPersona.text(mainContext('session-a')), /不为了格式加内容/)
     assert.doesNotMatch(onPersona.text(mainContext('session-a')), /结构化输出（本会话已启用/)
     assert.doesNotMatch(onPersona.text(mainContext('session-a')), /提醒：本轮最终回复/)

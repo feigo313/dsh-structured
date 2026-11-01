@@ -123,6 +123,14 @@ body[data-ds-dark-theme] .dss-scope {
   border-left-color:var(--dss-blue);
   background:linear-gradient(135deg,#eef4ff,#ffffff 62%);
 }
+.dss-scope .dss-card-short{
+  border-left-color:var(--dss-line-strong);background:var(--dss-paper-2);box-shadow:none;
+}
+.dss-scope .dss-card-short > p:first-child > strong:first-child{
+  display:block;width:100%;margin:0 0 8px;padding:0 0 6px;border-bottom:1px solid var(--dss-line);
+  font:700 12px/1.5 var(--dss-sans);letter-spacing:.04em;color:var(--dss-ink-3);
+}
+.dss-scope .dss-card-short > p{font-size:13.5px;line-height:1.7;color:var(--dss-ink-2)}
 .dss-scope .dss-card-conclusion > p:first-child > strong:first-child,
 .dss-scope .dss-card-accept > p:first-child > strong:first-child,
 .dss-scope .dss-card-next > p:first-child > strong:first-child,
@@ -313,6 +321,14 @@ body[data-ds-dark-theme] .dss-scope {
   border-left-color:var(--dss-blue);
   background:linear-gradient(135deg,#eef4ff,#ffffff 62%);
 }
+.dss-scope .dss-card-short{
+  border-left-color:var(--dss-line-strong);background:var(--dss-paper-2);box-shadow:none;
+}
+.dss-scope .dss-card-short > p:first-child > strong:first-child{
+  display:block;width:100%;margin:0 0 8px;padding:0 0 6px;border-bottom:1px solid var(--dss-line);
+  font:700 12px/1.5 var(--dss-sans);letter-spacing:.04em;color:var(--dss-ink-3);
+}
+.dss-scope .dss-card-short > p{font-size:13.5px;line-height:1.7;color:var(--dss-ink-2)}
 .dss-scope .dss-card-conclusion > p:first-child > strong:first-child,
 .dss-scope .dss-card-accept > p:first-child > strong:first-child,
 .dss-scope .dss-card-next > p:first-child > strong:first-child,
@@ -591,7 +607,7 @@ body[data-ds-dark-theme] [data-dsh-structured-config] button#dsh-structured-them
       ['风险', 'risk'], ['注意', 'risk'], ['警告', 'risk'],
       ['下一步', 'next'], ['行动', 'next'], ['待办', 'next'],
       ['验收', 'accept'], ['通过', 'accept'], ['完成', 'accept'],
-      ['重点', 'key'], ['关键', 'key'],
+      ['重点', 'key'], ['关键', 'key'], ['短答', 'short'],
     ])
     const ICONS = [
       [/结论|总结|答案|判断/, '◆'],
@@ -658,6 +674,14 @@ body[data-ds-dark-theme] .dss-scope {
   border-left-color:var(--dss-blue);
   background:linear-gradient(135deg,#eef4ff,#ffffff 62%);
 }
+.dss-scope .dss-card-short{
+  border-left-color:var(--dss-line-strong);background:var(--dss-paper-2);box-shadow:none;
+}
+.dss-scope .dss-card-short > p:first-child > strong:first-child{
+  display:block;width:100%;margin:0 0 8px;padding:0 0 6px;border-bottom:1px solid var(--dss-line);
+  font:700 12px/1.5 var(--dss-sans);letter-spacing:.04em;color:var(--dss-ink-3);
+}
+.dss-scope .dss-card-short > p{font-size:13.5px;line-height:1.7;color:var(--dss-ink-2)}
 .dss-scope .dss-card-conclusion > p:first-child > strong:first-child,
 .dss-scope .dss-card-accept > p:first-child > strong:first-child,
 .dss-scope .dss-card-next > p:first-child > strong:first-child,
@@ -941,6 +965,7 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
       next: 'dss-card-next',
       risk: 'dss-card-risk',
       accept: 'dss-card-accept',
+      short: 'dss-card-short',
       statement: 'dss-card-statement',
     }
     const ALL_CARD_CLASSES = ['dss-card', ...new Set(Object.values(CARD_CLASSES))]
@@ -1166,17 +1191,15 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
     const validatePersonaShort = (markdown, config) => {
       if (inGenui(markdown)) return null
       const elements = directElements(markdown)
-      if (elements.some((element) => element.tagName === 'BLOCKQUOTE' || element.tagName === 'TABLE' || /^H[1-6]$/.test(element.tagName) || element.classList?.contains?.('md-code-block'))) return null
-      const meaningful = elements.filter((element) => textOfDirect(element))
-      if (meaningful.length === 0) return null
-      let prefix = null
-      if (config.prefix.trim()) {
-        if (textOfDirect(meaningful[0]) !== config.prefix.trim()) return null
-        prefix = meaningful[0]
-        if (meaningful.length < 2) return null
-      }
-      if (config.suffix.trim() && meaningful.at(-1) !== prefix && textOfDirect(meaningful.at(-1)) === config.suffix.trim()) return null
-      return { prefix }
+      if (elements.some((element) => element.tagName === 'TABLE' || /^H[1-6]$/.test(element.tagName) || element.classList?.contains?.('md-code-block'))) return null
+      const cards = elements.filter((element) => element.tagName === 'BLOCKQUOTE')
+      if (cards.length !== 1 || cardTypeFor(cards[0]) !== 'short') return null
+      const first = elements.indexOf(cards[0])
+      const prefix = elements.slice(0, first).find((element) => element.tagName === 'P' && textOfDirect(element))
+      if (config.prefix.trim() && !prefix) return null
+      const suffix = elements.slice(first + 1).find((element) => element.tagName === 'P' && textOfDirect(element))
+      if (config.suffix.trim() && suffix) return null
+      return { cards, prefix: prefix ?? null, card: cards[0] }
     }
 
     const markPersonaAffixes = (markdown, info, kind) => {
@@ -1207,13 +1230,14 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
       let info = null
       if (genui) kind = 'genui'
       else if (code) kind = 'code'
-      else if (cards.length === 0) {
+      else if (cards.length === 1) {
         const short = validatePersonaShort(markdown, config)
         if (short) {
           kind = 'short'
           info = short
         } else kind = 'fallback'
       }
+      else if (cards.length !== 3) kind = 'fallback'
       else {
         const table = validatePersonaTable(markdown, config)
         if (table) {
