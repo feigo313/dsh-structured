@@ -232,3 +232,11 @@
 - **仓库**：`feat/1.0-persona` `ed50d9c`（tone-v4 卡片方向 + 评审修复；未推送）；工作树有未提交修改 `docs/1.0-TONE-V4-CARD-DIRECTIONS.md`（他方在途，未触碰）。
 - **漂移**：`.zcode/` 仍未跟踪。
 - **本轮动作**：只读复核与记录，未改动在途文件。
+
+## 2026-11-01 · 第 12 轮
+
+- **issue 水位**：0 open / 2 closed。
+- **线上**：npm `latest=0.9.9`；Release v0.9.9 资产 758,096 B / `05ccf744…` 未变；listing `v0.9.9`；CI 无新 run。
+- **desktop**：1.0.0 已装（`file:G:/dsh-structured/dsh-structured-1.0.0.tgz`，与审计包 sha256 `83d36dcb…` 一致；lib 含 9 处 `--dss-th-text`）；仍待重启生效与实机验收。
+- **仓库**：`feat/1.0-persona` `607c512`；工作树有未提交 `src/client.js` 与 `docs/1.0-TONE-V4-CARD-DIRECTIONS.md`（他方在途，未触碰）。
+- **本轮动作**：只读复核与记录。
