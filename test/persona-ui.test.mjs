@@ -2,38 +2,26 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
 import vm from 'node:vm'
+import { parseHTML } from 'linkedom'
 import { parsePersona } from '../src/index.js'
 
 const whale = readFileSync('docs/1.0-PERSONA-WHALE.json', 'utf8')
 
 function makeDom() {
-  const element = () => ({ children: [], appendChild() {}, remove() {}, setAttribute() {}, removeAttribute() {}, querySelectorAll() { return [] }, closest() { return null } })
-  const styles = new Map()
-  const style = () => {
-    const item = element()
-    item.id = ''
-    item.textContent = ''
-    item.remove = () => { if (item.id) styles.delete(item.id) }
-    return item
-  }
-  return {
-    body: element(), documentElement: { setAttribute() {}, removeAttribute() {} },
-    head: { appendChild(item) { if (item.id) styles.set(item.id, item) } },
-    createElement: (tag) => {
-      if (tag === 'style') return style()
-      if (tag === 'canvas') {
-        return {
-          width: 0,
-          height: 0,
-          getContext: () => ({ drawImage() {} }),
-          toDataURL: () => 'data:image/jpeg;base64,AAAA',
-        }
+  const { document } = parseHTML('<!doctype html><html><head></head><body></body></html>')
+  const createElement = document.createElement.bind(document)
+  document.createElement = (tag) => {
+    if (tag === 'canvas') {
+      return {
+        width: 0,
+        height: 0,
+        getContext: () => ({ drawImage() {} }),
+        toDataURL: () => 'data:image/jpeg;base64,AAAA',
       }
-      return element()
-    },
-    getElementById: (id) => styles.get(id) ?? null,
-    querySelectorAll: () => [],
+    }
+    return createElement(tag)
   }
+  return document
 }
 
 function textOf(children) {
@@ -112,8 +100,9 @@ function makeHarness(state, setField, extraProps = {}) {
     }
     get src() { return this._src }
   }
+  const document = makeDom()
   vm.runInNewContext(readFileSync('lib/client.js', 'utf8'), {
-    window, document: makeDom(), TextEncoder, FileReader: FakeFileReader, Image: FakeImage,
+    window, document, TextEncoder, FileReader: FakeFileReader, Image: FakeImage,
     MutationObserver: class { observe() {} disconnect() {} },
     requestAnimationFrame: (fn) => fn(), cancelAnimationFrame() {}, setTimeout: (fn) => fn(), clearTimeout() {},
     console: { info() {}, warn() {}, error() {} },
@@ -138,9 +127,10 @@ function makeHarness(state, setField, extraProps = {}) {
     await button.props.onClick?.({ stopPropagation() {} })
   }
   return {
-    api, window, nodes, findButton, findTextarea, click,
+    api, plugin, document, window, nodes, findButton, findTextarea, click,
     inputByValue(value) { return nodes().find((item) => item.type === 'input' && item.props.value === value) },
     nodeByClass(name) { return nodes().find((item) => String(item.props?.className ?? '').split(/\s+/).includes(name)) },
+    previewHtml() { return nodes().find((item) => item.props?.dangerouslySetInnerHTML)?.props.dangerouslySetInnerHTML.__html ?? '' },
     setWindowConfirm(value) { window.confirm = () => value },
   }
 }
@@ -354,16 +344,51 @@ test('v5 emoji：64 格面板，点选插入开场并更新计数器', async () 
   assert.ok(harness.nodes().some((item) => item.type === 'span' && String(textOf(item.props.children)).endsWith(' / 80')))
 })
 
-test('v5 预览：普通 / 表格 / 代码三态可切换', async () => {
+test('v5 预览：三态走公共装饰管线，不再手写卡片/状态签', async () => {
   const harness = makeHarness(baseState, async () => true)
   assert.ok(harness.findButton('普通'))
+  const text = harness.nodes().map((item) => String(textOf(item.props.children))).join(' ')
+  assert.match(text, /预览为样式样本：卡片按内容出现；身份行为示意，真实回复消息头待宿主支持（1.1）/)
   await harness.click('表格')
-  assert.ok(harness.nodes().some((item) => String(textOf(item.props.children)).includes('注入链路')))
+  let html = harness.previewHtml()
+  assert.match(html, /注入链路/)
+  assert.match(html, /data-dsh-structured-status-table="1"/)
+  assert.match(html, /data-dsh-structured-status-pill="1"/)
+  assert.match(html, /dss-status-success/)
   await harness.click('代码')
-  assert.ok(harness.nodes().some((item) => String(textOf(item.props.children)).includes('代码 · tone-loader.js')))
-  assert.ok(harness.findButton('复制代码') || harness.nodeByClass('dss-copy'))
+  html = harness.previewHtml()
+  assert.match(html, /tone-loader\.js/)
+  assert.match(html, /data-dsh-structured-copy="1"/)
+  assert.match(html, /dss-code/)
   await harness.click('普通')
-  assert.ok(harness.nodes().some((item) => String(textOf(item.props.children)).includes('这版能上')))
+  html = harness.previewHtml()
+  assert.match(html, /这版能上/)
+  assert.match(html, /data-dsh-structured-card-type="conclusion"/)
+  assert.match(html, /dss-card-conclusion/)
+})
+
+test('v5 公共装饰：预览管线与真实 decorate 三态钩子一致', () => {
+  const harness = makeHarness(baseState, async () => true)
+  const style = '搞怪 / 傲娇怪；短句为主'
+  const hooks = (root) => ({
+    cards: [...root.querySelectorAll('[data-dsh-structured-card]')].map((el) => [el.className, el.getAttribute('data-dsh-structured-card-type')]),
+    pills: [...root.querySelectorAll('[data-dsh-structured-status-pill]')].map((el) => el.className),
+    statusTables: root.querySelectorAll('[data-dsh-structured-status-table]').length,
+    copies: root.querySelectorAll('[data-dsh-structured-copy]').length,
+    code: root.querySelectorAll('[data-dsh-structured-code]').length,
+  })
+  for (const sample of ['normal', 'table', 'code']) {
+    const rawHost = harness.document.createElement('div')
+    rawHost.className = 'dss-scope _markdown_preview'
+    rawHost.innerHTML = harness.api.previewRawHtml(sample, style)
+    harness.plugin.__test.decorate(rawHost)
+    const previewHost = harness.document.createElement('div')
+    previewHost.innerHTML = harness.api.previewHtml(sample, style, harness.document)
+    assert.deepEqual(hooks(previewHost), hooks(rawHost), 'hooks must match for ' + sample)
+    assert.equal(rawHost.querySelector('.dss-chat-head'), null, 'real reply must not carry an identity header')
+    assert.doesNotMatch(previewHost.innerHTML, /dss-chat-head/, 'decorated sample must not carry an identity header')
+  }
+  assert.ok(harness.nodeByClass('dss-chat-head'), 'preview identity row must stay outside the decorated sample')
 })
 
 test('v5 emptyTone 兜底只写语言风格，不写结构要求', () => {

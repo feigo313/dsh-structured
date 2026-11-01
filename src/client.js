@@ -481,8 +481,9 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
 .dss-btn-primary:hover{background:var(--dss-blue-hover)}
 .dss-preview{margin-top:30px;border-top:1px solid var(--dss-line)}
 .dss-preview-head{display:block}
-.dss-preview-title-row{display:flex;align-items:center;min-height:40px}
+.dss-preview-title-row{display:flex;align-items:center;flex-wrap:wrap;gap:8px;min-height:40px}
 .dss-preview-title{margin:0;color:var(--dss-ink);font:600 16px/1.4 var(--dss-sans)}
+.dss-preview-note{color:var(--dss-ink-3);font-size:11.5px;line-height:1.5;font-weight:400}
 .dss-preview-tabs-row{display:flex;align-items:center;gap:10px;padding:4px 0 10px}
 .dss-preview-tabs{display:flex;gap:2px;padding:2px;border:1px solid var(--dss-line);border-radius:6px;background:var(--dss-paper-2)}
 .dss-preview-tab{height:26px;padding:0 10px;border:0;border-radius:4px;background:transparent;color:var(--dss-ink-2);font-size:11.5px;cursor:pointer}
@@ -507,8 +508,6 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
 .dss-msg-sub{margin:6px 0 0;color:var(--dss-ink-2);font-size:13.5px;line-height:1.7;overflow-wrap:anywhere}
 .dss-msg-steps{display:grid;gap:8px;margin:2px 0 0;padding:0;list-style:none}
 .dss-msg-steps li{display:grid;grid-template-columns:26px minmax(0,1fr);gap:8px;align-items:start}
-.dss-scope .dss-preview .dss-card-next li{position:relative;display:grid;grid-template-columns:26px minmax(0,1fr);gap:8px;padding:2px 0 0}
-.dss-scope .dss-preview .dss-card-next li::before{display:none}
 .dss-msg-num{display:grid;place-items:center;width:22px;height:22px;padding-top:0;border-radius:50%;background:#dcf3e7;color:var(--dss-green-text);font:600 11px/1.6 var(--dss-mono);font-variant-numeric:tabular-nums}
 .dss-msg-step,.dss-msg-risk-text{margin:0;color:var(--dss-ink-2);font-size:13.5px;line-height:1.7;overflow-wrap:anywhere}
 .dss-pane-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 10px;padding:2px 0 7px;border-bottom:1px solid var(--dss-line);font:700 12px/1.5 var(--dss-sans);letter-spacing:.04em;color:var(--dss-blue-text)}
@@ -983,7 +982,7 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
       banner.appendChild(button)
     }
 
-    function decorate(root) {
+    function decorateStructured(root) {
       markScopes(root)
       for (const heading of root.querySelectorAll('[class*="_markdown_"] h2, [class*="_markdown_"] h3')) {
         if (inGenui(heading) || inDiff(heading)) continue
@@ -1049,7 +1048,9 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
             statusTable = false
             continue
           }
-          const cells = [...(row.cells ?? [])]
+          const cells = row.cells && row.cells.length
+            ? [...row.cells]
+            : [...(row.querySelectorAll?.('td,th') ?? [])]
           let status = null
           let statusCell = null
           for (const cell of cells) {
@@ -1118,6 +1119,12 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
         else code.setAttribute(LANG_ATTR, lang)
         ensureCodeCopy(code)
       }
+    }
+
+    // Actual replies and the settings preview both run through this same
+    // structural decorator; the preview only differs in its host container.
+    function decorate(root) {
+      decorateStructured(root)
     }
 
     /**
@@ -1317,7 +1324,7 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
           ['自动更新', 'error', '回滚脚本未验收'],
         ],
       }
-      const PREVIEW_STATUS = { success: ['dss-status-success', '通过'], warn: ['dss-status-warn', '观察'], error: ['dss-status-error', '阻断'] }
+      const PREVIEW_STATUS_TEXT = { success: '✅ 通过', warn: '⚠ 观察', error: '❌ 阻断' }
       const PREVIEW_CODE = [
         "const KEY = 'dsh-structured.tone'",
         'export function loadTone() {',
@@ -1335,6 +1342,28 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
         if (styleText.includes('直接')) return PREVIEW_SAMPLES.direct
         if (styleText.includes('温和')) return PREVIEW_SAMPLES.soft
         return PREVIEW_SAMPLES.playful
+      }
+      const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]))
+      const previewRawHtml = (sample, styleText) => {
+        const variant = previewVariant(String(styleText ?? ''))
+        if (sample === 'table') {
+          return `<p><strong>表格结论：</strong> ${escapeHtml(variant.tableLead)}</p><table><thead><tr>${PREVIEW_TABLE.head.map((head) => `<th>${escapeHtml(head)}</th>`).join('')}</tr></thead><tbody>${PREVIEW_TABLE.rows.map(([module, state, note]) => `<tr><td>${escapeHtml(module)}</td><td>${escapeHtml(PREVIEW_STATUS_TEXT[state])}</td><td>${escapeHtml(note)}</td></tr>`).join('')}</tbody></table>`
+        }
+        if (sample === 'code') {
+          return `<p>${escapeHtml(variant.codeLead)}</p><div class="md-code-block"><div class="bannerWrap"><div data-code-block-banner><span class="_heading_preview">tone-loader.js</span><div class="_actions_preview"></div></div></div><div data-code-block-content><pre>${escapeHtml(PREVIEW_CODE.join('\n'))}</pre></div></div>`
+        }
+        return `<blockquote><p><strong>结论</strong></p><p><strong>${escapeHtml(variant.normal.lead)}</strong></p><p>${escapeHtml(variant.normal.sub)}</p></blockquote><blockquote><p><strong>下一步</strong></p><ol>${variant.normal.steps.map((step) => `<li>${escapeHtml(step)}</li>`).join('')}</ol></blockquote><blockquote><p><strong>风险</strong></p><p>${escapeHtml(variant.normal.risk)}</p></blockquote>`
+      }
+      // The preview is not a second card builder: it builds a sample DOM, then
+      // sends it through the exact same structural decorator as real replies.
+      const previewHtml = (sample, styleText, docOverride) => {
+        const doc = docOverride ?? (typeof document !== 'undefined' ? document : null)
+        if (!doc || typeof doc.createElement !== 'function') return ''
+        const host = doc.createElement('div')
+        host.className = 'dss-scope _markdown_preview'
+        host.innerHTML = previewRawHtml(sample, styleText)
+        decorateStructured(host)
+        return host.innerHTML
       }
       const useEffect = typeof react.useEffect === 'function' ? react.useEffect : () => {}
 
@@ -1354,7 +1383,6 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
         const [open, setOpen] = react.useState(false)
         const [emojiFor, setEmojiFor] = react.useState(null)
         const [sample, setSample] = react.useState('normal')
-        const [copied, setCopied] = react.useState(false)
         const readonly = state.writable === false
         const busy = status === 'saving'
         const formLocked = readonly || busy
@@ -1486,12 +1514,16 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
             })
           } catch {}
         }
-        const copyPreviewCode = async () => {
+        const handlePreviewClick = async (event) => {
+          const button = event.target?.closest?.('[data-dsh-structured-copy]')
+          if (!button) return
+          const code = button.closest?.('.dss-code')
+          const text = code?.querySelector?.('pre')?.textContent ?? ''
           try {
-            if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) await navigator.clipboard.writeText(PREVIEW_CODE.join('\n'))
+            if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) await navigator.clipboard.writeText(text)
           } catch {}
-          setCopied(true)
-          try { setTimeout(() => setCopied(false), 1200) } catch {}
+          button.setAttribute('data-copied', '1')
+          try { setTimeout(() => button.removeAttribute('data-copied'), 1200) } catch {}
         }
         useEffect(() => {
           if (typeof document === 'undefined' || (!open && emojiFor === null)) return
@@ -1593,91 +1625,7 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
         const variant = previewVariant(String(doc.style ?? ''))
         const statusText = error || notice || statusLabels[status] || ''
         const profileAvatar = avatar || DEFAULT_AVATAR
-        const previewBody = () => {
-          if (sample === 'table') {
-            return [
-              jsx('p', { className: 'dss-msg-lead', children: variant.tableLead }),
-              jsxs('table', {
-                className: 'dss-table',
-                children: [
-                  jsx('thead', { children: jsx('tr', { children: PREVIEW_TABLE.head.map((head) => jsx('th', { children: head })) }) }),
-                  jsx('tbody', {
-                    children: PREVIEW_TABLE.rows.map(([module, state, note]) => {
-                      const [className, label] = PREVIEW_STATUS[state]
-                      return jsx('tr', {
-                        children: [
-                          jsx('td', { children: module }),
-                          jsx('td', { children: jsx('span', { className: 'dss-status ' + className, children: label }) }),
-                          jsx('td', { children: note }),
-                        ],
-                      })
-                    }),
-                  }),
-                ],
-              }),
-            ]
-          }
-          if (sample === 'code') {
-            return [
-              jsx('p', { className: 'dss-msg-lead', children: variant.codeLead }),
-              jsxs('section', {
-                className: 'dss-code',
-                children: [
-                  jsxs('div', {
-                    className: 'dss-pane-head',
-                    children: [
-                      jsx('span', { children: '代码 · tone-loader.js' }),
-                      jsxs('button', {
-                        type: 'button',
-                        className: 'dss-copy',
-                        'data-copied': copied ? '1' : undefined,
-                        'aria-label': '复制代码',
-                        onClick: copyPreviewCode,
-                        children: [
-                          jsx('span', { className: 'dss-copy-icon' }),
-                          jsx('span', { className: 'dss-copy-ok', children: '✓' }),
-                        ],
-                      }),
-                    ],
-                  }),
-                  jsx('pre', { className: 'dss-code-body', children: PREVIEW_CODE.join('\n') }),
-                ],
-              }),
-            ]
-          }
-          return [
-            jsxs('section', {
-              className: 'dss-card dss-card-conclusion',
-              children: [
-                jsx('div', { className: 'dss-line-title', children: '结论' }),
-                jsx('h3', { className: 'dss-msg-title', children: variant.normal.lead }),
-                jsx('p', { className: 'dss-msg-sub', children: variant.normal.sub }),
-              ],
-            }),
-            jsxs('section', {
-              className: 'dss-card dss-card-next',
-              children: [
-                jsx('div', { className: 'dss-line-title', children: '下一步' }),
-                jsx('ol', {
-                  className: 'dss-msg-steps',
-                  children: variant.normal.steps.map((step, index) => jsxs('li', {
-                    children: [
-                      jsx('span', { className: 'dss-msg-num', children: String(index + 1).padStart(2, '0') }),
-                      jsx('span', { className: 'dss-msg-step', children: step }),
-                    ],
-                  })),
-                }),
-              ],
-            }),
-            jsxs('section', {
-              className: 'dss-card dss-card-risk',
-              children: [
-                jsx('div', { className: 'dss-line-title', children: '风险' }),
-                jsx('p', { className: 'dss-msg-risk-text', children: variant.normal.risk }),
-              ],
-            }),
-          ]
-        }
+        const previewMarkup = previewHtml(sample, doc.style, typeof document !== 'undefined' ? document : null)
         const profileRows = () => {
           const list = templateList(templates)
           if (list.length === 0) return jsx('div', { className: 'dss-template-empty', children: '模板已全部删除 · 用底部「恢复默认」找回' })
@@ -1841,7 +1789,13 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
                 jsxs('div', {
                   className: 'dss-preview-head',
                   children: [
-                    jsx('div', { className: 'dss-preview-title-row', children: jsx('h2', { className: 'dss-preview-title', children: '样式预览' }) }),
+                    jsxs('div', {
+                      className: 'dss-preview-title-row',
+                      children: [
+                        jsx('h2', { className: 'dss-preview-title', children: '样式预览' }),
+                        jsx('span', { className: 'dss-preview-note', children: '预览为样式样本：卡片按内容出现；身份行为示意，真实回复消息头待宿主支持（1.1）' }),
+                      ],
+                    }),
                     jsx('div', {
                       className: 'dss-preview-tabs-row',
                       children: jsx('div', {
@@ -1862,6 +1816,7 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
                 }),
                 jsxs('div', {
                   className: 'dss-chat-card' + (enabled ? '' : ' is-off'),
+                  onClick: handlePreviewClick,
                   children: [
                     jsxs('div', {
                       className: 'dss-chat-head',
@@ -1877,7 +1832,7 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
                       className: 'dss-chat-body',
                       children: [
                         enabled && String(doc.prefix ?? '').trim() ? jsx('p', { className: 'dss-msg-prefix', children: doc.prefix }) : null,
-                        jsx('div', { className: 'dss-msg-structure', children: previewBody() }),
+                        jsx('div', { className: 'dss-msg-structure', dangerouslySetInnerHTML: { __html: previewMarkup } }),
                         enabled && String(doc.suffix ?? '').trim() ? jsx('p', { className: 'dss-msg-suffix', children: doc.suffix }) : null,
                       ],
                     }),
@@ -1889,7 +1844,7 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
         })
       }
 
-      personaTestApi = { parseToneJson, emptyTone, byteLength, statusLabels, personaUiFlags, PersonaEditor }
+      personaTestApi = { parseToneJson, emptyTone, byteLength, statusLabels, personaUiFlags, PersonaEditor, previewRawHtml, previewHtml }
 
       const StructuredConfigCard = (props) => {
         const [tab, setTab] = react.useState('structured')
@@ -2108,7 +2063,7 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
 
     return {
       inject: [],
-      __test: { inDiff, isDiffCode, decorate, setupConfigPage, personaApi: () => personaTestApi },
+      __test: { inDiff, isDiffCode, decorate, decorateStructured, setupConfigPage, personaApi: () => personaTestApi },
       apply(ctx) {
         // 默认主题/视觉先启用；随后由 profile Config 的 theme/visual 覆盖。
         enable()
