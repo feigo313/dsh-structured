@@ -14,6 +14,6 @@
 
 [1.0.0 · 审计修复] P1：深色表格表头改用独立 `--dss-th-text`（浅色 `#1d4ed8` / 深色 `#93c5fd`），不再复用线标签的 `--dss-blue-text`；gate 期望同步为 `rgb(147, 197, 253)`。P2：`emptyTone()` 兜底文案去掉“先给结论”，只保留语言风格；short 改为显式「短答」卡（1 张短答卡=short；0/多卡/错标签/带后缀=fallback），删除用户文本正则猜 short。`style-gate --check` 新增源码树绑定：`src/lib/scripts/test/fixtures` 与证据 HEAD 不一致时直接 `STYLE_GATE_STALE`。
 
-[1.0.0 · 手动样式 gate] 真实浏览器检查不进 `npm test`；显式 `DSH_STRUCTURED_STYLE_GATE=1 node scripts/style-gate.mjs` 启动 detached worker 后立即返回，`node scripts/style-gate.mjs --check` 读结果；校验 computedStyle（v5 卡片 / 表头 / 状态签 / 代码卡 / 深色）与 800px，证据写入 `artifacts/style-gate/<timestamp>/`。当前证据：短答卡 code commit 后重跑（源码树绑定会拒绝旧证据）。
+[1.0.0 · 手动样式 gate] 真实浏览器检查不进 `npm test`；显式 `DSH_STRUCTURED_STYLE_GATE=1 node scripts/style-gate.mjs` 启动 detached worker 后立即返回，`node scripts/style-gate.mjs --check` 读结果；校验 computedStyle（v5 卡片 / 表头 / 状态签 / 代码卡 / 深色）与 800px，证据写入 `artifacts/style-gate/<timestamp>/`。当前证据：`artifacts/style-gate/2026-11-01T12-28-43-268Z/`（HEAD `4857968`，ok=true，failures=[]；源码树绑定会拒绝旧证据）。
 
 [1.0.0 · 未验] 桌面实机真实聊天与设置页预览并排对照、身份头 live 验证、两会话 A 保存→B 下一条立即生效、隔离 temp cwd P01–P10 基线、beta ≥3 / default-on 8–10 且 ≥60% 偏好 gate 0 人、当前 HEAD 的真实模型 A/S/B/C/D 重跑，均未执行；发布门禁仍 NO-GO。未 push / publish / PR / 安装 desktop。
