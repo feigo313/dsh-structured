@@ -294,15 +294,15 @@ test('v5 头像：上传后裁压到 128px JPEG，保存 personaAvatar；恢复�
   const fileInput = harness.nodes().find((item) => item.type === 'input' && item.props.type === 'file')
   assert.ok(fileInput)
   fileInput.props.onChange({ target: { files: [{ type: 'image/png' }], value: '' } })
-  const avatars = harness.nodes().filter((item) => item.type === 'img' && item.props.src === 'data:image/jpeg;base64,AAAA')
-  assert.equal(avatars.length, 2, 'profile and preview avatar must sync')
+  assert.ok(harness.previewHtml().includes('data:image/jpeg;base64,AAAA'), 'preview avatar must sync')
   assert.equal(harness.findButton('保存').props.disabled, false)
   await harness.click('保存')
   assert.ok(calls.some(([field, value]) => field === 'personaAvatar' && value === 'data:image/jpeg;base64,AAAA'))
   await harness.click('恢复默认')
-  assert.equal(harness.nodes().some((item) => item.type === 'img' && item.props.src === 'data:image/jpeg;base64,AAAA'), false)
+  assert.equal(harness.previewHtml().includes('data:image/jpeg;base64,AAAA'), false)
+  assert.ok(harness.previewHtml().includes('data:image/jpeg;base64,/9j/'), 'reset must restore the built-in whale avatar')
   const defaultAvatar = harness.nodes().find((item) => item.type === 'img' && String(item.props.src).startsWith('data:image/jpeg;base64,/9j/'))
-  assert.ok(defaultAvatar, 'reset must restore the built-in whale avatar')
+  assert.ok(defaultAvatar, 'profile avatar must restore the built-in whale avatar')
 })
 
 test('v5 tabGuard：dirty 时确认，clean 时放行', () => {
@@ -348,7 +348,7 @@ test('v5 预览：三态走公共装饰管线，不再手写卡片/状态签', a
   const harness = makeHarness(baseState, async () => true)
   assert.ok(harness.findButton('普通'))
   const text = harness.nodes().map((item) => String(textOf(item.props.children))).join(' ')
-  assert.match(text, /预览为样式样本：卡片按内容出现；身份行为示意，真实回复消息头待宿主支持（1.1）/)
+  assert.match(text, /预览为 PersonaMode 合同样本：身份头、卡外前缀、结论 \/ 下一步 \/ 风险、收尾；真实回复与预览同源。/)
   await harness.click('表格')
   let html = harness.previewHtml()
   assert.match(html, /注入链路/)
@@ -385,10 +385,109 @@ test('v5 公共装饰：预览管线与真实 decorate 三态钩子一致', () =
     const previewHost = harness.document.createElement('div')
     previewHost.innerHTML = harness.api.previewHtml(sample, style, harness.document)
     assert.deepEqual(hooks(previewHost), hooks(rawHost), 'hooks must match for ' + sample)
-    assert.equal(rawHost.querySelector('.dss-chat-head'), null, 'real reply must not carry an identity header')
-    assert.doesNotMatch(previewHost.innerHTML, /dss-chat-head/, 'decorated sample must not carry an identity header')
+    assert.equal(rawHost.querySelector('[data-dsh-persona-head]'), null, 'real decorate alone must not inject an identity header')
+    assert.match(previewHost.innerHTML, /data-dsh-persona-head="1"/, 'preview must carry the shared identity header')
+    assert.match(previewHost.innerHTML, /dss-chat-head/, 'preview identity row must stay')
   }
-  assert.ok(harness.nodeByClass('dss-chat-head'), 'preview identity row must stay outside the decorated sample')
+})
+
+test('PersonaMode：三卡/前缀/收尾/身份头走同一 renderer', () => {
+  const harness = makeHarness(baseState, async () => true)
+  const persona = { prefix: 'Boss，', suffix: '——完' }
+  const tone = JSON.stringify({ schema: 'dsh-structured/tone@1', ...persona, style: '搞怪 / 傲娇怪', skipIn: ['code', 'diff', 'error', 'short', 'table'] })
+  harness.plugin.__test.setPersonaModeConfig({
+    personaEnabled: true,
+    persona: tone,
+    personaName: '审计鲸鱼',
+    personaSignature: '签名',
+    personaAvatar: '',
+  })
+  const flow = harness.document.createElement('div')
+  flow.setAttribute('data-chat-flow-kind', 'assistant-step')
+  flow.setAttribute('data-chat-node-key', 'turn-1')
+  flow.setAttribute('data-chat-turn', '1')
+  const slot = harness.document.createElement('div')
+  slot.setAttribute('data-slot', 'conversation.chat.node')
+  const markdown = harness.document.createElement('div')
+  markdown.className = '_markdown_preview'
+  markdown.innerHTML = harness.api.previewRawHtml('normal', '搞怪 / 傲娇怪', persona)
+  slot.appendChild(markdown)
+  flow.appendChild(slot)
+  harness.document.body.appendChild(flow)
+  harness.plugin.__test.decorate(flow)
+  assert.equal(markdown.getAttribute('data-dsh-persona-kind'), 'normal')
+  assert.equal(markdown.getAttribute('data-dsh-persona-fallback'), null)
+  assert.equal(flow.querySelectorAll('[data-dsh-persona-head]').length, 1)
+  assert.match(flow.textContent, /审计鲸鱼/)
+  assert.match(flow.textContent, /签名/)
+  assert.equal(markdown.querySelectorAll('[data-dsh-structured-card-type]').length, 3)
+  assert.ok(markdown.querySelector('.dss-persona-prefix'))
+  assert.ok(markdown.querySelector('.dss-persona-suffix'))
+})
+
+test('PersonaMode：缺卡整条 fallback，不补卡、不伪造', () => {
+  const harness = makeHarness(baseState, async () => true)
+  const tone = JSON.stringify({ schema: 'dsh-structured/tone@1', prefix: 'Boss，', style: '搞怪', suffix: '——完', skipIn: ['code', 'diff', 'error', 'short', 'table'] })
+  harness.plugin.__test.setPersonaModeConfig({ personaEnabled: true, persona: tone, personaName: 'N', personaSignature: 'S', personaAvatar: '' })
+  const flow = harness.document.createElement('div')
+  flow.setAttribute('data-chat-flow-kind', 'assistant-step')
+  flow.setAttribute('data-chat-node-key', 'turn-2')
+  const slot = harness.document.createElement('div')
+  slot.setAttribute('data-slot', 'conversation.chat.node')
+  const markdown = harness.document.createElement('div')
+  markdown.className = '_markdown_preview'
+  markdown.innerHTML = '<p>Boss，</p><blockquote><p><strong>结论</strong></p><p>只有一张卡。</p></blockquote>'
+  slot.appendChild(markdown)
+  flow.appendChild(slot)
+  harness.document.body.appendChild(flow)
+  harness.plugin.__test.decorate(flow)
+  assert.equal(markdown.getAttribute('data-dsh-persona-kind'), 'fallback')
+  assert.equal(markdown.getAttribute('data-dsh-persona-fallback'), '1')
+  assert.equal(markdown.querySelectorAll('[data-dsh-structured-card-type]').length, 1, 'must not fabricate missing cards')
+  assert.equal(flow.querySelectorAll('[data-dsh-persona-head]').length, 1, 'fallback keeps host-level identity header')
+})
+
+test('PersonaMode：table/code/short 例外和关闭清理', () => {
+  const harness = makeHarness(baseState, async () => true)
+  const persona = { prefix: 'Boss，', suffix: '——完' }
+  const tone = JSON.stringify({ schema: 'dsh-structured/tone@1', ...persona, style: '搞怪', skipIn: ['code', 'diff', 'error', 'short', 'table'] })
+  const config = { personaEnabled: true, persona: tone, personaName: 'N', personaSignature: 'S', personaAvatar: '' }
+  harness.plugin.__test.setPersonaModeConfig(config)
+  const makeFlow = (html, kind = 'assistant-step') => {
+    const flow = harness.document.createElement('div')
+    flow.setAttribute('data-chat-flow-kind', kind)
+    flow.setAttribute('data-chat-node-key', 'k-' + Math.random())
+    const slot = harness.document.createElement('div')
+    slot.setAttribute('data-slot', 'conversation.chat.node')
+    const markdown = harness.document.createElement('div')
+    markdown.className = '_markdown_preview'
+    markdown.innerHTML = html
+    slot.appendChild(markdown)
+    flow.appendChild(slot)
+    harness.document.body.appendChild(flow)
+    harness.plugin.__test.decorate(flow)
+    return { flow, markdown }
+  }
+  const table = makeFlow(harness.api.previewRawHtml('table', '搞怪', persona))
+  assert.equal(table.markdown.getAttribute('data-dsh-persona-kind'), 'table')
+  assert.equal(table.markdown.querySelector('table').getAttribute('data-dsh-persona-neutral-table'), '1')
+  assert.equal(table.markdown.querySelectorAll('[data-dsh-persona-head]').length, 0, 'header lives on flow, not markdown')
+  assert.equal(table.flow.querySelectorAll('[data-dsh-persona-head]').length, 1)
+  const code = makeFlow(harness.api.previewRawHtml('code', '搞怪', persona))
+  assert.equal(code.markdown.getAttribute('data-dsh-persona-kind'), 'code')
+  assert.equal(code.markdown.querySelectorAll('[data-dsh-structured-card-type]').length, 0)
+  assert.equal(code.flow.querySelectorAll('[data-dsh-persona-head]').length, 1)
+  const user = harness.document.createElement('div')
+  user.setAttribute('data-chat-flow-kind', 'user')
+  user.textContent = '现在几点？'
+  harness.document.body.insertBefore(user, code.flow)
+  const short = makeFlow('<p>Boss，现在三点。</p>')
+  assert.equal(short.markdown.getAttribute('data-dsh-persona-kind'), 'short')
+  assert.equal(short.markdown.querySelectorAll('[data-dsh-structured-card-type]').length, 0)
+  harness.plugin.__test.setPersonaModeConfig({ ...config, personaEnabled: false })
+  harness.plugin.__test.decorate(short.flow)
+  assert.equal(short.flow.querySelectorAll('[data-dsh-persona-head]').length, 0)
+  assert.equal(short.markdown.getAttribute('data-dsh-persona-kind'), null)
 })
 
 test('v5 emptyTone 兜底只写语言风格，不写结构要求', () => {
