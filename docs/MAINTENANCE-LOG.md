@@ -240,3 +240,11 @@
 - **desktop**：1.0.0 已装（`file:G:/dsh-structured/dsh-structured-1.0.0.tgz`，与审计包 sha256 `83d36dcb…` 一致；lib 含 9 处 `--dss-th-text`）；仍待重启生效与实机验收。
 - **仓库**：`feat/1.0-persona` `607c512`；工作树有未提交 `src/client.js` 与 `docs/1.0-TONE-V4-CARD-DIRECTIONS.md`（他方在途，未触碰）。
 - **本轮动作**：只读复核与记录。
+
+## 2026-11-01 · 1.0.0 测试挂起（Boss 决定）
+
+- **仓库**：`feat/1.0-persona`，HEAD `12c9fe2`（代码 `00cad84`），未 push；工作树有既有 `docs/1.0-TONE-V4-CARD-DIRECTIONS.md` 修改与未跟踪 1.0 文档。
+- **desktop**：已装 `artifacts/1.0.0-test/dsh-structured-1.0.0.tgz`（839,021 B / sha256 `079173a9…`）；`lib/index.js` sha256 `3575bb61…`、`lib/client.js` sha256 `c861b5da…`；备份 `*.bak-20261101-210351`。**尚未重启加载该版本**。
+- **已验证（本地）**：`npm test` 91/91、对比度 60、hue 12、desktop-check PASS、`lib==src`、pack 58 / 839,021 / 1,315,282、gate `00cad84` `ok=true` `failures=[]`。
+- **Phase 4 未验**：重启后加载、关闭/重开人格矩阵实机、真实 Desktop 并排 6 条、身份头 live、三卡命中 ≥5/6、两会话 A→B、code/diff/short/table 实机、新装默认关。发布门禁 **NO-GO**。
+- **下轮起点**：重启 Desktop → 按上面未验清单逐项验 → 全过再谈 push / tag / Release / npm / 市场。
