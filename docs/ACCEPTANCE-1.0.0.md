@@ -12,11 +12,11 @@
 
 [1.0.0 · 预览/真实共用 PersonaRenderer] normal/table 预览与真实回复共用 `renderPersonaContent`，输入都是内容对象，不再先造 Markdown 样例；身份头、前缀、三卡、收尾同源。code 预览与真实 code 都走 `decorateStructured` 的 code 例外通道；short 不在预览 tab，真实 short 由同一内容对象渲染。真实回复按 Phase 0 spike 候选插入 `[data-chat-flow-kind="assistant-step"]`；身份头 live 验证移到 Phase 4。
 
-[1.0.0 · 关闭清理] `personaEnabled=false` 时从每个 `_markdown_` 清除身份头、`data-dsh-persona-kind`、`data-dsh-persona-fallback`、`dss-persona-prefix` / `dss-persona-suffix`，再走 `decorateStructured`；通用卡保留。测试覆盖 normal 开启 → 关闭 → 再装饰。
+[1.0.0 · 关闭清理] `personaEnabled=false` 时从每个 `_markdown_` 清除身份头、`data-dsh-persona-kind`、`data-dsh-persona-fallback`、`data-dsh-persona-error`、`data-dsh-persona-pending`，并删除 `.dss-persona-prefix` / `.dss-persona-suffix` 节点，再走 `decorateStructured`；通用卡保留。测试覆盖 normal 开启 → 关闭 → 再装饰。
 
 [1.0.0 · 审计修复] P1：深色表格表头改用独立 `--dss-th-text`（浅色 `#1d4ed8` / 深色 `#93c5fd`），不再复用线标签的 `--dss-blue-text`；gate 期望同步为 `rgb(147, 197, 253)`。P2：`emptyTone()` 兜底文案去掉“先给结论”，只保留语言风格；short 改为 `kind=short` 内容槽位，由 renderer 生成短答卡；删除用户文本正则猜 short 与模型 Markdown 短答卡。`style-gate --check` 新增源码树绑定：`src/lib/scripts/test/fixtures` 与证据 HEAD 不一致时直接 `STYLE_GATE_STALE`。
 
-[1.0.0 · 手动样式 gate] 真实浏览器检查不进 `npm test`；显式 `DSH_STRUCTURED_STYLE_GATE=1 node scripts/style-gate.mjs` 启动 detached worker 后立即返回，`node scripts/style-gate.mjs --check` 读结果；校验 computedStyle（v5 卡片 / 表头 / 状态签 / 代码卡 / 深色）与 800px，证据写入 `artifacts/style-gate/<timestamp>/`。当前证据：运行态修复 code commit 后重跑（源码树绑定会拒绝旧证据）。 gate 只覆盖 v5 通用样式，不覆盖 Persona 身份头/前后缀；Persona 视觉走 Phase 4 live 对照。
+[1.0.0 · 手动样式 gate] 真实浏览器检查不进 `npm test`；显式 `DSH_STRUCTURED_STYLE_GATE=1 node scripts/style-gate.mjs` 启动 detached worker 后立即返回，`node scripts/style-gate.mjs --check` 读结果；校验 computedStyle（v5 卡片 / 表头 / 状态签 / 代码卡 / 深色）与 800px，证据写入 `artifacts/style-gate/<timestamp>/`。当前证据：`artifacts/style-gate/2026-11-02T06-23-54-233Z/`（HEAD `cd4f18b`，ok=true，failures=[]；源码树绑定会拒绝旧证据）。 gate 只覆盖 v5 通用样式，不覆盖 Persona 身份头/前后缀；Persona 视觉走 Phase 4 live 对照。
 
 [1.0.0 · 已知限制提示] PersonaMode 仍需模型输出 `persona` 内容块；解析失败显示显式「内容合同错误」，不再回落普通排版。旧历史消息不会回溯重渲染；验收使用新回复。
 
