@@ -256,3 +256,10 @@
 - **desktop**：已重启（10:00:32），加载 `c861b5da…` 的 client（1.0.0 关闭路径修复版）；依赖指向 `artifacts/1.0.0-test/dsh-structured-1.0.0.tgz`。
 - **仓库**：`feat/1.0-persona` `0d173e2`；Phase 4 测试仍挂起，发布维持 NO-GO。
 - **本轮动作**：只读复核与记录。
+
+## 2026-11-02 · Phase 4 实机抽样（信封渲染）
+
+- **构建**：HEAD `49f466a`；desktop 实装 tgz `4a2c7a58…`、`lib/client.js` `6e1f092f…`；应用 19:14:42 重启。
+- **6 条抽样（Boss 现场确认，均无错误卡）**：1 normal 三卡；2 table（表在结论与下一步之间、无收尾）；3 short 单选卡；4 code（无 persona chrome）；5 diff（无 persona chrome）；6 无信封回落 legacy，无「内容合同错误」→ 命中 6/6（≥5/6 达标）。
+- **仍缺**：Persona 视觉自动 gate（当前 style-gate 只覆盖通用 v5）；跨会话 A→B、关闭回归、设置页全链路、三主题六组、窄窗；标签「下一步 / 建议」口径未定。
+- **发布**：未 push / 未 publish，门禁维持 NO-GO。
