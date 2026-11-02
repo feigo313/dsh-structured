@@ -248,3 +248,11 @@
 - **已验证（本地）**：`npm test` 91/91、对比度 60、hue 12、desktop-check PASS、`lib==src`、pack 58 / 839,021 / 1,315,282、gate `00cad84` `ok=true` `failures=[]`。
 - **Phase 4 未验**：重启后加载、关闭/重开人格矩阵实机、真实 Desktop 并排 6 条、身份头 live、三卡命中 ≥5/6、两会话 A→B、code/diff/short/table 实机、新装默认关。发布门禁 **NO-GO**。
 - **下轮起点**：重启 Desktop → 按上面未验清单逐项验 → 全过再谈 push / tag / Release / npm / 市场。
+
+## 2026-11-02 · 第 13 轮
+
+- **issue 水位**：0 open / 2 closed。
+- **线上**：npm `latest=0.9.9`；Release v0.9.9 资产 758,096 B 未变；CI 无新 run。
+- **desktop**：已重启（10:00:32），加载 `c861b5da…` 的 client（1.0.0 关闭路径修复版）；依赖指向 `artifacts/1.0.0-test/dsh-structured-1.0.0.tgz`。
+- **仓库**：`feat/1.0-persona` `0d173e2`；Phase 4 测试仍挂起，发布维持 NO-GO。
+- **本轮动作**：只读复核与记录。
