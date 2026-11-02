@@ -169,7 +169,7 @@ async function runWorker(evidenceDirArg) {
   if (existsSync(resultPath)) {
     const raw = readFileSync(resultPath, 'utf8')
     writeFileSync(evidenceResultPath, raw)
-    const { style, narrow } = JSON.parse(raw)
+    const { style, narrow, persona: personaProbe } = JSON.parse(raw)
 
     const contains = (name, actual, expected) => {
       if (!String(actual ?? '').includes(expected)) failures.push({ name, actual, expected: 'contains ' + expected })
@@ -220,6 +220,30 @@ async function runWorker(evidenceDirArg) {
     record('dark.codePreBackground', style.dark?.codePreBackground, 'rgba(0, 0, 0, 0.28)')
     record('dark.codePreColor', style.dark?.codePreColor, 'rgb(201, 210, 224)')
     record('dark.statusBackground', style.dark?.statusBackground, 'rgba(52, 211, 153, 0.16)')
+    // Persona 视觉：身份头 / 前后缀 / 三卡 / 短答 / 表格（人格开启态 fixture）
+    const persona = personaProbe ?? {}
+    record('persona.headCount', persona.headCount, 1)
+    record('persona.prefixCount', persona.prefixCount, 1)
+    record('persona.suffixCount', persona.suffixCount, 1)
+    record('persona.prefixSize', persona.prefixSize, '12.5px')
+    record('persona.suffixSize', persona.suffixSize, '12px')
+    record('persona.suffixBorderTop', persona.suffixBorderTop, '1px dotted')
+    record('persona.headNameSize', persona.headNameSize, '16px')
+    record('persona.headNameWeight', persona.headNameWeight, '650')
+    record('persona.headAvatarSize', persona.headAvatarSize, '38px')
+    record('persona.conclusionLeadSize', persona.conclusionLeadSize, '19px')
+    record('persona.conclusionLeadWeight', persona.conclusionLeadWeight, '700')
+    record('persona.nextLabelColor', persona.nextLabelColor, 'rgb(4, 120, 87)')
+    record('persona.riskLeftColor', persona.riskLeftColor, 'rgb(217, 119, 6)')
+    record('persona.shortLeftColor', persona.shortLeftColor, 'rgb(124, 58, 237)')
+    contains('persona.shortBackground', persona.shortBackground, 'rgb(245, 243, 255)')
+    record('persona.tableLeftColor', persona.tableLeftColor, 'rgb(13, 148, 136)')
+    record('persona.thColor', persona.thColor, 'rgb(17, 94, 89)')
+    record('persona.thBackgroundImage', persona.thBackgroundImage, 'linear-gradient(90deg, rgba(13, 148, 136, 0.18), rgba(13, 148, 136, 0.05))')
+    record('persona.dark.thColor', persona.dark?.thColor, 'rgb(94, 234, 212)')
+    record('persona.dark.thBackgroundImage', persona.dark?.thBackgroundImage, 'linear-gradient(90deg, rgba(45, 212, 191, 0.24), rgba(45, 212, 191, 0.06))')
+    record('persona.dark.shortLeftColor', persona.dark?.shortLeftColor, 'rgb(196, 181, 253)')
+    record('persona.dark.nameColor', persona.dark?.nameColor, 'rgb(230, 233, 239)')
     record('narrow.overflow', narrow.overflow, false)
     if (narrow.docScrollWidth > narrow.innerWidth) {
       failures.push({

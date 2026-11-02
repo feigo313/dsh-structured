@@ -94,7 +94,58 @@ const narrow = await page.evaluate(() => ({
   bodyScrollWidth: document.body.scrollWidth,
   overflow: document.documentElement.scrollWidth > window.innerWidth,
 }))
-const result = { style: { ...style, dark }, narrow }
+// Persona 视觉探针：独立页面 + 人格开启态，覆盖身份头/前后缀/三卡/短答/表格。
+const personaPage = await task.newPage()
+await personaPage.goto(new URL("./persona-glance.html", import.meta.url).href)
+await personaPage.waitForLoadState("load")
+await personaPage.waitForTimeout(600)
+await personaPage.cdp("Emulation.setDeviceMetricsOverride", { width: 1200, height: 1400, deviceScaleFactor: 1, mobile: false })
+await personaPage.waitForTimeout(150)
+const persona = await personaPage.evaluate(() => {
+  const q = (s) => document.querySelector(s)
+  const qa = (s) => document.querySelectorAll(s)
+  const cs = (el) => (el ? getComputedStyle(el) : null)
+  const th = q(".dss-table thead th")
+  const short = q('[data-dsh-structured-card-type="short"]')
+  const conclusion = q('[data-dsh-structured-card-type="conclusion"]')
+  const conclusionLead = conclusion?.querySelectorAll("p")[1]?.querySelector("strong")
+  return {
+    prefixCount: qa(".dss-persona-prefix").length,
+    suffixCount: qa(".dss-persona-suffix").length,
+    headCount: qa(".dss-persona-head").length,
+    prefixSize: cs(q(".dss-persona-prefix"))?.fontSize,
+    prefixColor: cs(q(".dss-persona-prefix"))?.color,
+    suffixSize: cs(q(".dss-persona-suffix"))?.fontSize,
+    suffixBorderTop: cs(q(".dss-persona-suffix"))?.borderTopWidth + " " + cs(q(".dss-persona-suffix"))?.borderTopStyle,
+    headNameSize: cs(q(".dss-persona-head .dss-chat-name"))?.fontSize,
+    headNameWeight: cs(q(".dss-persona-head .dss-chat-name"))?.fontWeight,
+    headAvatarSize: cs(q(".dss-persona-head .dss-chat-avatar"))?.width,
+    conclusionLeadSize: cs(conclusionLead)?.fontSize,
+    conclusionLeadWeight: cs(conclusionLead)?.fontWeight,
+    nextLabelColor: cs(q('[data-dsh-structured-card-type="next"] strong'))?.color,
+    riskLeftColor: cs(q('[data-dsh-structured-card-type="risk"]'))?.borderLeftColor,
+    shortLeftColor: cs(short)?.borderLeftColor,
+    shortBackground: cs(short)?.backgroundImage,
+    tableLeftColor: cs(q(".dss-table"))?.borderLeftColor,
+    thColor: cs(th)?.color,
+    thBackgroundImage: cs(th)?.backgroundImage,
+  }
+})
+const personaDark = await personaPage.evaluate(() => {
+  document.body.setAttribute("data-ds-dark-theme", "")
+  const q = (s) => document.querySelector(s)
+  const cs = (el) => (el ? getComputedStyle(el) : null)
+  const out = {
+    thColor: cs(q(".dss-table thead th"))?.color,
+    thBackgroundImage: cs(q(".dss-table thead th"))?.backgroundImage,
+    shortLeftColor: cs(q('[data-dsh-structured-card-type="short"]'))?.borderLeftColor,
+    nameColor: cs(q(".dss-persona-head .dss-chat-name"))?.color,
+    tableLeftColor: cs(q(".dss-table"))?.borderLeftColor,
+  }
+  document.body.removeAttribute("data-ds-dark-theme")
+  return out
+})
+const result = { style: { ...style, dark }, narrow, persona: { ...persona, dark: personaDark } }
 const fs = await import("node:fs/promises")
 const { fileURLToPath } = await import("node:url")
 const output = fileURLToPath(new URL("../../artifacts/audit-0.9.6/style-result.json", import.meta.url))
