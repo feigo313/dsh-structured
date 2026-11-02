@@ -130,6 +130,16 @@ test('内置规则覆盖首句结论、组件、清晰度三件事', () => {
   assert.match(GENUI_ROUTING_TEXT, /以本节为准/)
 })
 
+test('PersonaMode 合同上限：suggestions 1-5、table.rows 1-20、缺块显式 error', () => {
+  assert.match(PERSONA_MODE_RULES, /`suggestions` 为 1-5 条/)
+  assert.match(PERSONA_MODE_RULES, /`rows` 1-20 行/)
+  assert.match(PERSONA_MODE_RULES, /缺块.*内容合同错误/)
+  assert.match(PERSONA_MODE_RULES, /建议/)
+  assert.doesNotMatch(PERSONA_MODE_RULES, /下一步/)
+  assert.match(TONE_ANCHOR, /缺块、块外内容、多个块或 JSON \/ 字段非法都显示「内容合同错误」/)
+  assert.match(TONE_ANCHOR, /缺块即 error/)
+})
+
 test('PersonaMode 合同：内容块 JSON，不是模型 Markdown 卡片', () => {
   assert.match(PERSONA_MODE_RULES, /```persona/)
   assert.match(PERSONA_MODE_RULES, /"version":1/)

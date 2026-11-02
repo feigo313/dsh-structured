@@ -29,6 +29,9 @@ window.__ModuleLoader__.load({
     const PERSONA_ERROR_ATTR = 'data-dsh-persona-error'
     const PERSONA_PENDING_ATTR = 'data-dsh-persona-pending'
     const PERSONA_KIND_ATTR = 'data-dsh-persona-kind'
+    // 插件自己生成的节点都带这个标记：MutationObserver 据此忽略自触发，避免
+    // decorate 自己的输出再被当成宿主新消息重扫一遍。
+    const GENERATED_ATTR = 'data-dsh-plugin-generated'
     const LEAD_ATTR = 'data-dsh-structured-lead'
     const ROW_ATTR = 'data-dsh-structured-row'
     const ROOT_ATTR = 'data-dsh-structured'
@@ -54,6 +57,14 @@ window.__ModuleLoader__.load({
       suffix: '',
     }
     const personaRenderCache = new WeakMap()
+    /** markdown 在 PersonaMode 激活那一刻就已存在：旧历史不回溯、不重写。 */
+    const personaLegacyMarkdowns = new WeakSet()
+    /** 激活时的最大 data-chat-turn；虚拟列表把旧消息重新挂回 DOM 时据此识别。 */
+    let personaTurnWatermark = null
+    /** 解析/校验失败先进入待定窗口，块完成且仍非法才显示错误。 */
+    const personaPendingErrors = new WeakMap()
+    const personaGraceTimers = new Set()
+    const PERSONA_GRACE_MS = 500
 
     /** 六个配置字段的界面文案；field 与 host Config schema 对齐，fallback 为 schema 默认值。 */
     const CONFIG_FIELDS = [
@@ -1028,11 +1039,14 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
         if (!doc || typeof doc.createElement !== 'function') return
         pill = doc.createElement('span')
         pill.setAttribute(STATUS_PILL_ATTR, '1')
+        pill.setAttribute(GENERATED_ATTR, '1')
         cell.textContent = ''
         cell.appendChild(pill)
       }
-      pill.className = 'dss-status dss-status-' + status
-      pill.textContent = STATUS_LABELS[status] ?? status
+      const className = 'dss-status dss-status-' + status
+      if (pill.className !== className) pill.className = className
+      const label = STATUS_LABELS[status] ?? status
+      if (pill.textContent !== label) pill.textContent = label
     }
 
     const clearStatusPills = (row) => {
@@ -1053,6 +1067,7 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
       button.setAttribute('type', 'button')
       button.setAttribute('class', 'dss-copy')
       button.setAttribute(COPY_ATTR, '1')
+      button.setAttribute(GENERATED_ATTR, '1')
       button.setAttribute('aria-label', '复制代码')
       const icon = doc.createElement('span')
       icon.setAttribute('class', 'dss-copy-icon')
@@ -1099,21 +1114,157 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
       }
     }
 
+    const personaContentSignature = (content, config) => JSON.stringify([content, config.prefix, config.suffix])
+
+    const personaHash = (text) => {
+      let hash = 5381
+      const value = String(text ?? '')
+      for (let index = 0; index < value.length; index += 1) hash = ((hash << 5) + hash + value.charCodeAt(index)) | 0
+      return (hash >>> 0).toString(36) + ':' + value.length
+    }
+
+    const isPluginGenerated = (node) => {
+      const element = node?.nodeType === 1 ? node : node?.parentElement
+      try {
+        return Boolean(element?.closest?.(`[${GENERATED_ATTR}]`))
+      } catch {
+        return false
+      }
+    }
+
+    const isPersonaManaged = (markdown) => {
+      if (personaRenderCache.has(markdown)) return true
+      return Boolean(markdown?.hasAttribute?.(PERSONA_KIND_ATTR) || markdown?.hasAttribute?.(PERSONA_ERROR_ATTR) || markdown?.hasAttribute?.(PERSONA_PENDING_ATTR))
+    }
+
+    const clearPersonaPending = (markdown) => {
+      const record = personaPendingErrors.get(markdown)
+      if (!record) return
+      if (record.timer !== null) {
+        try { clearTimeout(record.timer) } catch {}
+      }
+      personaGraceTimers.delete(record.run)
+      personaPendingErrors.delete(markdown)
+      markdown?.removeAttribute?.(PERSONA_PENDING_ATTR)
+    }
+
+    const personaIsStreaming = (markdown) => {
+      try {
+        // 宿主完成信号：AssistantMarkdown 根节点在流式时带 data-streaming；turn 运行中带 data-chat-running。
+        return Boolean(markdown?.closest?.('[data-streaming], [data-chat-running="true"], [aria-busy="true"], [data-state="running"]'))
+      } catch {
+        return false
+      }
+    }
+
+    const personaEnvelopeSource = (markdown) => {
+      const blocks = [...(markdown?.querySelectorAll?.('.md-code-block') ?? [])]
+      if (blocks.length !== 1) return null
+      const code = blocks[0]
+      const text = code.querySelector?.('pre')?.textContent ?? ''
+      if (!(bannerLanguage(code) === 'persona' || looksLikePersonaEnvelope(text))) return null
+      return text
+    }
+
+    /**
+     * 半截 JSON / 半截内容块不能立刻判 error：先保留宿主内容并进入可测试的
+     * 稳定窗口；窗口内内容再变化就重试，宿主仍在流式就继续等，稳定且仍非法
+     * 才显示「内容合同错误」。
+     */
+    const schedulePersonaError = (markdown, message, sourceText) => {
+      const hash = personaHash(sourceText ?? '')
+      const existing = personaPendingErrors.get(markdown)
+      if (existing && existing.hash === hash) {
+        markdown.setAttribute(PERSONA_PENDING_ATTR, '1')
+        return 'pending'
+      }
+      clearPersonaPending(markdown)
+      const run = () => {
+        if (run.done) return
+        run.done = true
+        personaGraceTimers.delete(run)
+        personaPendingErrors.delete(markdown)
+        markdown?.removeAttribute?.(PERSONA_PENDING_ATTR)
+        if (!personaModeState.enabled) return
+        if (markdown?.isConnected === false) return
+        const current = personaEnvelopeSource(markdown)
+        if (current !== null && personaHash(current) !== hash) {
+          renderPersonaMarkdown(markdown, personaModeState, undefined, { fresh: true, retry: true })
+          return
+        }
+        if (personaIsStreaming(markdown)) {
+          schedulePersonaError(markdown, message, current ?? sourceText)
+          return
+        }
+        if (current === null && String(sourceText ?? '').trim() === '') return
+        renderPersonaError(markdown, message)
+      }
+      let timer = null
+      try {
+        timer = typeof setTimeout === 'function' ? setTimeout(run, PERSONA_GRACE_MS) : null
+      } catch {
+        timer = null
+      }
+      personaGraceTimers.add(run)
+      personaPendingErrors.set(markdown, { hash, message, timer, run })
+      markdown.setAttribute(PERSONA_PENDING_ATTR, '1')
+      return 'pending'
+    }
+
+    /** 测试与手动 gate 用：同步执行待定窗口的回调。 */
+    const flushPersonaErrors = () => {
+      let guard = 0
+      while (personaGraceTimers.size > 0 && guard < 20) {
+        guard += 1
+        for (const run of [...personaGraceTimers]) {
+          try { run() } catch {}
+        }
+      }
+    }
+
+    const cleanPersonaMarkdown = (markdown) => {
+      clearPersonaPending(markdown)
+      personaRenderCache.delete(markdown)
+      for (const node of [...(markdown.querySelectorAll?.('.dss-persona-prefix, .dss-persona-suffix') ?? [])]) node.remove()
+      for (const attr of [PERSONA_KIND_ATTR, PERSONA_FALLBACK_ATTR, PERSONA_ERROR_ATTR, PERSONA_PENDING_ATTR]) markdown.removeAttribute?.(attr)
+      decorateStructured(markdown)
+    }
+
+    /** 激活时快照：此前的消息是旧历史，之后任何重扫都不重写它们。 */
+    const snapshotPersonaLegacy = () => {
+      for (const markdown of document.querySelectorAll?.('[class*="_markdown_"]') ?? []) personaLegacyMarkdowns.add(markdown)
+      let watermark = null
+      for (const node of document.querySelectorAll?.('[data-chat-turn]') ?? []) {
+        const turn = Number(node.getAttribute?.('data-chat-turn'))
+        if (Number.isFinite(turn) && (watermark === null || turn > watermark)) watermark = turn
+      }
+      personaTurnWatermark = watermark
+    }
+
+    const isLegacyPersonaMarkdown = (markdown, flow) => {
+      if (personaLegacyMarkdowns.has(markdown)) return true
+      if (personaTurnWatermark === null) return false
+      const turn = Number(flow?.getAttribute?.('data-chat-turn'))
+      return Number.isFinite(turn) && turn <= personaTurnWatermark
+    }
+
     const setPersonaModeConfig = (value = {}) => {
+      const wasEnabled = personaModeState.enabled
       personaModeState = personaHeadConfig(value)
       if (typeof document === 'undefined') return
       if (personaModeState.enabled) document.body?.setAttribute(PERSONA_MODE_ATTR, '1')
       else document.body?.removeAttribute(PERSONA_MODE_ATTR)
-      if (active) {
-        if (!personaModeState.enabled) removePersonaHeads(document)
-        decorate(document, { fresh: false })
-      }
+      if (personaModeState.enabled && !wasEnabled) snapshotPersonaLegacy()
+      if (!active) return
+      // 配置变化只刷新已受管的 persona 渲染与身份头，不对旧历史做全量重扫。
+      decorate(document, { managedOnly: true })
     }
 
     const createPersonaHead = (doc, config) => {
       const head = doc.createElement('div')
       head.className = 'dss-scope dss-persona-head'
       head.setAttribute(PERSONA_HEAD_ATTR, '1')
+      head.setAttribute(GENERATED_ATTR, '1')
       const row = doc.createElement('div')
       row.className = 'dss-chat-head'
       const avatar = doc.createElement('span')
@@ -1146,16 +1297,34 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
       if (signature && signature.textContent !== config.signature) signature.textContent = config.signature
     }
 
-    const findAssistantFlow = (markdown) => {
-      const userLike = markdown.closest?.('[data-chat-flow-kind="user"], [data-chat-flow-kind="steering"], [data-chat-flow-kind="turn-trigger"]')
-      if (userLike) return null
-      const direct = markdown.closest?.('[data-chat-flow-kind="assistant-step"], [data-chat-flow-kind="assistant"], [data-chat-group-part="response"], [class*="assistantContent"]')
-      if (direct) return direct
-      const slot = markdown.closest?.('[data-slot="conversation.chat.node"]')
-      if (slot?.parentElement) return slot.parentElement
-      let parent = markdown.parentElement
-      while (parent && (parent.tagName === 'BODY' || parent.tagName === 'HTML')) parent = parent.parentElement
-      return parent ?? null
+    const findFlowScope = (markdown, flowOverride) => {
+      try {
+        const userLike = markdown.closest?.('[data-chat-flow-kind="user"], [data-chat-flow-kind="steering"], [data-chat-flow-kind="turn-trigger"]')
+        if (userLike) return { userLike: true, assistant: null }
+        // reasoning / 工作过程 / 上下文注入 / 压缩摘要都不是最终回复，不套内容合同。
+        const groupPart = markdown.closest?.('[data-chat-group-part]')?.getAttribute?.('data-chat-group-part')
+        if (groupPart && groupPart !== 'response') return { skip: true, assistant: null }
+        if (markdown.closest?.('[data-variant="think"], [data-turn-process-inline], [data-turn-process], [data-step-process], [data-step-process-content], [data-step-process-body], [data-context-injection-body], [data-compaction-disclosure], [data-compaction-icon]')) {
+          return { skip: true, assistant: null }
+        }
+        if (flowOverride !== undefined && flowOverride !== null) return { assistant: flowOverride }
+        const flowItem = markdown.closest?.('[data-chat-flow-kind]')
+        if (flowItem) {
+          const kind = flowItem.getAttribute?.('data-chat-flow-kind')
+          if (kind === 'assistant-step' || kind === 'assistant') return { assistant: flowItem }
+          // 群组 / 压缩 / 过程 / 输入等其它 flow 不是模型回复。
+          return { skip: true, assistant: null }
+        }
+        const response = markdown.closest?.('[data-chat-group-part="response"]')
+        if (response) return { assistant: response }
+        const assistant = markdown.closest?.('[class*="assistantContent"]')
+        if (assistant) return { assistant }
+        const slot = markdown.closest?.('[data-slot="conversation.chat.node"]')
+        if (slot?.parentElement) return { assistant: slot.parentElement }
+        return { assistant: null }
+      } catch {
+        return { assistant: flowOverride ?? null }
+      }
     }
 
     const mountPersonaHead = (flow, config) => {
@@ -1172,13 +1341,23 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
     }
 
     const removePersonaHeads = (root) => {
-      for (const head of root?.querySelectorAll?.(`[${PERSONA_HEAD_ATTR}]`) ?? []) head.remove()
+      const inPreview = (element) => Boolean(element?.closest?.('.dss-persona-preview'))
+      for (const head of root?.querySelectorAll?.(`[${PERSONA_HEAD_ATTR}]`) ?? []) {
+        if (!inPreview(head)) head.remove()
+      }
       const markdowns = root?.matches?.('[class*="_markdown_"]')
         ? [root]
         : [...(root?.querySelectorAll?.('[class*="_markdown_"]') ?? [])]
-      for (const markdown of markdowns) personaRenderCache.delete(markdown)
-      for (const node of root?.querySelectorAll?.('.dss-persona-prefix, .dss-persona-suffix') ?? []) node.remove()
+      for (const markdown of markdowns) {
+        if (inPreview(markdown)) continue
+        clearPersonaPending(markdown)
+        personaRenderCache.delete(markdown)
+      }
+      for (const node of root?.querySelectorAll?.('.dss-persona-prefix, .dss-persona-suffix') ?? []) {
+        if (!inPreview(node)) node.remove()
+      }
       for (const element of root?.querySelectorAll?.(`[${PERSONA_KIND_ATTR}], [${PERSONA_FALLBACK_ATTR}], [${PERSONA_ERROR_ATTR}], [${PERSONA_PENDING_ATTR}]`) ?? []) {
+        if (inPreview(element)) continue
         element.removeAttribute?.(PERSONA_KIND_ATTR)
         element.removeAttribute?.(PERSONA_FALLBACK_ATTR)
         element.removeAttribute?.(PERSONA_ERROR_ATTR)
@@ -1224,13 +1403,13 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
       return { ok: true, content }
     }
 
+    function looksLikePersonaEnvelope(text) {
+      return /^\s*\{/.test(text) && /"version"\s*:\s*1/.test(text) && /"kind"\s*:\s*"(?:normal|short|table)"/.test(text)
+    }
+
     const extractPersonaEnvelope = (markdown) => {
       const blocks = [...(markdown.querySelectorAll?.('.md-code-block') ?? [])]
-      const looksLikeEnvelope = (code) => {
-        const text = code.querySelector('pre')?.textContent ?? ''
-        return /^\s*\{/.test(text) && /"version"\s*:\s*1/.test(text) && /"kind"\s*:\s*"(?:normal|short|table)"/.test(text)
-      }
-      const personaBlocks = blocks.filter((code) => bannerLanguage(code) === 'persona' || looksLikeEnvelope(code))
+      const personaBlocks = blocks.filter((code) => bannerLanguage(code) === 'persona' || looksLikePersonaEnvelope(code.querySelector?.('pre')?.textContent ?? ''))
       if (personaBlocks.length === 0) return { kind: 'none' }
       if (personaBlocks.length > 1 || blocks.length > 1) return { ok: false, error: 'persona 内容块必须唯一' }
       const code = personaBlocks[0]
@@ -1243,6 +1422,7 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
 
     const makePersonaElement = (doc, tag, className, text) => {
       const element = doc.createElement(tag)
+      element.setAttribute(GENERATED_ATTR, '1')
       if (className) element.className = className
       if (text !== undefined) element.textContent = text
       return element
@@ -1258,7 +1438,8 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
       markdown.appendChild(card)
     }
 
-    const renderPersonaContent = (markdown, content, config) => {
+    const renderPersonaContent = (markdown, content, config, envelopeText = null) => {
+      clearPersonaPending(markdown)
       const doc = markdown.ownerDocument ?? document
       while (markdown.firstChild) markdown.removeChild(markdown.firstChild)
       if (config.prefix) markdown.appendChild(makePersonaElement(doc, 'p', 'dss-persona-prefix', config.prefix))
@@ -1288,7 +1469,7 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
         }
         const list = makePersonaElement(doc, 'ol')
         for (const suggestion of content.suggestions) list.appendChild(makePersonaElement(doc, 'li', '', suggestion))
-        appendPersonaCard(doc, markdown, '下一步', [list])
+        appendPersonaCard(doc, markdown, '建议', [list])
         appendPersonaCard(doc, markdown, '风险', [makePersonaElement(doc, 'p', '', content.risk)])
       }
       if (config.suffix && content.kind === 'normal') markdown.appendChild(makePersonaElement(doc, 'p', 'dss-persona-suffix', config.suffix))
@@ -1299,12 +1480,16 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
       decorateStructured(markdown)
       personaRenderCache.set(markdown, {
         content,
-        signature: JSON.stringify([content, config.prefix, config.suffix]),
+        kind: content.kind,
+        envelopeText: envelopeText ?? null,
+        envelopeHash: envelopeText === null ? null : personaHash(envelopeText),
+        signature: personaContentSignature(content, config),
       })
       return content.kind
     }
 
     const renderPersonaError = (markdown, message) => {
+      clearPersonaPending(markdown)
       const doc = markdown.ownerDocument ?? document
       while (markdown.firstChild) markdown.removeChild(markdown.firstChild)
       const card = makePersonaElement(doc, 'blockquote', 'dss-card dss-card-risk')
@@ -1322,22 +1507,35 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
       return 'error'
     }
 
+    const dropPersonaHead = (flow) => {
+      for (const head of flow?.querySelectorAll?.(`[${PERSONA_HEAD_ATTR}]`) ?? []) head.remove()
+    }
+
     const renderPersonaMarkdown = (markdown, config, flowOverride, options = {}) => {
       if (!config?.enabled && options.force !== true) return null
-      const flow = flowOverride === undefined ? findAssistantFlow(markdown) : flowOverride
-      if (!flow) {
+      const scope = findFlowScope(markdown, flowOverride)
+      if (scope.userLike) {
         decorateStructured(markdown)
-        return 'legacy'
+        return 'user'
       }
-      mountPersonaHead(flow, config)
+      if (scope.skip) {
+        decorateStructured(markdown)
+        return 'skip'
+      }
+      const flow = scope.assistant
+      if (!flow) {
+        // 显式 error：不得把“找不到 assistant 容器”当 legacy 通过。
+        return renderPersonaError(markdown, '未找到 assistant 消息容器（PersonaMode 无法定位回复）')
+      }
       markdown.removeAttribute?.(PERSONA_FALLBACK_ATTR)
-      markdown.removeAttribute?.(PERSONA_PENDING_ATTR)
-      const cached = personaRenderCache.get(markdown)
       const diff = inDiff(markdown) || Boolean(markdown.querySelector?.('.md-diff, [data-diff], [class*="diff"]'))
       const errorReply = Boolean(markdown.closest?.('[data-error], [data-status="error"], [data-severity="error"]')) || Boolean(markdown.querySelector?.('[data-error], .md-error'))
       if (diff || errorReply) {
+        clearPersonaPending(markdown)
+        dropPersonaHead(flow)
         const kind = diff ? 'diff' : 'exception'
         markdown.removeAttribute?.(PERSONA_ERROR_ATTR)
+        markdown.removeAttribute?.(PERSONA_PENDING_ATTR)
         markdown.setAttribute(PERSONA_KIND_ATTR, kind)
         decorateStructured(markdown)
         personaRenderCache.delete(markdown)
@@ -1345,7 +1543,10 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
       }
       const genui = inGenui(markdown) || Boolean(markdown.querySelector?.('[data-genui], [class*="genui-root"]'))
       if (genui) {
+        clearPersonaPending(markdown)
+        dropPersonaHead(flow)
         markdown.removeAttribute?.(PERSONA_ERROR_ATTR)
+        markdown.removeAttribute?.(PERSONA_PENDING_ATTR)
         markdown.setAttribute(PERSONA_KIND_ATTR, 'genui')
         decorateStructured(markdown)
         personaRenderCache.delete(markdown)
@@ -1353,35 +1554,42 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
       }
       const envelope = extractPersonaEnvelope(markdown)
       if (envelope.kind === 'none') {
+        const cached = personaRenderCache.get(markdown)
         if (cached) {
-          if (markdown.getAttribute(PERSONA_KIND_ATTR) === cached.content.kind && JSON.stringify([cached.content, config.prefix, config.suffix]) === cached.signature) return cached.content.kind
-          return renderPersonaContent(markdown, cached.content, config)
+          // 渲染后的 DOM 已没有 envelope；用原始 envelope 文本/哈希和配置签名做幂等判断。
+          clearPersonaPending(markdown)
+          mountPersonaHead(flow, config)
+          if (markdown.getAttribute(PERSONA_KIND_ATTR) === cached.kind && personaContentSignature(cached.content, config) === cached.signature) return cached.kind
+          return renderPersonaContent(markdown, cached.content, config, cached.envelopeText)
         }
         if (markdown.getAttribute(PERSONA_ERROR_ATTR) === '1') return 'error'
         if (markdown.getAttribute(PERSONA_PENDING_ATTR) === '1') return 'pending'
+        if (isLegacyPersonaMarkdown(markdown, flow)) {
+          dropPersonaHead(flow)
+          return 'legacy'
+        }
+        mountPersonaHead(flow, config)
         if (markdown.querySelector?.('.md-code-block')) {
+          clearPersonaPending(markdown)
           markdown.removeAttribute?.(PERSONA_ERROR_ATTR)
           markdown.setAttribute(PERSONA_KIND_ATTR, 'code')
           decorateStructured(markdown)
           return 'code'
         }
-        decorateStructured(markdown)
-        return 'legacy'
+        // 内容块缺失同样是显式错误；但先走稳定窗口，避免流式回复开头被误判。
+        return schedulePersonaError(markdown, '未找到 persona 内容块（PersonaMode 要求唯一 persona JSON 块）', markdown.textContent ?? '')
       }
       if (!envelope.ok) return renderPersonaError(markdown, envelope.error)
       let parsed
       try {
         parsed = JSON.parse(envelope.text)
       } catch (error) {
-        if (!envelope.text.trim().endsWith('}')) {
-          markdown.setAttribute(PERSONA_PENDING_ATTR, '1')
-          return 'pending'
-        }
-        return renderPersonaError(markdown, 'persona JSON 解析失败：' + String(error.message ?? error))
+        return schedulePersonaError(markdown, 'persona JSON 解析失败：' + String(error.message ?? error), envelope.text)
       }
       const validated = validatePersonaContent(parsed)
-      if (!validated.ok) return renderPersonaError(markdown, validated.error)
-      return renderPersonaContent(markdown, validated.content, config)
+      if (!validated.ok) return schedulePersonaError(markdown, validated.error, envelope.text)
+      mountPersonaHead(flow, config)
+      return renderPersonaContent(markdown, validated.content, config, envelope.text)
     }
 
     function decorateStructured(root) {
@@ -1528,15 +1736,24 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
     // structural decorator; the preview only differs in its host container.
     function decorate(root, options = {}) {
       markScopes(root)
-      if (!personaModeState.enabled) {
-        removePersonaHeads(root)
-        decorateStructured(root)
-        return
-      }
+      const managedOnly = options.managedOnly === true
       const markdowns = root?.matches?.('[class*="_markdown_"]')
         ? [root]
         : [...(root?.querySelectorAll?.('[class*="_markdown_"]') ?? [])]
-      for (const markdown of markdowns) renderPersonaMarkdown(markdown, personaModeState, undefined, options)
+      if (!personaModeState.enabled) {
+        removePersonaHeads(root)
+        if (managedOnly) {
+          // 配置变化/关闭：只清理 persona 受管消息，旧历史保持不变。
+          for (const markdown of markdowns) if (isPersonaManaged(markdown)) cleanPersonaMarkdown(markdown)
+          return
+        }
+        decorateStructured(root)
+        return
+      }
+      for (const markdown of markdowns) {
+        if (managedOnly && !isPersonaManaged(markdown)) continue
+        renderPersonaMarkdown(markdown, personaModeState, undefined, options)
+      }
     }
 
     /**
@@ -1737,6 +1954,7 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
         ],
       }
       const PREVIEW_STATUS_TEXT = { success: '✅ 通过', warn: '⚠ 观察', error: '❌ 阻断' }
+      const PREVIEW_SHORT = '现在三点，周报我顺手排好了。'
       const PREVIEW_CODE = [
         "const KEY = 'dsh-structured.tone'",
         'export function loadTone() {',
@@ -1758,6 +1976,9 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
       const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]))
       const previewContent = (sample, styleText) => {
         const variant = previewVariant(String(styleText ?? ''))
+        if (sample === 'short') {
+          return { version: 1, kind: 'short', text: PREVIEW_SHORT }
+        }
         if (sample === 'table') {
           return {
             version: 1,
@@ -1805,8 +2026,8 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
         host.appendChild(body)
         if (sample === 'code') {
           markdown.innerHTML = `<div class="md-code-block"><div class="bannerWrap"><div data-code-block-banner><span class="_heading_preview">tone-loader.js</span><div class="_actions_preview"></div></div></div><div data-code-block-content><pre>${escapeHtml(PREVIEW_CODE.join(String.fromCharCode(10)))}</pre></div></div>`
-          markdown.setAttribute(PERSONA_KIND_ATTR, 'code')
-          decorateStructured(markdown)
+          // 代码预览走与真实 code 回复相同的例外通道（renderPersonaMarkdown → decorateStructured）。
+          renderPersonaMarkdown(markdown, persona, host)
         } else {
           renderPersonaContent(markdown, previewContent(sample, styleText), persona)
         }
@@ -2247,7 +2468,7 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
                       className: 'dss-preview-title-row',
                       children: [
                         jsx('h2', { className: 'dss-preview-title', children: '样式预览' }),
-                        jsx('span', { className: 'dss-preview-note', children: '预览为 PersonaMode 合同样本：身份头、卡外前缀、结论 / 下一步 / 风险、收尾；真实回复与预览同源。' }),
+                        jsx('span', { className: 'dss-preview-note', children: '预览为 PersonaMode 合同样本：身份头、卡外前缀、结论 / 建议 / 风险、收尾；真实回复与预览同源。' }),
                       ],
                     }),
                     jsx('div', {
@@ -2256,13 +2477,13 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
                         className: 'dss-preview-tabs',
                         role: 'tablist',
                         'aria-label': '预览形态',
-                        children: ['normal', 'table', 'code'].map((id) => jsx('button', {
+                        children: ['normal', 'table', 'short', 'code'].map((id) => jsx('button', {
                           type: 'button',
                           role: 'tab',
                           className: 'dss-preview-tab',
                           'aria-selected': String(sample === id),
                           onClick: () => setSample(id),
-                          children: id === 'normal' ? '普通' : id === 'table' ? '表格' : '代码',
+                          children: id === 'normal' ? '普通' : id === 'table' ? '表格' : id === 'short' ? '短答' : '代码',
                         })),
                       }),
                     }),
@@ -2399,17 +2620,22 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
       let scheduled = false
       let pending = null
       let pendingRoots = null
+      let fullRescan = false
 
       // 增量扫描：mutation 只重扫它所在的 markdown 容器（或新增子树），
       // 避免长会话里每帧对整页做一次全量 querySelectorAll（O(N²)）。
       const markRoot = (node) => {
-        if (!node) return
+        if (!node) return false
+        // 插件自己生成的子树不触发重扫：否则 decorate 的输出会被 observer 当成
+        // 宿主新消息再处理一遍（自触发 error 的根因）。
+        if (isPluginGenerated(node)) return false
         const element = node.nodeType === 1 ? node : node.parentElement
-        if (!element) return
+        if (!element) return false
         const markdown = element.closest?.('[class*="_markdown_"]')
         const root = markdown ?? element
         if (pendingRoots === null) pendingRoots = new Set()
         pendingRoots.add(root)
+        return true
       }
       const run = () => {
         if (disposed) return
@@ -2418,7 +2644,10 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
         const roots = pendingRoots
         pendingRoots = null
         if (roots === null) {
-          decorate(document, { fresh: false })
+          if (fullRescan) {
+            fullRescan = false
+            decorate(document, { fresh: false })
+          }
           return
         }
         const list = [...roots]
@@ -2436,23 +2665,28 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
         else pending = setTimeout(run, 16)
       }
       const observer = new MutationObserver((records) => {
+        let touched = false
         try {
           for (const record of records) {
             if (record.type === 'childList') {
-              for (const node of record.addedNodes) markRoot(node)
-              if (record.addedNodes.length === 0) markRoot(record.target)
+              let added = false
+              for (const node of record.addedNodes) added = markRoot(node) || added
+              if (!added && record.addedNodes.length === 0) added = markRoot(record.target)
+              touched = touched || added
             } else {
-              markRoot(record.target)
+              touched = markRoot(record.target) || touched
             }
           }
         } catch {
           // 记录结构异常时退回整页扫描，保证装饰不丢。
           pendingRoots = null
+          fullRescan = true
+          touched = true
         }
-        schedule()
+        if (touched) schedule()
       })
       observer.observe(document.body, { childList: true, subtree: true, characterData: true })
-      run()
+      decorate(document, { fresh: false })
 
       disposeLayer = () => {
         if (disposed) return
@@ -2469,7 +2703,7 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
         document.body?.removeAttribute(THEME_ATTR)
         document.body?.removeAttribute(PERSONA_MODE_ATTR)
         removePersonaHeads(document)
-        for (const attr of [CARD_ATTR, CARD_TYPE_ATTR, ICON_ATTR, TONE_ATTR, LANG_ATTR, CODE_ATTR, SKIP_ATTR, STATUS_ATTR, STATUS_TABLE_ATTR, LEAD_ATTR, ROW_ATTR, PERSONA_KIND_ATTR, PERSONA_FALLBACK_ATTR, PERSONA_ERROR_ATTR]) {
+        for (const attr of [CARD_ATTR, CARD_TYPE_ATTR, ICON_ATTR, TONE_ATTR, LANG_ATTR, CODE_ATTR, SKIP_ATTR, STATUS_ATTR, STATUS_TABLE_ATTR, LEAD_ATTR, ROW_ATTR, PERSONA_KIND_ATTR, PERSONA_FALLBACK_ATTR, PERSONA_ERROR_ATTR, PERSONA_PENDING_ATTR, GENERATED_ATTR]) {
           for (const element of document.querySelectorAll('[' + attr + ']')) element.removeAttribute(attr)
         }
         try {
@@ -2490,7 +2724,7 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
       document.body?.removeAttribute(THEME_ATTR)
       document.body?.removeAttribute(PERSONA_MODE_ATTR)
       removePersonaHeads(document)
-      for (const attr of [CARD_ATTR, CARD_TYPE_ATTR, ICON_ATTR, TONE_ATTR, LANG_ATTR, CODE_ATTR, SKIP_ATTR, STATUS_ATTR, STATUS_TABLE_ATTR, LEAD_ATTR, ROW_ATTR, PERSONA_KIND_ATTR, PERSONA_FALLBACK_ATTR, PERSONA_ERROR_ATTR]) {
+      for (const attr of [CARD_ATTR, CARD_TYPE_ATTR, ICON_ATTR, TONE_ATTR, LANG_ATTR, CODE_ATTR, SKIP_ATTR, STATUS_ATTR, STATUS_TABLE_ATTR, LEAD_ATTR, ROW_ATTR, PERSONA_KIND_ATTR, PERSONA_FALLBACK_ATTR, PERSONA_ERROR_ATTR, PERSONA_PENDING_ATTR, GENERATED_ATTR]) {
         for (const element of document.querySelectorAll('[' + attr + ']')) element.removeAttribute(attr)
       }
     }
@@ -2502,7 +2736,7 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
 
     return {
       inject: [],
-      __test: { inDiff, isDiffCode, decorate, decorateStructured, setPersonaModeConfig, setupConfigPage, personaApi: () => personaTestApi },
+      __test: { inDiff, isDiffCode, decorate, decorateStructured, setPersonaModeConfig, setupConfigPage, flushPersonaErrors, personaApi: () => personaTestApi },
       apply(ctx) {
         // 默认主题/视觉先启用；随后由 profile Config 的 theme/visual 覆盖。
         enable()

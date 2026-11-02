@@ -100,11 +100,22 @@ function makeHarness(state, setField, extraProps = {}) {
     }
     get src() { return this._src }
   }
+  const mutationObservers = []
+  class FakeMutationObserver {
+    constructor(callback) {
+      this.callback = callback
+      this.records = []
+      mutationObservers.push(this)
+    }
+    observe(target) { this.target = target }
+    disconnect() { this.disconnected = true }
+    emit(records) { if (!this.disconnected) this.callback(records) }
+  }
   const document = makeDom()
   vm.runInNewContext(readFileSync('lib/client.js', 'utf8'), {
     window, document, TextEncoder, FileReader: FakeFileReader, Image: FakeImage,
-    MutationObserver: class { observe() {} disconnect() {} },
-    requestAnimationFrame: (fn) => fn(), cancelAnimationFrame() {}, setTimeout: (fn) => fn(), clearTimeout() {},
+    MutationObserver: FakeMutationObserver,
+    requestAnimationFrame: (fn) => { fn(); return 0 }, cancelAnimationFrame() {}, setTimeout: () => 0, clearTimeout() {},
     console: { info() {}, warn() {}, error() {} },
   }, { filename: 'lib/client.js' })
   const plugin = definition.factory(fakeRequire)
@@ -132,6 +143,22 @@ function makeHarness(state, setField, extraProps = {}) {
     nodeByClass(name) { return nodes().find((item) => String(item.props?.className ?? '').split(/\s+/).includes(name)) },
     previewHtml() { return nodes().find((item) => item.props?.dangerouslySetInnerHTML)?.props.dangerouslySetInnerHTML.__html ?? '' },
     setWindowConfirm(value) { window.confirm = () => value },
+    flushPersonaErrors() { plugin.__test.flushPersonaErrors() },
+    applyPlugin() {
+      plugin.apply({
+        inject(_services, callback) {
+          callback({
+            configForms: { get() { return null } },
+            slots: { inject() { return () => {} }, register() { return () => {} } },
+          })
+        },
+        effect(fn) {
+          const result = fn()
+          return typeof result === 'function' ? result : () => {}
+        },
+      })
+    },
+    mutationObserver() { return mutationObservers[mutationObservers.length - 1] },
   }
 }
 
@@ -351,18 +378,24 @@ test('v5 预览：三态走公共装饰管线，不再手写卡片/状态签', a
   const harness = makeHarness(baseState, async () => true)
   assert.ok(harness.findButton('普通'))
   const text = harness.nodes().map((item) => String(textOf(item.props.children))).join(' ')
-  assert.match(text, /预览为 PersonaMode 合同样本：身份头、卡外前缀、结论 \/ 下一步 \/ 风险、收尾；真实回复与预览同源。/)
+  assert.match(text, /预览为 PersonaMode 合同样本：身份头、卡外前缀、结论 \/ 建议 \/ 风险、收尾；真实回复与预览同源。/)
   await harness.click('表格')
   let html = harness.previewHtml()
   assert.match(html, /注入链路/)
   assert.match(html, /data-dsh-structured-status-table="1"/)
   assert.match(html, /data-dsh-structured-status-pill="1"/)
   assert.match(html, /dss-status-success/)
+  await harness.click('短答')
+  html = harness.previewHtml()
+  assert.match(html, /现在三点/)
+  assert.match(html, /data-dsh-persona-kind="short"/)
+  assert.match(html, /data-dsh-structured-card-type="short"/)
   await harness.click('代码')
   html = harness.previewHtml()
   assert.match(html, /tone-loader\.js/)
   assert.match(html, /data-dsh-structured-copy="1"/)
   assert.match(html, /dss-code/)
+  assert.match(html, /data-dsh-persona-kind="code"/)
   await harness.click('普通')
   html = harness.previewHtml()
   assert.match(html, /这版能上/)
@@ -397,7 +430,7 @@ test('PersonaMode：预览与真实同源（内容对象 → 同一 renderer）'
     copies: root.querySelectorAll('[data-dsh-structured-copy]').length,
     code: root.querySelectorAll('[data-dsh-structured-code]').length,
   })
-  for (const sample of ['normal', 'table']) {
+  for (const sample of ['normal', 'table', 'short']) {
     const content = harness.api.previewContent(sample, '搞怪')
     const raw = flowFor(personaEnvelope(content))
     const previewHost = harness.document.createElement('div')
@@ -440,6 +473,12 @@ test('PersonaMode：normal/table/short 由内容块固定渲染；无 Persona Ma
   assert.ok(normal.markdown.querySelector('.dss-persona-prefix'))
   assert.ok(normal.markdown.querySelector('.dss-persona-suffix'))
   assert.match(normal.flow.textContent, /审计鲸鱼/)
+  assert.match(normal.markdown.textContent, /结论能上/)
+  assert.match(normal.markdown.textContent, /建议/)
+  assert.doesNotMatch(normal.markdown.textContent, /下一步/)
+  const nextCard = [...normal.markdown.querySelectorAll('[data-dsh-structured-card-type="next"]')]
+  assert.equal(nextCard.length, 1)
+  assert.match(nextCard[0].textContent, /建议/)
 
   const table = flowFor(personaEnvelope({ version: 1, kind: 'table', conclusion: { lead: '验收表', body: '' }, suggestions: ['补测'], risk: '无已知风险', table: { head: ['项', '状态'], rows: [['A', '通过'], ['B', '阻断']] } }))
   assert.equal(table.markdown.getAttribute('data-dsh-persona-kind'), 'table')
@@ -455,7 +494,7 @@ test('PersonaMode：normal/table/short 由内容块固定渲染；无 Persona Ma
   assert.equal(short.markdown.querySelector('.dss-persona-suffix'), null, 'short has no suffix')
 })
 
-test('PersonaMode：缺块 legacy、非法块 error，不补卡；code 例外；关闭清理', () => {
+test('PersonaMode：缺块/非法块都显式 error，不补卡、不回落；code 例外；关闭清理', () => {
   const harness = makeHarness(baseState, async () => true)
   const persona = { prefix: 'Boss，', suffix: '——完' }
   const tone = JSON.stringify({ schema: 'dsh-structured/tone@1', ...persona, style: '搞怪', skipIn: ['code', 'diff', 'error', 'short', 'table'] })
@@ -477,16 +516,33 @@ test('PersonaMode：缺块 legacy、非法块 error，不补卡；code 例外；
     return { flow, markdown }
   }
   const missing = flowFor('<p>Boss，</p><p>现在几点了，顺便把周报整理一下。</p>')
+  // 流式/稳定窗口内先保留原内容且不报错。
   assert.equal(missing.markdown.getAttribute('data-dsh-persona-kind'), null)
   assert.equal(missing.markdown.getAttribute('data-dsh-persona-error'), null)
+  assert.equal(missing.markdown.getAttribute('data-dsh-persona-pending'), '1')
+  assert.match(missing.markdown.textContent, /现在几点了/, 'content must be preserved before the window closes')
   assert.equal(missing.markdown.querySelectorAll('[data-dsh-structured-card-type]').length, 0, 'must not fabricate cards')
   assert.equal(missing.flow.querySelectorAll('[data-dsh-persona-head]').length, 1)
+  harness.flushPersonaErrors()
+  assert.equal(missing.markdown.getAttribute('data-dsh-persona-kind'), 'error', 'missing block is an explicit error')
+  assert.equal(missing.markdown.getAttribute('data-dsh-persona-error'), '1')
+  assert.match(missing.markdown.textContent, /内容合同错误/)
+  assert.match(missing.markdown.textContent, /未找到 persona 内容块/)
+  assert.equal(missing.markdown.querySelectorAll('[data-dsh-structured-card-type]').length, 0, 'error must not fabricate the three cards')
+  assert.equal(missing.markdown.querySelectorAll('.dss-persona-prefix, .dss-persona-suffix').length, 0)
+
   const invalid = flowFor('<div class="md-code-block"><div class="bannerWrap"><div data-code-block-banner><span class="_heading_persona">persona</span></div></div><div data-code-block-content><pre>{bad json}</pre></div></div>')
+  assert.equal(invalid.markdown.getAttribute('data-dsh-persona-error'), null, 'incomplete JSON waits for the grace window')
+  assert.equal(invalid.markdown.getAttribute('data-dsh-persona-pending'), '1')
+  harness.flushPersonaErrors()
   assert.equal(invalid.markdown.getAttribute('data-dsh-persona-kind'), 'error')
   assert.equal(invalid.markdown.querySelectorAll('[data-dsh-structured-card-type]').length, 0)
+
   const unknown = flowFor(personaEnvelope({ version: 1, kind: 'normal', conclusion: { lead: 'L' }, suggestions: ['S'], risk: 'R', extra: 1 }))
+  harness.flushPersonaErrors()
   assert.equal(unknown.markdown.getAttribute('data-dsh-persona-kind'), 'error')
   assert.equal(unknown.markdown.querySelectorAll('[data-dsh-structured-card-type]').length, 0)
+
   const code = flowFor('<div class="md-code-block"><div class="bannerWrap"><div data-code-block-banner><span class="_heading_persona">js</span></div></div><div data-code-block-content><pre>const x = 1</pre></div></div>')
   assert.equal(code.markdown.getAttribute('data-dsh-persona-kind'), 'code')
   assert.equal(code.markdown.querySelectorAll('[data-dsh-structured-card-type]').length, 0)
@@ -511,10 +567,9 @@ test('PersonaMode：幂等、旧历史、流式、no-flow、diff、关闭文本'
   const persona = { prefix: 'Boss，', suffix: '——完' }
   const tone = JSON.stringify({ schema: 'dsh-structured/tone@1', ...persona, style: '搞怪', skipIn: ['code', 'diff', 'error', 'short', 'table'] })
   const config = { personaEnabled: true, persona: tone, personaName: 'N', personaSignature: 'S', personaAvatar: '' }
-  harness.plugin.__test.setPersonaModeConfig(config)
-  const buildFlow = (html) => {
+  const buildFlow = (html, kind = 'assistant-step') => {
     const flow = harness.document.createElement('div')
-    flow.setAttribute('data-chat-flow-kind', 'assistant-step')
+    flow.setAttribute('data-chat-flow-kind', kind)
     flow.setAttribute('data-chat-node-key', 'runtime-' + Math.random())
     const slot = harness.document.createElement('div')
     slot.setAttribute('data-slot', 'conversation.chat.node')
@@ -526,24 +581,35 @@ test('PersonaMode：幂等、旧历史、流式、no-flow、diff、关闭文本'
     harness.document.body.appendChild(flow)
     return { flow, markdown }
   }
-  const flowFor = (html) => {
-    const item = buildFlow(html)
+  const flowFor = (html, kind) => {
+    const item = buildFlow(html, kind)
     harness.plugin.__test.decorate(item.flow)
     return item
   }
-  const normalContent = { version: 1, kind: 'normal', conclusion: { lead: 'L' }, suggestions: ['S'], risk: 'R' }
-  const normal = flowFor(personaEnvelope(normalContent))
-  assert.equal(normal.markdown.getAttribute('data-dsh-persona-kind'), 'normal')
-  harness.plugin.__test.decorate(normal.flow)
-  assert.equal(normal.markdown.getAttribute('data-dsh-persona-kind'), 'normal', 'redecorate must stay normal')
-  assert.equal(normal.markdown.querySelectorAll('[data-dsh-structured-card-type]').length, 3)
-  assert.doesNotMatch(normal.markdown.textContent, /内容合同错误/)
-
+  // 旧历史：在 PersonaMode 激活前就已存在；激活后不回溯重写。
   const old = buildFlow('<p>旧消息正文</p>')
+  harness.plugin.__test.setPersonaModeConfig(config)
+  const normalContent = { version: 1, kind: 'normal', conclusion: { lead: 'L' }, suggestions: ['S'], risk: 'R' }
+
   harness.plugin.__test.decorate(old.flow, { fresh: false })
   assert.equal(old.markdown.getAttribute('data-dsh-persona-kind'), null, 'old history must not be rewritten')
   assert.equal(old.markdown.getAttribute('data-dsh-persona-error'), null)
+  assert.equal(old.markdown.getAttribute('data-dsh-persona-pending'), null)
   assert.match(old.markdown.textContent, /旧消息正文/)
+  // 配置变化不应全量重扫旧历史。
+  harness.plugin.__test.setPersonaModeConfig({ ...config, personaName: '改个名字' })
+  assert.equal(old.markdown.getAttribute('data-dsh-persona-kind'), null)
+  assert.equal(old.markdown.getAttribute('data-dsh-persona-error'), null)
+  harness.plugin.__test.setPersonaModeConfig(config)
+
+  const normal = flowFor(personaEnvelope(normalContent))
+  assert.equal(normal.markdown.getAttribute('data-dsh-persona-kind'), 'normal')
+  harness.plugin.__test.decorate(normal.flow)
+  harness.plugin.__test.decorate(normal.markdown)
+  assert.equal(normal.markdown.getAttribute('data-dsh-persona-kind'), 'normal', 'redecorate must stay normal')
+  assert.equal(normal.markdown.getAttribute('data-dsh-persona-error'), null)
+  assert.equal(normal.markdown.querySelectorAll('[data-dsh-structured-card-type]').length, 3)
+  assert.doesNotMatch(normal.markdown.textContent, /内容合同错误/)
 
   const real = harness.document.createElement('div')
   real.className = 'flowItem'
@@ -576,28 +642,53 @@ test('PersonaMode：幂等、旧历史、流式、no-flow、diff、关闭文本'
   assert.equal(slotMarkdown.getAttribute('data-dsh-persona-kind'), 'normal', 'slot parent fallback must render')
   assert.equal(slotOnly.querySelectorAll('[data-dsh-persona-head]').length, 1)
 
+  // 流式半截：先保留内容，不立刻 error；块完成后恢复 normal。
   const partial = flowFor('<div class="md-code-block"><div class="bannerWrap"><div data-code-block-banner><span class="_heading_persona">persona</span></div></div><div data-code-block-content><pre>{"version":1,"kind":"normal",</pre></div></div>')
   assert.equal(partial.markdown.getAttribute('data-dsh-persona-kind'), null, 'partial stream must not error')
   assert.equal(partial.markdown.getAttribute('data-dsh-persona-error'), null)
   assert.equal(partial.markdown.getAttribute('data-dsh-persona-pending'), '1')
   assert.equal(partial.markdown.querySelectorAll('.md-code-block').length, 1, 'partial block must be preserved')
+  // 以 `}` 结尾但字段不全的半截 payload 也不能立即 error。
+  const halfClosed = flowFor('<div class="md-code-block"><div class="bannerWrap"><div data-code-block-banner><span class="_heading_persona">persona</span></div></div><div data-code-block-content><pre>{"version":1,"kind":"normal","conclusion":{"lead":"L"}}</pre></div></div>')
+  assert.equal(halfClosed.markdown.getAttribute('data-dsh-persona-kind'), null)
+  assert.equal(halfClosed.markdown.getAttribute('data-dsh-persona-error'), null)
+  assert.equal(halfClosed.markdown.getAttribute('data-dsh-persona-pending'), '1')
+  partial.markdown.innerHTML = personaEnvelope(normalContent)
+  harness.plugin.__test.decorate(partial.flow)
+  assert.equal(partial.markdown.getAttribute('data-dsh-persona-kind'), 'normal', 'completed stream must render')
+  assert.equal(partial.markdown.getAttribute('data-dsh-persona-pending'), null)
 
+  // 找不到 assistant flow：显式 error，不回落 legacy 当通过。
   const loose = harness.document.createElement('div')
   loose.className = '_markdown_preview'
   loose.innerHTML = '<p>no flow</p>'
   harness.document.body.appendChild(loose)
   harness.plugin.__test.decorate(loose)
-  assert.equal(loose.getAttribute('data-dsh-persona-kind'), null, 'no-flow legacy stays plain')
-  assert.equal(loose.getAttribute('data-dsh-persona-error'), null)
+  assert.equal(loose.getAttribute('data-dsh-persona-kind'), 'error', 'no-flow must be an explicit error')
+  assert.match(loose.textContent, /未找到 assistant 消息容器/)
+  // 用户消息不是 assistant 回复，不套内容合同。
+  const userFlow = flowFor('<p>用户消息</p>', 'user')
+  assert.equal(userFlow.markdown.getAttribute('data-dsh-persona-kind'), null)
+  assert.equal(userFlow.markdown.getAttribute('data-dsh-persona-error'), null)
+  assert.match(userFlow.markdown.textContent, /用户消息/)
+  assert.equal(userFlow.flow.querySelectorAll('[data-dsh-persona-head]').length, 0)
 
   const diff = flowFor('<div class="md-diff"><p>diff text</p></div>')
   assert.equal(diff.markdown.getAttribute('data-dsh-persona-kind'), 'diff')
   assert.equal(diff.markdown.getAttribute('data-dsh-persona-error'), null, 'diff is an exception, not a content error')
+  assert.equal(diff.markdown.querySelectorAll('[data-dsh-structured-card-type]').length, 0)
+  const errorReply = flowFor('<div data-error="1"><p>error text</p></div>')
+  assert.equal(errorReply.markdown.getAttribute('data-dsh-persona-kind'), 'exception')
+  assert.equal(errorReply.markdown.getAttribute('data-dsh-persona-error'), null)
+  assert.equal(errorReply.markdown.querySelectorAll('[data-dsh-structured-card-type]').length, 0)
 
   const six = flowFor(personaEnvelope({ ...normalContent, suggestions: ['1', '2', '3', '4', '5', '6'] }))
+  assert.equal(six.markdown.getAttribute('data-dsh-persona-error'), null, '6 suggestions enter the grace window first')
+  harness.flushPersonaErrors()
   assert.equal(six.markdown.getAttribute('data-dsh-persona-kind'), 'error', '6 suggestions must be rejected')
   const rows = Array.from({ length: 21 }, (_, i) => [String(i), 'x'])
   const tooMany = flowFor(personaEnvelope({ version: 1, kind: 'table', conclusion: { lead: 'L' }, suggestions: ['S'], risk: 'R', table: { head: ['A', 'B'], rows } }))
+  harness.flushPersonaErrors()
   assert.equal(tooMany.markdown.getAttribute('data-dsh-persona-kind'), 'error', '21 table rows must be rejected')
 
   const close = flowFor(personaEnvelope(normalContent))
@@ -610,6 +701,114 @@ test('PersonaMode：幂等、旧历史、流式、no-flow、diff、关闭文本'
   assert.equal(close.markdown.querySelectorAll('.dss-persona-prefix, .dss-persona-suffix').length, 0)
   assert.doesNotMatch(close.markdown.textContent, /Boss，|——完/, 'close must remove visible prefix/suffix text')
   assert.equal(close.markdown.querySelectorAll('blockquote').length, 3, 'generic cards remain')
+})
+
+test('PersonaMode：MutationObserver 忽略插件自生成子树，重复 decorate 不产生自触发 error', () => {
+  const harness = makeHarness(baseState, async () => true)
+  const persona = { prefix: 'Boss，', suffix: '——完' }
+  const tone = JSON.stringify({ schema: 'dsh-structured/tone@1', ...persona, style: '搞怪', skipIn: ['code', 'diff', 'error', 'short', 'table'] })
+  harness.applyPlugin()
+  // 激活前就存在的旧消息：配置订阅/变化都不应重写。
+  const oldFlow = harness.document.createElement('div')
+  oldFlow.setAttribute('data-chat-flow-kind', 'assistant-step')
+  const oldSlot = harness.document.createElement('div')
+  oldSlot.setAttribute('data-slot', 'conversation.chat.node')
+  const oldMarkdown = harness.document.createElement('div')
+  oldMarkdown.className = '_markdown_'
+  oldMarkdown.innerHTML = '<p>旧历史正文</p>'
+  oldSlot.appendChild(oldMarkdown)
+  oldFlow.appendChild(oldSlot)
+  harness.document.body.appendChild(oldFlow)
+  harness.plugin.__test.setPersonaModeConfig({ personaEnabled: true, persona: tone, personaName: 'N', personaSignature: 'S', personaAvatar: '' })
+  assert.equal(oldMarkdown.getAttribute('data-dsh-persona-kind'), null, 'old history stays untouched on activation')
+  assert.equal(oldMarkdown.getAttribute('data-dsh-persona-error'), null)
+  assert.equal(oldFlow.querySelectorAll('[data-dsh-persona-head]').length, 0, 'old history must not get an identity header')
+  harness.plugin.__test.setPersonaModeConfig({ personaEnabled: true, persona: tone, personaName: '改名', personaSignature: 'S2', personaAvatar: '' })
+  assert.equal(oldMarkdown.getAttribute('data-dsh-persona-kind'), null, 'config change must not rescan old history')
+  assert.equal(oldMarkdown.getAttribute('data-dsh-persona-error'), null)
+  assert.match(oldMarkdown.textContent, /旧历史正文/)
+  assert.equal(oldFlow.querySelectorAll('[data-dsh-persona-head]').length, 0, 'config change must not add a header to old history')
+  harness.plugin.__test.setPersonaModeConfig({ personaEnabled: true, persona: tone, personaName: 'N', personaSignature: 'S', personaAvatar: '' })
+  const observer = harness.mutationObserver()
+  assert.ok(observer, 'visual layer must install a MutationObserver')
+  const flow = harness.document.createElement('div')
+  flow.setAttribute('data-chat-flow-kind', 'assistant-step')
+  const slot = harness.document.createElement('div')
+  slot.setAttribute('data-slot', 'conversation.chat.node')
+  const markdown = harness.document.createElement('div')
+  markdown.className = '_markdown_'
+  markdown.innerHTML = personaEnvelope({ version: 1, kind: 'normal', conclusion: { lead: 'L' }, suggestions: ['S'], risk: 'R' })
+  slot.appendChild(markdown)
+  flow.appendChild(slot)
+  harness.document.body.appendChild(flow)
+  observer.emit([{ type: 'childList', target: harness.document.body, addedNodes: [flow], removedNodes: [] }])
+  assert.equal(markdown.getAttribute('data-dsh-persona-kind'), 'normal')
+  // 插件渲染产生的 mutation（全部为插件生成节点）必须被忽略。
+  const generated = [...markdown.childNodes].filter((node) => node.nodeType === 1)
+  observer.emit([{ type: 'childList', target: markdown, addedNodes: generated, removedNodes: [] }])
+  observer.emit([{ type: 'characterData', target: generated[0]?.firstChild ?? markdown }])
+  assert.equal(markdown.getAttribute('data-dsh-persona-kind'), 'normal', 'plugin-generated mutations must not re-error')
+  assert.equal(markdown.getAttribute('data-dsh-persona-error'), null)
+  assert.doesNotMatch(markdown.textContent, /内容合同错误/)
+  assert.equal(markdown.querySelectorAll('[data-dsh-structured-card-type]').length, 3)
+
+  // 配置变化：只刷新已受管渲染与身份头，不动旧历史。
+  const nextTone = JSON.stringify({ schema: 'dsh-structured/tone@1', prefix: '新前缀，', style: '搞怪', suffix: '——新尾', skipIn: ['code', 'diff', 'error', 'short', 'table'] })
+  harness.plugin.__test.setPersonaModeConfig({ personaEnabled: true, persona: nextTone, personaName: '新名字', personaSignature: '新签名', personaAvatar: '' })
+  assert.equal(markdown.getAttribute('data-dsh-persona-kind'), 'normal', 'config change must keep the rendered message')
+  assert.equal(markdown.querySelectorAll('.dss-persona-prefix').length, 1, 'prefix must not duplicate on config change')
+  assert.equal(markdown.querySelector('.dss-persona-prefix').textContent, '新前缀，')
+  assert.match(flow.querySelector('[data-dsh-persona-head]').textContent, /新名字/)
+  assert.equal(oldMarkdown.getAttribute('data-dsh-persona-kind'), null, 'config change must not decorate old history')
+
+  // 关闭：前后缀节点与文本删除，通用卡保留。
+  harness.plugin.__test.setPersonaModeConfig({ personaEnabled: false })
+  assert.equal(flow.querySelectorAll('[data-dsh-persona-head]').length, 0)
+  assert.equal(markdown.getAttribute('data-dsh-persona-kind'), null)
+  assert.equal(markdown.querySelectorAll('.dss-persona-prefix, .dss-persona-suffix').length, 0)
+  assert.doesNotMatch(markdown.textContent, /新前缀，|——新尾/)
+  assert.equal(markdown.querySelectorAll('blockquote').length, 3, 'generic cards remain after close')
+})
+
+test('PersonaMode：reasoning / step-process / compaction 不套内容合同', () => {
+  const harness = makeHarness(baseState, async () => true)
+  const tone = JSON.stringify({ schema: 'dsh-structured/tone@1', prefix: 'Boss，', style: '搞怪', suffix: '——完', skipIn: ['code', 'diff', 'error', 'short', 'table'] })
+  harness.plugin.__test.setPersonaModeConfig({ personaEnabled: true, persona: tone, personaName: 'N', personaSignature: 'S', personaAvatar: '' })
+  const mount = (html, kind, decorateFlow) => {
+    const flow = harness.document.createElement('div')
+    flow.setAttribute('data-chat-flow-kind', kind)
+    const slot = harness.document.createElement('div')
+    slot.setAttribute('data-slot', 'conversation.chat.node')
+    const body = decorateFlow ?? slot
+    const markdown = harness.document.createElement('div')
+    markdown.className = '_markdown_'
+    markdown.innerHTML = html
+    body.appendChild(markdown)
+    if (body !== slot) slot.appendChild(body)
+    flow.appendChild(slot)
+    harness.document.body.appendChild(flow)
+    harness.plugin.__test.decorate(flow)
+    return markdown
+  }
+  const reasoningWrap = harness.document.createElement('div')
+  reasoningWrap.setAttribute('data-variant', 'think')
+  const reasoning = mount('<p>推理过程没有内容块</p>', 'assistant-step', reasoningWrap)
+  assert.equal(reasoning.getAttribute('data-dsh-persona-kind'), null)
+  assert.equal(reasoning.getAttribute('data-dsh-persona-error'), null)
+  assert.equal(reasoning.getAttribute('data-dsh-persona-pending'), null)
+  assert.match(reasoning.textContent, /推理过程/)
+
+  const stepWrap = harness.document.createElement('div')
+  stepWrap.setAttribute('data-step-process', '')
+  const stepMarkdown = mount('<p>工具输出正文</p>', 'assistant-step', stepWrap)
+  assert.equal(stepMarkdown.getAttribute('data-dsh-persona-kind'), null)
+  assert.equal(stepMarkdown.getAttribute('data-dsh-persona-error'), null)
+  assert.match(stepMarkdown.textContent, /工具输出正文/)
+
+  const compaction = mount('<p>压缩摘要</p>', 'compaction')
+  assert.equal(compaction.getAttribute('data-dsh-persona-kind'), null)
+  assert.equal(compaction.getAttribute('data-dsh-persona-error'), null)
+  assert.match(compaction.textContent, /压缩摘要/)
 })
 
 test('v5 emptyTone 兜底只写语言风格，不写结构要求', () => {

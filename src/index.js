@@ -104,8 +104,8 @@ export const PERSONA_WRAPPER_HEAD = [
 export const PERSONA_WRAPPER_TAIL = '【风格数据结束】'
 export const TONE_ANCHOR = [
   '本轮按已启用的表达风格执行；结构 / 事实 / 安全优先。',
-  'PersonaMode 只输出一个 persona 内容块，不写三卡 Markdown、不写前缀或后缀；normal / short / table 由 kind 声明；代码 / diff / 报错 / GenUI 不交 persona 内容块。缺块走 legacy 普通排版；块存在但 JSON / 字段非法才显式报错，不补卡。',
-  '发送前自检：只交 persona 内容块；块外无文字；不写三卡 Markdown、前缀或后缀；缺块不报错，非法块显式错误。',
+  'PersonaMode 只输出一个 persona 内容块，不写三卡 Markdown、不写前缀或后缀；normal / short / table 由 kind 声明；代码 / diff / 报错 / GenUI 不交 persona 内容块。缺块、块外内容、多个块或 JSON / 字段非法都显示「内容合同错误」，不补卡、不回落普通排版。',
+  '发送前自检：只交 persona 内容块；块外无文字；不写三卡 Markdown、前缀或后缀；缺块即 error，非法块显式错误。',
 ].join(String.fromCharCode(10))
 
 
@@ -113,10 +113,10 @@ export const TONE_ANCHOR = [
  * PersonaMode 合同：替代 BUILTIN_STYLE_TEXT / TAIL_REMINDER 的固定形状。
  * 前缀独立一行、在三卡之外；三卡顺序固定；无内容用显式空槽，不补卡、不编造。
  *
- * 已知限制（2026-11-02）：PersonaMode 通过 persona 内容块约束形状；解析失败显式报错，不回落。
- * 长会话、旧格式历史或全局指令冲突时，模型可能漏掉三卡/短答卡；客户端只做
- * fallback 保护，不补卡、不伪造。验收或漂移时优先新会话；确定性 payload/
- * 受控重试属于后续架构项。不要把 fallback 当作合同已满足。
+ * 已知限制（2026-11-02）：PersonaMode 通过 persona 内容块约束形状；缺块 / JSON /
+ * 字段非法一律显式报错，不回落普通排版。旧历史消息在激活时快照、不回溯重渲染；
+ * 流式半截内容进入稳定窗口，块完成且仍非法才报错。验收或漂移时优先新会话；
+ * 确定性 payload / 受控重试属于后续架构项。
  */
 export const PERSONA_MODE_RULES = [
   '【PersonaMode 内容合同】',
@@ -133,13 +133,14 @@ export const PERSONA_MODE_RULES = [
   '{"version":1,"kind":"short","text":"短答内容"}',
   '```',
   '',
-  'table（三卡 + 表格；表格在结论与下一步之间）：',
+  'table（三卡 + 表格；表格在结论与建议之间）：',
   '```persona',
   '{"version":1,"kind":"table","conclusion":{"lead":"摘要","body":"可选"},"suggestions":["行动"],"risk":"风险","table":{"head":["列 1","列 2"],"rows":[["值 1","值 2"]]}}',
   '```',
   '',
   '硬约束：',
   '- 块外无内容；JSON 不允许注释、payload、隐藏标记或第二个 persona 块。',
+  '- assistant 回复必须且只能包含一个 `persona` 块；缺块、块外内容或块数不唯一都显示「内容合同错误」，不补卡、不回落普通排版。',
   '- `version` 必须为 1；`kind` 只能是 normal / short / table；字段严格按对应形状，不允许多余字段。',
   '- normal/table 的 `suggestions` 为 1-5 条；`risk` 必填；短答只允许 `text`。',
   '- 表格 `head` 2-6 列，`rows` 1-20 行，行列数一致；表格单元格由插件渲染，模型不写前缀/后缀。',
