@@ -1576,8 +1576,11 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
           decorateStructured(markdown)
           return 'code'
         }
-        // 内容块缺失同样是显式错误；但先走稳定窗口，避免流式回复开头被误判。
-        return schedulePersonaError(markdown, '未找到 persona 内容块（PersonaMode 要求唯一 persona JSON 块）', markdown.textContent ?? '')
+        // 普通回复/旧格式没有 persona 块：保留原文，走 legacy 排版；只有块存在但非法才 error。
+        markdown.removeAttribute?.(PERSONA_ERROR_ATTR)
+        markdown.removeAttribute?.(PERSONA_PENDING_ATTR)
+        decorateStructured(markdown)
+        return 'legacy'
       }
       if (!envelope.ok) return renderPersonaError(markdown, envelope.error)
       let parsed

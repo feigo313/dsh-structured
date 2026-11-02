@@ -494,7 +494,7 @@ test('PersonaMode：normal/table/short 由内容块固定渲染；无 Persona Ma
   assert.equal(short.markdown.querySelector('.dss-persona-suffix'), null, 'short has no suffix')
 })
 
-test('PersonaMode：缺块/非法块都显式 error，不补卡、不回落；code 例外；关闭清理', () => {
+test('PersonaMode：缺块 legacy、非法块 error，不补卡、不回落；code 例外；关闭清理', () => {
   const harness = makeHarness(baseState, async () => true)
   const persona = { prefix: 'Boss，', suffix: '——完' }
   const tone = JSON.stringify({ schema: 'dsh-structured/tone@1', ...persona, style: '搞怪', skipIn: ['code', 'diff', 'error', 'short', 'table'] })
@@ -516,20 +516,16 @@ test('PersonaMode：缺块/非法块都显式 error，不补卡、不回落；co
     return { flow, markdown }
   }
   const missing = flowFor('<p>Boss，</p><p>现在几点了，顺便把周报整理一下。</p>')
-  // 流式/稳定窗口内先保留原内容且不报错。
+  // 缺块不是错误：普通回复保留原文并走 legacy，只有块存在但非法才 error。
   assert.equal(missing.markdown.getAttribute('data-dsh-persona-kind'), null)
   assert.equal(missing.markdown.getAttribute('data-dsh-persona-error'), null)
-  assert.equal(missing.markdown.getAttribute('data-dsh-persona-pending'), '1')
-  assert.match(missing.markdown.textContent, /现在几点了/, 'content must be preserved before the window closes')
+  assert.equal(missing.markdown.getAttribute('data-dsh-persona-pending'), null)
+  assert.match(missing.markdown.textContent, /现在几点了/, 'legacy content must be preserved')
   assert.equal(missing.markdown.querySelectorAll('[data-dsh-structured-card-type]').length, 0, 'must not fabricate cards')
   assert.equal(missing.flow.querySelectorAll('[data-dsh-persona-head]').length, 1)
   harness.flushPersonaErrors()
-  assert.equal(missing.markdown.getAttribute('data-dsh-persona-kind'), 'error', 'missing block is an explicit error')
-  assert.equal(missing.markdown.getAttribute('data-dsh-persona-error'), '1')
-  assert.match(missing.markdown.textContent, /内容合同错误/)
-  assert.match(missing.markdown.textContent, /未找到 persona 内容块/)
-  assert.equal(missing.markdown.querySelectorAll('[data-dsh-structured-card-type]').length, 0, 'error must not fabricate the three cards')
-  assert.equal(missing.markdown.querySelectorAll('.dss-persona-prefix, .dss-persona-suffix').length, 0)
+  assert.equal(missing.markdown.getAttribute('data-dsh-persona-kind'), null)
+  assert.equal(missing.markdown.getAttribute('data-dsh-persona-error'), null)
 
   const invalid = flowFor('<div class="md-code-block"><div class="bannerWrap"><div data-code-block-banner><span class="_heading_persona">persona</span></div></div><div data-code-block-content><pre>{bad json}</pre></div></div>')
   assert.equal(invalid.markdown.getAttribute('data-dsh-persona-error'), null, 'incomplete JSON waits for the grace window')

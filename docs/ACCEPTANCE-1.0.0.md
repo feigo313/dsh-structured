@@ -1,6 +1,6 @@
 # dsh-structured 1.0.0 验收
 
-[1.0.0 · 代码/构建] `npm test` 95/95；`npm run build` 完成；`desktop-check` 全 PASS；`theme-contrast` 60；`theme-hue-distance` 12；`lib` 由 src 构建并注入鲸鱼娘 JSON；pack 58 文件 / 851755 B / unpacked 1372978 B。
+[1.0.0 · 代码/构建] `npm test` 95/95；`npm run build` 完成；`desktop-check` 全 PASS；`theme-contrast` 60；`theme-hue-distance` 12；`lib` 由 src 构建并注入鲸鱼娘 JSON；pack 58 文件 / 851666 B / unpacked 1372500 B。
 
 [1.0.0 · v5 回复皮肤] 软面卡片台：12px 圆角卡 + 3px 左条 + 同构渐变面；结论 / 下一步 / 风险线标题（PersonaMode 的模型内容槽位卡标签统一为「建议」）；表格蓝 tint 表头、26% / 18% 列宽、首列 600 墨字、三色状态签；代码浅色卡 + 「代码 · 语言」线标题 + 双方框复制钮；深色卡面 / 表头 / 代码面 / 状态签全量适配。静态三态×明暗×三主题证据：`artifacts/prototype/v5-<theme>-<light|dark>-<normal|table|code>.png`（18 张；三主题统一 v5 token，按主题分组校验）；设置页证据：`artifacts/prototype/v5-settings-light.png` / `v5-settings-dark.png`。这些证据在 `artifacts/` 下，被 `.gitignore` 忽略，**local-only，不进 git**。
 
@@ -8,7 +8,7 @@
 
 [1.0.0 · tone 合同] tone@1 schema / 长度上限 / 严格白名单 / 64KB / 转义逻辑保持；默认鲸鱼 JSON style 已清为纯语言描述；档案字段不进 tone JSON。默认鲸鱼头像内嵌为 128px JPEG dataURL，`personaAvatar` 空值使用内置图。
 
-[1.0.0 · PersonaMode] `personaEnabled=true` 只注入内容合同；`BUILTIN_STYLE_TEXT` / `TAIL_REMINDER` / `GENUI_ROUTING_TEXT` 不注入；`personaEnabled=false` 保持 StructuredMode 原行为。模型只交一个 `persona` fenced JSON（version 1；kind normal/short/table；内容槽位），身份头、前缀、三卡、收尾由 `renderPersonaContent` 固定渲染；模型不再输出 Markdown 卡片。合同与实现一致：`suggestions` 1-5 条、`table.head` 2-6 列、`table.rows` 1-20 行。assistant 回复缺块、块外内容、多块、JSON / 字段非法都显示「内容合同错误」，不补卡、不回落普通排版；代码 / diff / 报错 / GenUI 走例外通道。旧历史消息在 `personaEnabled` 激活时快照，不回溯、不重写；配置变化只刷新已受管渲染与身份头。流式半截内容先用宿主 `data-streaming` 信号 + 可测试稳定窗口保留原内容，块完成且仍非法才报错。`/structured` 在 PersonaMode 下只报模式，不切换。默认关闭。
+[1.0.0 · PersonaMode] `personaEnabled=true` 只注入内容合同；`BUILTIN_STYLE_TEXT` / `TAIL_REMINDER` / `GENUI_ROUTING_TEXT` 不注入；`personaEnabled=false` 保持 StructuredMode 原行为。模型只交一个 `persona` fenced JSON（version 1；kind normal/short/table；内容槽位），身份头、前缀、三卡、收尾由 `renderPersonaContent` 固定渲染；模型不再输出 Markdown 卡片。合同与实现一致：`suggestions` 1-5 条、`table.head` 2-6 列、`table.rows` 1-20 行。assistant 回复缺块走 legacy 普通排版并保留原文；块外内容、多块、JSON / 字段非法才显示「内容合同错误」。代码 / diff / 报错 / GenUI 走例外通道。旧历史消息在 `personaEnabled` 激活时快照，不回溯、不重写；配置变化只刷新已受管渲染与身份头。流式半截内容先用宿主 `data-streaming` 信号 + 可测试稳定窗口保留原内容，块完成且仍非法才报错。`/structured` 在 PersonaMode 下只报模式，不切换。默认关闭。
 
 [1.0.0 · 预览/真实共用 PersonaRenderer] normal/table/short 预览与真实回复共用 `renderPersonaContent`，输入都是内容对象，不再先造 Markdown 样例；身份头、前缀、三卡、收尾同源。code 预览与真实 code 都走 `decorateStructured` 的 code 例外样式；code 预览样本在设置页构造，不参与内容合同。预览 tab 为普通 / 表格 / 短答 / 代码；真实回复按宿主真实 DOM 选择器定位：`[data-chat-flow-kind="assistant-step"]`、`[data-chat-group-part="response"]`、`[class*="assistantContent"]`、`[data-slot="conversation.chat.node"]` 父级兜底；reasoning / step-process / 上下文注入等过程节点不套内容合同。找不到 assistant flow 显示显式 error，不回落普通排版。身份头 live 验证移到 Phase 4（未执行，UNVERIFIED）。
 
@@ -18,8 +18,8 @@
 
 [1.0.0 · PersonaMode 修复轮（2026-11-02，FAIL 审计复核）] P0：渲染缓存保存原始 envelope 文本 / 哈希与配置签名，重复 `decorate`（含 observer 自触发）仍为原 kind；插件生成节点带 `data-dsh-plugin-generated` 标记，MutationObserver 忽略自生成子树；PersonaMode 激活时快照旧历史 + `data-chat-turn` 水位，配置变化只走 `managedOnly` 刷新，不对旧历史全量重扫。P1：流式半截 JSON / 字段不全先 pending（`data-streaming` 完成信号 + 500ms 稳定窗口）并保留原 DOM，完成且仍非法才 error；找不到 assistant flow 显式 error；关闭删除前后缀节点与文本；合同写明 1-5 / 1-20 并测 6 / 21；`.md-diff` 与报错回复走例外，不再显示内容合同错误。P2：Persona 建议卡标签统一「建议」；预览补短答 tab，code 预览改走真实 code 例外通道；回归测试补 observer 自触发 / 旧历史 / 配置订阅 / partial-stream / no-flow / diff / 6 / 21 / 关闭文本 / 预览同源。
 
-[1.0.0 · 手动样式 gate] 真实浏览器检查不进 `npm test`；显式 `DSH_STRUCTURED_STYLE_GATE=1 node scripts/style-gate.mjs` 启动 detached worker 后立即返回，`node scripts/style-gate.mjs --check` 读结果；校验 computedStyle（v5 卡片 / 表头 / 状态签 / 代码卡 / 深色）与 800px，证据写入 `artifacts/style-gate/<timestamp>/`（local-only，不进 git）。**gate 只覆盖 v5 通用样式，不覆盖 Persona 身份头 / 前后缀 / 三卡标签，不能作为 PersonaMode 的验收证据**；Persona 视觉走 Phase 4 live 对照（未执行）。当前证据：`artifacts/style-gate/2026-11-02T08-44-17-910Z/`（HEAD `2db4c50`，ok=true，failures=[]）。
+[1.0.0 · 手动样式 gate] 真实浏览器检查不进 `npm test`；显式 `DSH_STRUCTURED_STYLE_GATE=1 node scripts/style-gate.mjs` 启动 detached worker 后立即返回，`node scripts/style-gate.mjs --check` 读结果；校验 computedStyle（v5 卡片 / 表头 / 状态签 / 代码卡 / 深色）与 800px，证据写入 `artifacts/style-gate/<timestamp>/`（local-only，不进 git）。**gate 只覆盖 v5 通用样式，不覆盖 Persona 身份头 / 前后缀 / 三卡标签，不能作为 PersonaMode 的验收证据**；Persona 视觉走 Phase 4 live 对照（未执行）。当前证据：缺块 legacy 修复 code commit 后重跑（源码树绑定会拒绝旧证据）。
 
-[1.0.0 · 已知限制提示] PersonaMode 仍需模型输出 `persona` 内容块；缺块 / JSON / 字段非法显示显式「内容合同错误」，不回落普通排版。旧历史消息不会回溯重渲染；流式回复在块完成前不报错，稳定窗口到期且仍无合法块才报错。验收使用新回复。
+[1.0.0 · 已知限制提示] PersonaMode 仍需模型输出 `persona` 内容块；缺块走 legacy 普通排版；块存在但 JSON / 字段非法才显示「内容合同错误」。旧历史消息不会回溯重渲染；流式回复在块完成前不报错，稳定窗口到期且仍无合法块才报错。验收使用新回复。
 
 [1.0.0 · 未验] 桌面实机真实聊天与设置页预览并排对照、身份头 live 验证、真实 Electron 长会话 / 虚拟列表重挂旧消息、工具输出 / reasoning / 压缩摘要不套 Persona 合同的 live 抽查、两会话 A 保存→B 下一条立即生效、隔离 temp cwd P01–P10 基线、beta ≥3 / default-on 8–10 且 ≥60% 偏好 gate 0 人、当前 HEAD 的真实模型 A/S/B/C/D 重跑，均未执行；发布门禁仍 NO-GO。未 push / publish / PR / 安装 desktop。
