@@ -454,7 +454,7 @@ test('PersonaMode：normal/table/short 由内容块固定渲染；无 Persona Ma
   assert.equal(short.markdown.querySelector('.dss-persona-suffix'), null, 'short has no suffix')
 })
 
-test('PersonaMode：缺失/非法内容块显式 error，不补卡；code 例外；关闭清理', () => {
+test('PersonaMode：缺块 legacy、非法块 error，不补卡；code 例外；关闭清理', () => {
   const harness = makeHarness(baseState, async () => true)
   const persona = { prefix: 'Boss，', suffix: '——完' }
   const tone = JSON.stringify({ schema: 'dsh-structured/tone@1', ...persona, style: '搞怪', skipIn: ['code', 'diff', 'error', 'short', 'table'] })
@@ -476,8 +476,8 @@ test('PersonaMode：缺失/非法内容块显式 error，不补卡；code 例外
     return { flow, markdown }
   }
   const missing = flowFor('<p>Boss，</p><p>现在几点了，顺便把周报整理一下。</p>')
-  assert.equal(missing.markdown.getAttribute('data-dsh-persona-kind'), 'error')
-  assert.equal(missing.markdown.getAttribute('data-dsh-persona-error'), '1')
+  assert.equal(missing.markdown.getAttribute('data-dsh-persona-kind'), null)
+  assert.equal(missing.markdown.getAttribute('data-dsh-persona-error'), null)
   assert.equal(missing.markdown.querySelectorAll('[data-dsh-structured-card-type]').length, 0, 'must not fabricate cards')
   assert.equal(missing.flow.querySelectorAll('[data-dsh-persona-head]').length, 1)
   const invalid = flowFor('<div class="md-code-block"><div class="bannerWrap"><div data-code-block-banner><span class="_heading_persona">persona</span></div></div><div data-code-block-content><pre>{bad json}</pre></div></div>')
@@ -544,6 +544,37 @@ test('PersonaMode：幂等、旧历史、流式、no-flow、diff、关闭文本'
   assert.equal(old.markdown.getAttribute('data-dsh-persona-error'), null)
   assert.match(old.markdown.textContent, /旧消息正文/)
 
+  const real = harness.document.createElement('div')
+  real.className = 'flowItem'
+  const assistant = harness.document.createElement('div')
+  assistant.className = 'assistantContent'
+  const realSlot = harness.document.createElement('div')
+  realSlot.setAttribute('data-slot', 'conversation.chat.node')
+  const realMarkdown = harness.document.createElement('div')
+  realMarkdown.className = '_markdown_'
+  realMarkdown.innerHTML = personaEnvelope(normalContent)
+  realSlot.appendChild(realMarkdown)
+  assistant.appendChild(realSlot)
+  real.appendChild(assistant)
+  harness.document.body.appendChild(real)
+  harness.plugin.__test.decorate(real)
+  assert.equal(realMarkdown.getAttribute('data-dsh-persona-kind'), 'normal', 'real assistantContent class must render')
+  assert.equal(real.querySelectorAll('[data-dsh-persona-head]').length, 1)
+
+  const slotOnly = harness.document.createElement('div')
+  slotOnly.className = 'flowItem'
+  const slot = harness.document.createElement('div')
+  slot.setAttribute('data-slot', 'conversation.chat.node')
+  const slotMarkdown = harness.document.createElement('div')
+  slotMarkdown.className = '_markdown_'
+  slotMarkdown.innerHTML = personaEnvelope(normalContent)
+  slot.appendChild(slotMarkdown)
+  slotOnly.appendChild(slot)
+  harness.document.body.appendChild(slotOnly)
+  harness.plugin.__test.decorate(slotOnly)
+  assert.equal(slotMarkdown.getAttribute('data-dsh-persona-kind'), 'normal', 'slot parent fallback must render')
+  assert.equal(slotOnly.querySelectorAll('[data-dsh-persona-head]').length, 1)
+
   const partial = flowFor('<div class="md-code-block"><div class="bannerWrap"><div data-code-block-banner><span class="_heading_persona">persona</span></div></div><div data-code-block-content><pre>{"version":1,"kind":"normal",</pre></div></div>')
   assert.equal(partial.markdown.getAttribute('data-dsh-persona-kind'), null, 'partial stream must not error')
   assert.equal(partial.markdown.getAttribute('data-dsh-persona-error'), null)
@@ -555,8 +586,8 @@ test('PersonaMode：幂等、旧历史、流式、no-flow、diff、关闭文本'
   loose.innerHTML = '<p>no flow</p>'
   harness.document.body.appendChild(loose)
   harness.plugin.__test.decorate(loose)
-  assert.equal(loose.getAttribute('data-dsh-persona-kind'), 'error', 'no-flow must be explicit error')
-  assert.equal(loose.getAttribute('data-dsh-persona-error'), '1')
+  assert.equal(loose.getAttribute('data-dsh-persona-kind'), null, 'no-flow legacy stays plain')
+  assert.equal(loose.getAttribute('data-dsh-persona-error'), null)
 
   const diff = flowFor('<div class="md-diff"><p>diff text</p></div>')
   assert.equal(diff.markdown.getAttribute('data-dsh-persona-kind'), 'diff')

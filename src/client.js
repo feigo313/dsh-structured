@@ -1147,9 +1147,15 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
     }
 
     const findAssistantFlow = (markdown) => {
-      const flow = markdown.closest?.('[data-chat-flow-kind="assistant-step"], [data-chat-flow-kind="assistant"]')
-      if (!flow || flow.hasAttribute?.('data-turn-process-member')) return null
-      return flow
+      const userLike = markdown.closest?.('[data-chat-flow-kind="user"], [data-chat-flow-kind="steering"], [data-chat-flow-kind="turn-trigger"]')
+      if (userLike) return null
+      const direct = markdown.closest?.('[data-chat-flow-kind="assistant-step"], [data-chat-flow-kind="assistant"], [data-chat-group-part="response"], [class*="assistantContent"]')
+      if (direct) return direct
+      const slot = markdown.closest?.('[data-slot="conversation.chat.node"]')
+      if (slot?.parentElement) return slot.parentElement
+      let parent = markdown.parentElement
+      while (parent && (parent.tagName === 'BODY' || parent.tagName === 'HTML')) parent = parent.parentElement
+      return parent ?? null
     }
 
     const mountPersonaHead = (flow, config) => {
@@ -1316,12 +1322,8 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
       if (!config?.enabled && options.force !== true) return null
       const flow = flowOverride === undefined ? findAssistantFlow(markdown) : flowOverride
       if (!flow) {
-        if (markdown.getAttribute(PERSONA_ERROR_ATTR) === '1') return 'error'
-        if (options.fresh === false) {
-          decorateStructured(markdown)
-          return 'legacy'
-        }
-        return renderPersonaError(markdown, 'PersonaMode 找不到 assistant flow；拒绝把普通排版当通过。')
+        decorateStructured(markdown)
+        return 'legacy'
       }
       mountPersonaHead(flow, config)
       markdown.removeAttribute?.(PERSONA_FALLBACK_ATTR)
@@ -1359,11 +1361,8 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
           decorateStructured(markdown)
           return 'code'
         }
-        if (options.fresh === false) {
-          decorateStructured(markdown)
-          return 'legacy'
-        }
-        return renderPersonaError(markdown, 'PersonaMode 需要且仅需要一个 persona 内容块；本次未收到内容合同。')
+        decorateStructured(markdown)
+        return 'legacy'
       }
       if (!envelope.ok) return renderPersonaError(markdown, envelope.error)
       let parsed
