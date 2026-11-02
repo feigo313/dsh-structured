@@ -41,6 +41,7 @@ const style = await page.evaluate(() => {
     headerWeight: cs(th).fontWeight,
     headerColor: cs(th).color,
     headerBackground: cs(th).backgroundColor,
+    headerBackgroundImage: cs(th).backgroundImage,
     bodyCellSize: cs(bodyCell).fontSize,
     firstCellWeight: cs(firstCell).fontWeight,
     firstCellSize: cs(firstCell).fontSize,
@@ -77,6 +78,7 @@ const dark = await page.evaluate(() => {
   return {
     cardBackground: cs(q('blockquote[data-dsh-structured-card-type="statement"]')).backgroundImage,
     tableHeadBackground: cs(q('table thead th')).backgroundColor,
+    tableHeadBackgroundImage: cs(q('table thead th')).backgroundImage,
     tableHeadColor: cs(q('table thead th')).color,
     codePreBackground: cs(q('.md-code-block pre')).backgroundColor,
     codePreColor: cs(q('.md-code-block pre')).color,

@@ -87,11 +87,11 @@ window.__ModuleLoader__.load({
   --dss-page:#f7f8fa;--dss-paper:#ffffff;--dss-paper-2:#f8fafc;
   --dss-ink:#101828;--dss-ink-2:#475467;--dss-ink-3:#667085;
   --dss-line:#e4e7ec;--dss-line-strong:#d0d5dd;
-  --dss-blue:#2563eb;--dss-blue-hover:#1d4ed8;--dss-blue-text:#1d4ed8;--dss-th-text:#1d4ed8;--dss-blue-soft:#eff6ff;
+  --dss-blue:#2563eb;--dss-blue-hover:#1d4ed8;--dss-blue-text:#1d4ed8;--dss-th-text:#115e59;--dss-blue-soft:#eff6ff;
   --dss-green:#067647;--dss-green-strong:#059669;--dss-green-text:#047857;--dss-green-soft:#f0faf4;
   --dss-amber:#b54708;--dss-amber-strong:#d97706;--dss-amber-text:#b54708;--dss-amber-soft:#fffbf3;
   --dss-red:#b42318;--dss-red-soft:#fef3f2;
-  --dss-head-bg:rgba(219,231,255,.5);--dss-zebra:rgba(255,255,255,.55);
+  --dss-head-bg:linear-gradient(90deg,rgba(13,148,136,.18),rgba(13,148,136,.05));--dss-zebra:rgba(255,255,255,.55);
   --dss-code-bg:rgba(255,255,255,.72);--dss-code-border:#dbe7ff;--dss-code-text:#344054;
   --dss-shadow:0 1px 3px rgba(16,24,40,.05);
   --dss-sans:system-ui,-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC",sans-serif;
@@ -102,11 +102,11 @@ body[data-ds-dark-theme] .dss-scope {
   --dss-page:#1a1b1e;--dss-paper:#242629;--dss-paper-2:#2b2e33;
   --dss-ink:#e6e9ef;--dss-ink-2:#b7bdc9;--dss-ink-3:#8a92a0;
   --dss-line:#363a41;--dss-line-strong:#4a4f59;
-  --dss-blue:#3b82f6;--dss-blue-hover:#60a5fa;--dss-blue-text:#8ab4ff;--dss-th-text:#93c5fd;--dss-blue-soft:rgba(59,130,246,.16);
+  --dss-blue:#3b82f6;--dss-blue-hover:#60a5fa;--dss-blue-text:#8ab4ff;--dss-th-text:#5eead4;--dss-blue-soft:rgba(59,130,246,.16);
   --dss-green:#34d399;--dss-green-strong:#10b981;--dss-green-text:#34d399;--dss-green-soft:rgba(16,185,129,.14);
   --dss-amber:#fbbf24;--dss-amber-strong:#f59e0b;--dss-amber-text:#fbbf24;--dss-amber-soft:rgba(245,158,11,.12);
   --dss-red:#f87171;--dss-red-soft:rgba(248,113,113,.16);
-  --dss-head-bg:rgba(59,130,246,.16);--dss-zebra:rgba(255,255,255,.03);
+  --dss-head-bg:linear-gradient(90deg,rgba(45,212,191,.24),rgba(45,212,191,.06));--dss-zebra:rgba(255,255,255,.03);
   --dss-code-bg:rgba(0,0,0,.28);--dss-code-border:rgba(96,165,250,.28);--dss-code-text:#c9d2e0;
   --dss-shadow:0 1px 3px rgba(0,0,0,.35);
 }
@@ -291,11 +291,11 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
   --dss-page:#f7f8fa;--dss-paper:#ffffff;--dss-paper-2:#f8fafc;
   --dss-ink:#101828;--dss-ink-2:#475467;--dss-ink-3:#667085;
   --dss-line:#e4e7ec;--dss-line-strong:#d0d5dd;
-  --dss-blue:#2563eb;--dss-blue-hover:#1d4ed8;--dss-blue-text:#1d4ed8;--dss-th-text:#1d4ed8;--dss-blue-soft:#eff6ff;
+  --dss-blue:#2563eb;--dss-blue-hover:#1d4ed8;--dss-blue-text:#1d4ed8;--dss-th-text:#115e59;--dss-blue-soft:#eff6ff;
   --dss-green:#067647;--dss-green-strong:#059669;--dss-green-text:#047857;--dss-green-soft:#f0faf4;
   --dss-amber:#b54708;--dss-amber-strong:#d97706;--dss-amber-text:#b54708;--dss-amber-soft:#fffbf3;
   --dss-red:#b42318;--dss-red-soft:#fef3f2;
-  --dss-head-bg:rgba(219,231,255,.5);--dss-zebra:rgba(255,255,255,.55);
+  --dss-head-bg:linear-gradient(90deg,rgba(13,148,136,.18),rgba(13,148,136,.05));--dss-zebra:rgba(255,255,255,.55);
   --dss-code-bg:rgba(255,255,255,.72);--dss-code-border:#dbe7ff;--dss-code-text:#344054;
   --dss-shadow:0 1px 3px rgba(16,24,40,.05);
   --dss-sans:system-ui,-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC",sans-serif;
@@ -306,11 +306,11 @@ body[data-ds-dark-theme] .dss-scope {
   --dss-page:#1a1b1e;--dss-paper:#242629;--dss-paper-2:#2b2e33;
   --dss-ink:#e6e9ef;--dss-ink-2:#b7bdc9;--dss-ink-3:#8a92a0;
   --dss-line:#363a41;--dss-line-strong:#4a4f59;
-  --dss-blue:#3b82f6;--dss-blue-hover:#60a5fa;--dss-blue-text:#8ab4ff;--dss-th-text:#93c5fd;--dss-blue-soft:rgba(59,130,246,.16);
+  --dss-blue:#3b82f6;--dss-blue-hover:#60a5fa;--dss-blue-text:#8ab4ff;--dss-th-text:#5eead4;--dss-blue-soft:rgba(59,130,246,.16);
   --dss-green:#34d399;--dss-green-strong:#10b981;--dss-green-text:#34d399;--dss-green-soft:rgba(16,185,129,.14);
   --dss-amber:#fbbf24;--dss-amber-strong:#f59e0b;--dss-amber-text:#fbbf24;--dss-amber-soft:rgba(245,158,11,.12);
   --dss-red:#f87171;--dss-red-soft:rgba(248,113,113,.16);
-  --dss-head-bg:rgba(59,130,246,.16);--dss-zebra:rgba(255,255,255,.03);
+  --dss-head-bg:linear-gradient(90deg,rgba(45,212,191,.24),rgba(45,212,191,.06));--dss-zebra:rgba(255,255,255,.03);
   --dss-code-bg:rgba(0,0,0,.28);--dss-code-border:rgba(96,165,250,.28);--dss-code-text:#c9d2e0;
   --dss-shadow:0 1px 3px rgba(0,0,0,.35);
 }
@@ -652,11 +652,11 @@ body[data-ds-dark-theme] [data-dsh-structured-config] button#dsh-structured-them
   --dss-page:#f7f8fa;--dss-paper:#ffffff;--dss-paper-2:#f8fafc;
   --dss-ink:#101828;--dss-ink-2:#475467;--dss-ink-3:#667085;
   --dss-line:#e4e7ec;--dss-line-strong:#d0d5dd;
-  --dss-blue:#2563eb;--dss-blue-hover:#1d4ed8;--dss-blue-text:#1d4ed8;--dss-th-text:#1d4ed8;--dss-blue-soft:#eff6ff;
+  --dss-blue:#2563eb;--dss-blue-hover:#1d4ed8;--dss-blue-text:#1d4ed8;--dss-th-text:#115e59;--dss-blue-soft:#eff6ff;
   --dss-green:#067647;--dss-green-strong:#059669;--dss-green-text:#047857;--dss-green-soft:#f0faf4;
   --dss-amber:#b54708;--dss-amber-strong:#d97706;--dss-amber-text:#b54708;--dss-amber-soft:#fffbf3;
   --dss-red:#b42318;--dss-red-soft:#fef3f2;
-  --dss-head-bg:rgba(219,231,255,.5);--dss-zebra:rgba(255,255,255,.55);
+  --dss-head-bg:linear-gradient(90deg,rgba(13,148,136,.18),rgba(13,148,136,.05));--dss-zebra:rgba(255,255,255,.55);
   --dss-code-bg:rgba(255,255,255,.72);--dss-code-border:#dbe7ff;--dss-code-text:#344054;
   --dss-shadow:0 1px 3px rgba(16,24,40,.05);
   --dss-sans:system-ui,-apple-system,"Segoe UI","Microsoft YaHei","PingFang SC",sans-serif;
@@ -667,11 +667,11 @@ body[data-ds-dark-theme] .dss-scope {
   --dss-page:#1a1b1e;--dss-paper:#242629;--dss-paper-2:#2b2e33;
   --dss-ink:#e6e9ef;--dss-ink-2:#b7bdc9;--dss-ink-3:#8a92a0;
   --dss-line:#363a41;--dss-line-strong:#4a4f59;
-  --dss-blue:#3b82f6;--dss-blue-hover:#60a5fa;--dss-blue-text:#8ab4ff;--dss-th-text:#93c5fd;--dss-blue-soft:rgba(59,130,246,.16);
+  --dss-blue:#3b82f6;--dss-blue-hover:#60a5fa;--dss-blue-text:#8ab4ff;--dss-th-text:#5eead4;--dss-blue-soft:rgba(59,130,246,.16);
   --dss-green:#34d399;--dss-green-strong:#10b981;--dss-green-text:#34d399;--dss-green-soft:rgba(16,185,129,.14);
   --dss-amber:#fbbf24;--dss-amber-strong:#f59e0b;--dss-amber-text:#fbbf24;--dss-amber-soft:rgba(245,158,11,.12);
   --dss-red:#f87171;--dss-red-soft:rgba(248,113,113,.16);
-  --dss-head-bg:rgba(59,130,246,.16);--dss-zebra:rgba(255,255,255,.03);
+  --dss-head-bg:linear-gradient(90deg,rgba(45,212,191,.24),rgba(45,212,191,.06));--dss-zebra:rgba(255,255,255,.03);
   --dss-code-bg:rgba(0,0,0,.28);--dss-code-border:rgba(96,165,250,.28);--dss-code-text:#c9d2e0;
   --dss-shadow:0 1px 3px rgba(0,0,0,.35);
 }
