@@ -14,11 +14,11 @@
 
 [1.0.0 · 关闭清理] `personaEnabled=false` 时从每个受管 `_markdown_` 清除 `data-dsh-persona-kind`、`data-dsh-persona-fallback`、`data-dsh-persona-error`、`data-dsh-persona-pending`，删除 `.dss-persona-prefix` / `.dss-persona-suffix` 节点，再走 `decorateStructured`；通用卡保留，前后缀文本不再可见。测试覆盖 normal 开启 → 关闭 → 再装饰，以及 active 状态下配置订阅自动清理。
 
-[1.0.0 · 审计修复] P1：深色表格表头改用独立 `--dss-th-text`（浅色 `#1d4ed8` / 深色 `#93c5fd`），不再复用线标签的 `--dss-blue-text`；gate 期望同步为 `rgb(147, 197, 253)`。P2：`emptyTone()` 兜底文案去掉“先给结论”，只保留语言风格；short 改为 `kind=short` 内容槽位，由 renderer 生成短答卡；删除用户文本正则猜 short 与模型 Markdown 短答卡。`style-gate --check` 新增源码树绑定：`src/lib/scripts/test/fixtures` 与证据 HEAD 不一致时直接 `STYLE_GATE_STALE`。
+[1.0.0 · 审计修复] P1：深色表格表头改用独立 `--dss-th-text`（浅色 `#115e59` / 深色 `#5eead4`），不再复用线标签的 `--dss-blue-text`；gate 期望同步为 `rgb(94, 234, 212)`。P2：`emptyTone()` 兜底文案去掉“先给结论”，只保留语言风格；short 改为 `kind=short` 内容槽位，由 renderer 生成短答卡；删除用户文本正则猜 short 与模型 Markdown 短答卡。`style-gate --check` 新增源码树绑定：`src/lib/scripts/test/fixtures` 与证据 HEAD 不一致时直接 `STYLE_GATE_STALE`。
 
 [1.0.0 · PersonaMode 修复轮（2026-11-02，FAIL 审计复核）] P0：渲染缓存保存原始 envelope 文本 / 哈希与配置签名，重复 `decorate`（含 observer 自触发）仍为原 kind；插件生成节点带 `data-dsh-plugin-generated` 标记，MutationObserver 忽略自生成子树；PersonaMode 激活时快照旧历史 + `data-chat-turn` 水位，配置变化只走 `managedOnly` 刷新，不对旧历史全量重扫。P1：流式半截 JSON / 字段不全先 pending（`data-streaming` 完成信号 + 500ms 稳定窗口）并保留原 DOM，完成且仍非法才 error；找不到 assistant flow 显式 error；关闭删除前后缀节点与文本；合同写明 1-5 / 1-20 并测 6 / 21；`.md-diff` 与报错回复走例外，不再显示内容合同错误。P2：Persona 建议卡标签统一「建议」；预览补短答 tab，code 预览改走真实 code 例外通道；回归测试补 observer 自触发 / 旧历史 / 配置订阅 / partial-stream / no-flow / diff / 6 / 21 / 关闭文本 / 预览同源。
 
-[1.0.0 · 手动样式 gate] 真实浏览器检查不进 `npm test`；显式 `DSH_STRUCTURED_STYLE_GATE=1 node scripts/style-gate.mjs` 启动 detached worker 后立即返回，`node scripts/style-gate.mjs --check` 读结果；校验 computedStyle（v5 卡片 / 表头 / 状态签 / 代码卡 / 深色）与 800px，证据写入 `artifacts/style-gate/<timestamp>/`（local-only，不进 git）。**gate 只覆盖 v5 通用样式，不覆盖 Persona 身份头 / 前后缀 / 三卡标签，不能作为 PersonaMode 的验收证据**；Persona 视觉走 Phase 4 live 对照（未执行）。当前证据：`artifacts/style-gate/2026-11-02T08-49-07-018Z/`（HEAD `14fd833`，ok=true，failures=[]）。
+[1.0.0 · 手动样式 gate] 真实浏览器检查不进 `npm test`；显式 `DSH_STRUCTURED_STYLE_GATE=1 node scripts/style-gate.mjs` 启动 detached worker 后立即返回，`node scripts/style-gate.mjs --check` 读结果；校验 computedStyle（v5 卡片 / 表头 / 状态签 / 代码卡 / 深色 / 800px）与 Persona 视觉 21 条断言（身份头 38px/16px、前缀 12.5px、后缀 12px+dotted、结论 19px/700、建议绿、风险琥珀、短答紫、表格青边与青绿表头渐变），证据写入 `artifacts/style-gate/<timestamp>/`（local-only，不进 git）。当前证据：`artifacts/style-gate/2026-11-02T12-27-01-069Z/`（HEAD `17b7692`，ok=true，failures=[]）；旧「gate 不覆盖 Persona」的限制已作废。
 
 [1.0.0 · 已知限制提示] PersonaMode 仍需模型输出 `persona` 内容块；缺块走 legacy 普通排版；块存在但 JSON / 字段非法才显示「内容合同错误」。旧历史消息不会回溯重渲染；流式回复在块完成前不报错，稳定窗口到期且仍无合法块才报错。验收使用新回复。
 
