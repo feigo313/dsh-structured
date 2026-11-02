@@ -1,6 +1,6 @@
 # dsh-structured 1.0.0 验收
 
-[1.0.0 · 代码/构建] `npm test` 92/92；`npm run build` 完成；`desktop-check` 全 PASS；`theme-contrast` 60；`theme-hue-distance` 12；`lib` 由 src 构建并注入鲸鱼娘 JSON；pack 58 文件 / 842867 B / unpacked 1336237 B。
+[1.0.0 · 代码/构建] `npm test` 92/92；`npm run build` 完成；`desktop-check` 全 PASS；`theme-contrast` 60；`theme-hue-distance` 12；`lib` 由 src 构建并注入鲸鱼娘 JSON；pack 58 文件 / 843068 B / unpacked 1337037 B。
 
 [1.0.0 · v5 回复皮肤] 软面卡片台：12px 圆角卡 + 3px 左条 + 同构渐变面；结论 / 下一步 / 风险线标题；表格蓝 tint 表头、26% / 18% 列宽、首列 600 墨字、三色状态签；代码浅色卡 + 「代码 · 语言」线标题 + 双方框复制钮；深色卡面 / 表头 / 代码面 / 状态签全量适配。静态三态×明暗×三主题证据：`artifacts/prototype/v5-<theme>-<light|dark>-<normal|table|code>.png`（18 张；三主题统一 v5 token，按主题分组校验）；设置页证据：`artifacts/prototype/v5-settings-light.png` / `v5-settings-dark.png`。
 
@@ -16,7 +16,7 @@
 
 [1.0.0 · 审计修复] P1：深色表格表头改用独立 `--dss-th-text`（浅色 `#1d4ed8` / 深色 `#93c5fd`），不再复用线标签的 `--dss-blue-text`；gate 期望同步为 `rgb(147, 197, 253)`。P2：`emptyTone()` 兜底文案去掉“先给结论”，只保留语言风格；short 改为 `kind=short` 内容槽位，由 renderer 生成短答卡；删除用户文本正则猜 short 与模型 Markdown 短答卡。`style-gate --check` 新增源码树绑定：`src/lib/scripts/test/fixtures` 与证据 HEAD 不一致时直接 `STYLE_GATE_STALE`。
 
-[1.0.0 · 手动样式 gate] 真实浏览器检查不进 `npm test`；显式 `DSH_STRUCTURED_STYLE_GATE=1 node scripts/style-gate.mjs` 启动 detached worker 后立即返回，`node scripts/style-gate.mjs --check` 读结果；校验 computedStyle（v5 卡片 / 表头 / 状态签 / 代码卡 / 深色）与 800px，证据写入 `artifacts/style-gate/<timestamp>/`。当前证据：`artifacts/style-gate/2026-11-02T06-57-18-994Z/`（HEAD `d50631f`，ok=true，failures=[]；源码树绑定会拒绝旧证据）。 gate 只覆盖 v5 通用样式，不覆盖 Persona 身份头/前后缀；Persona 视觉走 Phase 4 live 对照。
+[1.0.0 · 手动样式 gate] 真实浏览器检查不进 `npm test`；显式 `DSH_STRUCTURED_STYLE_GATE=1 node scripts/style-gate.mjs` 启动 detached worker 后立即返回，`node scripts/style-gate.mjs --check` 读结果；校验 computedStyle（v5 卡片 / 表头 / 状态签 / 代码卡 / 深色）与 800px，证据写入 `artifacts/style-gate/<timestamp>/`。当前证据：内容识别修复 code commit 后重跑（源码树绑定会拒绝旧证据）。 gate 只覆盖 v5 通用样式，不覆盖 Persona 身份头/前后缀；Persona 视觉走 Phase 4 live 对照。
 
 [1.0.0 · 已知限制提示] PersonaMode 仍需模型输出 `persona` 内容块；解析失败显示显式「内容合同错误」，不再回落普通排版。旧历史消息不会回溯重渲染；验收使用新回复。
 

@@ -138,6 +138,7 @@ function makeHarness(state, setField, extraProps = {}) {
 const baseState = { status: 'ready', writable: true, revision: 0, value: { persona: whale, personaEnabled: false, personaRevision: 0 } }
 
 const personaEnvelope = (payload) => `<div class="md-code-block"><div class="bannerWrap"><div data-code-block-banner><span class="_heading_persona">persona</span><div class="_actions_persona"></div></div></div><div data-code-block-content><pre>${JSON.stringify(payload)}</pre></div></div>`
+const personaEnvelopePlain = (payload) => `<div class="md-code-block"><div class="bannerWrap"><div data-code-block-banner><span class="_heading_plain">代码块</span></div></div><div data-code-block-content><pre>${JSON.stringify(payload)}</pre></div></div>`
 
 test('v5 语气设置：档案行 + 三字段 + 规则行 + 样式预览，不再有基础/进阶/JSON', () => {
   const harness = makeHarness(baseState, async () => true)
@@ -552,7 +553,7 @@ test('PersonaMode：幂等、旧历史、流式、no-flow、diff、关闭文本'
   realSlot.setAttribute('data-slot', 'conversation.chat.node')
   const realMarkdown = harness.document.createElement('div')
   realMarkdown.className = '_markdown_'
-  realMarkdown.innerHTML = personaEnvelope(normalContent)
+  realMarkdown.innerHTML = personaEnvelopePlain(normalContent)
   realSlot.appendChild(realMarkdown)
   assistant.appendChild(realSlot)
   real.appendChild(assistant)
