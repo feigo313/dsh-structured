@@ -26,8 +26,8 @@ window.__ModuleLoader__.load({
     const PERSONA_HEAD_ATTR = 'data-dsh-persona-head'
     const PERSONA_MODE_ATTR = 'data-dsh-persona-mode'
     const PERSONA_FALLBACK_ATTR = 'data-dsh-persona-fallback'
+    const PERSONA_ERROR_ATTR = 'data-dsh-persona-error'
     const PERSONA_KIND_ATTR = 'data-dsh-persona-kind'
-    const PERSONA_TABLE_ATTR = 'data-dsh-persona-neutral-table'
     const LEAD_ATTR = 'data-dsh-structured-lead'
     const ROW_ATTR = 'data-dsh-structured-row'
     const ROOT_ATTR = 'data-dsh-structured'
@@ -102,33 +102,33 @@ body[data-ds-dark-theme] .dss-scope {
 .dss-scope .dss-card {
   margin:14px 0;padding:14px 16px;border:1px solid var(--dss-line);
   border-left:3px solid var(--dss-blue);border-radius:12px;
-  background:linear-gradient(135deg,#eef4ff,#ffffff 62%);
+  background:linear-gradient(135deg,#eef4ff,#ffffff 90%);
   box-shadow:var(--dss-shadow);color:var(--dss-ink-2);
 }
 .dss-scope .dss-card > p:first-child{margin-top:0}
 .dss-scope .dss-card > p:last-child{margin-bottom:0}
 .dss-scope .dss-card-conclusion,.dss-scope .dss-card-accept{
   border-left-color:var(--dss-blue);
-  background:linear-gradient(135deg,#eef4ff,#ffffff 62%);
+  background:linear-gradient(135deg,#eef4ff,#ffffff 90%);
 }
 .dss-scope .dss-card-next{
   border-left-color:var(--dss-green-strong);
-  background:linear-gradient(180deg,#f0faf4,#ffffff 72%);
+  background:linear-gradient(180deg,#f0faf4,#ffffff 90%);
 }
 .dss-scope .dss-card-risk{
   border-left-color:var(--dss-amber-strong);
-  background:linear-gradient(180deg,#fffbf3,#ffffff 70%);
+  background:linear-gradient(180deg,#fffbf3,#ffffff 90%);
 }
 .dss-scope .dss-card-statement{
   border-left-color:var(--dss-blue);
-  background:linear-gradient(135deg,#eef4ff,#ffffff 62%);
+  background:linear-gradient(135deg,#eef4ff,#ffffff 90%);
 }
 .dss-scope .dss-card-short{
-  border-left-color:var(--dss-line-strong);background:var(--dss-paper-2);box-shadow:none;
+  border-left-color:#7c3aed;background:linear-gradient(135deg,#f5f3ff,#ffffff 90%);box-shadow:none;
 }
 .dss-scope .dss-card-short > p:first-child > strong:first-child{
   display:block;width:100%;margin:0 0 8px;padding:0 0 6px;border-bottom:1px solid var(--dss-line);
-  font:700 12px/1.5 var(--dss-sans);letter-spacing:.04em;color:var(--dss-ink-3);
+  font:700 12px/1.5 var(--dss-sans);letter-spacing:.04em;color:#6d28d9;
 }
 .dss-scope .dss-card-short > p{font-size:13.5px;line-height:1.7;color:var(--dss-ink-2)}
 .dss-scope .dss-card-conclusion > p:first-child > strong:first-child,
@@ -170,9 +170,9 @@ body[data-ds-dark-theme] .dss-scope {
 }
 .dss-scope .dss-card-risk p{color:var(--dss-ink-2)}
 .dss-scope .dss-table{
-  width:100%;margin:14px 0;border:1px solid var(--dss-line);border-left:3px solid var(--dss-blue);
+  width:100%;margin:14px 0;border:1px solid var(--dss-line);border-left:3px solid #0d9488;
   border-radius:12px;border-collapse:separate;border-spacing:0;overflow:hidden;
-  background:linear-gradient(135deg,#eef4ff,#ffffff 62%);
+  background:linear-gradient(135deg,#ecfeff,#ffffff 62%);
   box-shadow:var(--dss-shadow);font-size:13px;color:var(--dss-ink-2);
 }
 .dss-scope .dss-table thead th{
@@ -237,19 +237,27 @@ body[data-ds-dark-theme] .dss-scope {
 body[data-ds-dark-theme] .dss-scope .dss-card-conclusion,
 body[data-ds-dark-theme] .dss-scope .dss-card-accept,
 body[data-ds-dark-theme] .dss-scope .dss-card-statement{
-  background:linear-gradient(135deg,rgba(37,99,235,.18),rgba(37,99,235,0) 62%),var(--dss-paper);
+  background:linear-gradient(135deg,rgba(37,99,235,.18),rgba(37,99,235,0) 90%),var(--dss-paper);
 }
 body[data-ds-dark-theme] .dss-scope .dss-card-next{
-  background:linear-gradient(180deg,rgba(16,185,129,.14),rgba(16,185,129,0) 72%),var(--dss-paper);
+  background:linear-gradient(180deg,rgba(16,185,129,.14),rgba(16,185,129,0) 90%),var(--dss-paper);
   border-left-color:#10b981;
 }
 body[data-ds-dark-theme] .dss-scope .dss-card-risk{
-  background:linear-gradient(180deg,rgba(245,158,11,.12),rgba(245,158,11,0) 70%),var(--dss-paper);
+  background:linear-gradient(180deg,rgba(245,158,11,.12),rgba(245,158,11,0) 90%),var(--dss-paper);
   border-left-color:#f59e0b;
 }
-body[data-ds-dark-theme] .dss-scope .dss-table,
+body[data-ds-dark-theme] .dss-scope .dss-card-short{
+  border-left-color:#c4b5fd;
+  background:linear-gradient(135deg,rgba(196,181,253,.16),rgba(196,181,253,0) 90%),var(--dss-paper);
+}
+body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:first-child{color:#c4b5fd}
+body[data-ds-dark-theme] .dss-scope .dss-table{
+  border-left-color:#2dd4bf;
+  background:linear-gradient(135deg,rgba(13,148,136,.22),rgba(13,148,136,0) 62%),var(--dss-paper);
+}
 body[data-ds-dark-theme] .dss-scope .dss-code{
-  background:linear-gradient(135deg,rgba(37,99,235,.18),rgba(37,99,235,0) 62%),var(--dss-paper);
+  background:linear-gradient(135deg,rgba(37,99,235,.18),rgba(37,99,235,0) 90%),var(--dss-paper);
 }
 body[data-ds-dark-theme] .dss-scope .dss-status-success{background:rgba(52,211,153,.16);color:#4ade80}
 body[data-ds-dark-theme] .dss-scope .dss-status-warn{background:rgba(251,191,36,.14);color:#fbbf24}
@@ -264,8 +272,6 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
 .dss-scope .dss-persona-head .dss-chat-meta{display:block;color:var(--dss-ink-3);font:12px/1.5 var(--dss-mono);overflow-wrap:anywhere}
 .dss-scope .dss-persona-prefix{margin:0;color:var(--dss-ink-3);font:12.5px/1.7 var(--dss-mono)}
 .dss-scope .dss-persona-suffix{margin:0;padding-top:8px;border-top:1px dotted var(--dss-line-strong);color:var(--dss-ink-3);font:12px/1.65 var(--dss-mono);overflow-wrap:anywhere}
-.dss-scope .dss-table[data-dsh-persona-neutral-table="1"]{border:0;border-radius:0;background:none;box-shadow:none}
-.dss-scope .dss-table[data-dsh-persona-neutral-table="1"] thead th{background:transparent!important}
 `
     const CONFIG_CSS = `
 .dss-scope {
@@ -300,33 +306,33 @@ body[data-ds-dark-theme] .dss-scope {
 .dss-scope .dss-card {
   margin:14px 0;padding:14px 16px;border:1px solid var(--dss-line);
   border-left:3px solid var(--dss-blue);border-radius:12px;
-  background:linear-gradient(135deg,#eef4ff,#ffffff 62%);
+  background:linear-gradient(135deg,#eef4ff,#ffffff 90%);
   box-shadow:var(--dss-shadow);color:var(--dss-ink-2);
 }
 .dss-scope .dss-card > p:first-child{margin-top:0}
 .dss-scope .dss-card > p:last-child{margin-bottom:0}
 .dss-scope .dss-card-conclusion,.dss-scope .dss-card-accept{
   border-left-color:var(--dss-blue);
-  background:linear-gradient(135deg,#eef4ff,#ffffff 62%);
+  background:linear-gradient(135deg,#eef4ff,#ffffff 90%);
 }
 .dss-scope .dss-card-next{
   border-left-color:var(--dss-green-strong);
-  background:linear-gradient(180deg,#f0faf4,#ffffff 72%);
+  background:linear-gradient(180deg,#f0faf4,#ffffff 90%);
 }
 .dss-scope .dss-card-risk{
   border-left-color:var(--dss-amber-strong);
-  background:linear-gradient(180deg,#fffbf3,#ffffff 70%);
+  background:linear-gradient(180deg,#fffbf3,#ffffff 90%);
 }
 .dss-scope .dss-card-statement{
   border-left-color:var(--dss-blue);
-  background:linear-gradient(135deg,#eef4ff,#ffffff 62%);
+  background:linear-gradient(135deg,#eef4ff,#ffffff 90%);
 }
 .dss-scope .dss-card-short{
-  border-left-color:var(--dss-line-strong);background:var(--dss-paper-2);box-shadow:none;
+  border-left-color:#7c3aed;background:linear-gradient(135deg,#f5f3ff,#ffffff 90%);box-shadow:none;
 }
 .dss-scope .dss-card-short > p:first-child > strong:first-child{
   display:block;width:100%;margin:0 0 8px;padding:0 0 6px;border-bottom:1px solid var(--dss-line);
-  font:700 12px/1.5 var(--dss-sans);letter-spacing:.04em;color:var(--dss-ink-3);
+  font:700 12px/1.5 var(--dss-sans);letter-spacing:.04em;color:#6d28d9;
 }
 .dss-scope .dss-card-short > p{font-size:13.5px;line-height:1.7;color:var(--dss-ink-2)}
 .dss-scope .dss-card-conclusion > p:first-child > strong:first-child,
@@ -368,9 +374,9 @@ body[data-ds-dark-theme] .dss-scope {
 }
 .dss-scope .dss-card-risk p{color:var(--dss-ink-2)}
 .dss-scope .dss-table{
-  width:100%;margin:14px 0;border:1px solid var(--dss-line);border-left:3px solid var(--dss-blue);
+  width:100%;margin:14px 0;border:1px solid var(--dss-line);border-left:3px solid #0d9488;
   border-radius:12px;border-collapse:separate;border-spacing:0;overflow:hidden;
-  background:linear-gradient(135deg,#eef4ff,#ffffff 62%);
+  background:linear-gradient(135deg,#ecfeff,#ffffff 62%);
   box-shadow:var(--dss-shadow);font-size:13px;color:var(--dss-ink-2);
 }
 .dss-scope .dss-table thead th{
@@ -435,19 +441,27 @@ body[data-ds-dark-theme] .dss-scope {
 body[data-ds-dark-theme] .dss-scope .dss-card-conclusion,
 body[data-ds-dark-theme] .dss-scope .dss-card-accept,
 body[data-ds-dark-theme] .dss-scope .dss-card-statement{
-  background:linear-gradient(135deg,rgba(37,99,235,.18),rgba(37,99,235,0) 62%),var(--dss-paper);
+  background:linear-gradient(135deg,rgba(37,99,235,.18),rgba(37,99,235,0) 90%),var(--dss-paper);
 }
 body[data-ds-dark-theme] .dss-scope .dss-card-next{
-  background:linear-gradient(180deg,rgba(16,185,129,.14),rgba(16,185,129,0) 72%),var(--dss-paper);
+  background:linear-gradient(180deg,rgba(16,185,129,.14),rgba(16,185,129,0) 90%),var(--dss-paper);
   border-left-color:#10b981;
 }
 body[data-ds-dark-theme] .dss-scope .dss-card-risk{
-  background:linear-gradient(180deg,rgba(245,158,11,.12),rgba(245,158,11,0) 70%),var(--dss-paper);
+  background:linear-gradient(180deg,rgba(245,158,11,.12),rgba(245,158,11,0) 90%),var(--dss-paper);
   border-left-color:#f59e0b;
 }
-body[data-ds-dark-theme] .dss-scope .dss-table,
+body[data-ds-dark-theme] .dss-scope .dss-card-short{
+  border-left-color:#c4b5fd;
+  background:linear-gradient(135deg,rgba(196,181,253,.16),rgba(196,181,253,0) 90%),var(--dss-paper);
+}
+body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:first-child{color:#c4b5fd}
+body[data-ds-dark-theme] .dss-scope .dss-table{
+  border-left-color:#2dd4bf;
+  background:linear-gradient(135deg,rgba(13,148,136,.22),rgba(13,148,136,0) 62%),var(--dss-paper);
+}
 body[data-ds-dark-theme] .dss-scope .dss-code{
-  background:linear-gradient(135deg,rgba(37,99,235,.18),rgba(37,99,235,0) 62%),var(--dss-paper);
+  background:linear-gradient(135deg,rgba(37,99,235,.18),rgba(37,99,235,0) 90%),var(--dss-paper);
 }
 body[data-ds-dark-theme] .dss-scope .dss-status-success{background:rgba(52,211,153,.16);color:#4ade80}
 body[data-ds-dark-theme] .dss-scope .dss-status-warn{background:rgba(251,191,36,.14);color:#fbbf24}
@@ -462,8 +476,6 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
 .dss-scope .dss-persona-head .dss-chat-meta{display:block;color:var(--dss-ink-3);font:12px/1.5 var(--dss-mono);overflow-wrap:anywhere}
 .dss-scope .dss-persona-prefix{margin:0;color:var(--dss-ink-3);font:12.5px/1.7 var(--dss-mono)}
 .dss-scope .dss-persona-suffix{margin:0;padding-top:8px;border-top:1px dotted var(--dss-line-strong);color:var(--dss-ink-3);font:12px/1.65 var(--dss-mono);overflow-wrap:anywhere}
-.dss-scope .dss-table[data-dsh-persona-neutral-table="1"]{border:0;border-radius:0;background:none;box-shadow:none}
-.dss-scope .dss-table[data-dsh-persona-neutral-table="1"] thead th{background:transparent!important}
 
 .dss-scope.dss-config{width:100%;max-width:760px;color:var(--dss-ink);font:13px/1.55 var(--dss-sans)}
 .dss-config *{box-sizing:border-box}
@@ -521,6 +533,8 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
 .dss-field-meta{display:flex;justify-content:flex-end;margin-top:4px;min-height:14px}
 .dss-counter{color:var(--dss-ink-3);font:10.5px/1.4 var(--dss-mono)}
 .dss-rules{margin:14px 0 0;color:var(--dss-ink-3);font-size:11.5px;line-height:1.65}
+.dss-known-limit{margin:10px 0 0;padding:10px 12px;border:1px solid #f1d39b;border-radius:8px;background:#fffaf0;color:var(--dss-ink-2);font-size:11.5px;line-height:1.65}
+body[data-ds-dark-theme] .dss-known-limit{border-color:rgba(245,158,11,.35);background:rgba(245,158,11,.08)}
 .dss-save{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:4px}
 .dss-save-state{color:var(--dss-ink-3);font-size:12px;line-height:1.5}
 .dss-save-state.is-error{color:var(--dss-red)}
@@ -605,7 +619,7 @@ body[data-ds-dark-theme] [data-dsh-structured-config] button#dsh-structured-them
       ['判断', 'decision'], ['决策', 'decision'],
       ['指标', 'metric'], ['数据', 'metric'],
       ['风险', 'risk'], ['注意', 'risk'], ['警告', 'risk'],
-      ['下一步', 'next'], ['行动', 'next'], ['待办', 'next'],
+      ['下一步', 'next'], ['建议', 'next'], ['行动', 'next'], ['待办', 'next'],
       ['验收', 'accept'], ['通过', 'accept'], ['完成', 'accept'],
       ['重点', 'key'], ['关键', 'key'], ['短答', 'short'],
     ])
@@ -615,7 +629,7 @@ body[data-ds-dark-theme] [data-dsh-structured-config] button#dsh-structured-them
       [/风险|注意|警告|坑/, '⚠'],
       [/验收|检查|核对/, '✓'],
       [/对比|选型|取舍/, '⇄'],
-      [/下一步|行动|待办/, '→'],
+      [/下一步|建议|行动|待办/, '→'],
       [/背景|原因|根因/, '◎'],
       [/指标|数据|结果/, '▦'],
     ]
@@ -653,33 +667,33 @@ body[data-ds-dark-theme] .dss-scope {
 .dss-scope .dss-card {
   margin:14px 0;padding:14px 16px;border:1px solid var(--dss-line);
   border-left:3px solid var(--dss-blue);border-radius:12px;
-  background:linear-gradient(135deg,#eef4ff,#ffffff 62%);
+  background:linear-gradient(135deg,#eef4ff,#ffffff 90%);
   box-shadow:var(--dss-shadow);color:var(--dss-ink-2);
 }
 .dss-scope .dss-card > p:first-child{margin-top:0}
 .dss-scope .dss-card > p:last-child{margin-bottom:0}
 .dss-scope .dss-card-conclusion,.dss-scope .dss-card-accept{
   border-left-color:var(--dss-blue);
-  background:linear-gradient(135deg,#eef4ff,#ffffff 62%);
+  background:linear-gradient(135deg,#eef4ff,#ffffff 90%);
 }
 .dss-scope .dss-card-next{
   border-left-color:var(--dss-green-strong);
-  background:linear-gradient(180deg,#f0faf4,#ffffff 72%);
+  background:linear-gradient(180deg,#f0faf4,#ffffff 90%);
 }
 .dss-scope .dss-card-risk{
   border-left-color:var(--dss-amber-strong);
-  background:linear-gradient(180deg,#fffbf3,#ffffff 70%);
+  background:linear-gradient(180deg,#fffbf3,#ffffff 90%);
 }
 .dss-scope .dss-card-statement{
   border-left-color:var(--dss-blue);
-  background:linear-gradient(135deg,#eef4ff,#ffffff 62%);
+  background:linear-gradient(135deg,#eef4ff,#ffffff 90%);
 }
 .dss-scope .dss-card-short{
-  border-left-color:var(--dss-line-strong);background:var(--dss-paper-2);box-shadow:none;
+  border-left-color:#7c3aed;background:linear-gradient(135deg,#f5f3ff,#ffffff 90%);box-shadow:none;
 }
 .dss-scope .dss-card-short > p:first-child > strong:first-child{
   display:block;width:100%;margin:0 0 8px;padding:0 0 6px;border-bottom:1px solid var(--dss-line);
-  font:700 12px/1.5 var(--dss-sans);letter-spacing:.04em;color:var(--dss-ink-3);
+  font:700 12px/1.5 var(--dss-sans);letter-spacing:.04em;color:#6d28d9;
 }
 .dss-scope .dss-card-short > p{font-size:13.5px;line-height:1.7;color:var(--dss-ink-2)}
 .dss-scope .dss-card-conclusion > p:first-child > strong:first-child,
@@ -721,9 +735,9 @@ body[data-ds-dark-theme] .dss-scope {
 }
 .dss-scope .dss-card-risk p{color:var(--dss-ink-2)}
 .dss-scope .dss-table{
-  width:100%;margin:14px 0;border:1px solid var(--dss-line);border-left:3px solid var(--dss-blue);
+  width:100%;margin:14px 0;border:1px solid var(--dss-line);border-left:3px solid #0d9488;
   border-radius:12px;border-collapse:separate;border-spacing:0;overflow:hidden;
-  background:linear-gradient(135deg,#eef4ff,#ffffff 62%);
+  background:linear-gradient(135deg,#ecfeff,#ffffff 62%);
   box-shadow:var(--dss-shadow);font-size:13px;color:var(--dss-ink-2);
 }
 .dss-scope .dss-table thead th{
@@ -788,19 +802,27 @@ body[data-ds-dark-theme] .dss-scope {
 body[data-ds-dark-theme] .dss-scope .dss-card-conclusion,
 body[data-ds-dark-theme] .dss-scope .dss-card-accept,
 body[data-ds-dark-theme] .dss-scope .dss-card-statement{
-  background:linear-gradient(135deg,rgba(37,99,235,.18),rgba(37,99,235,0) 62%),var(--dss-paper);
+  background:linear-gradient(135deg,rgba(37,99,235,.18),rgba(37,99,235,0) 90%),var(--dss-paper);
 }
 body[data-ds-dark-theme] .dss-scope .dss-card-next{
-  background:linear-gradient(180deg,rgba(16,185,129,.14),rgba(16,185,129,0) 72%),var(--dss-paper);
+  background:linear-gradient(180deg,rgba(16,185,129,.14),rgba(16,185,129,0) 90%),var(--dss-paper);
   border-left-color:#10b981;
 }
 body[data-ds-dark-theme] .dss-scope .dss-card-risk{
-  background:linear-gradient(180deg,rgba(245,158,11,.12),rgba(245,158,11,0) 70%),var(--dss-paper);
+  background:linear-gradient(180deg,rgba(245,158,11,.12),rgba(245,158,11,0) 90%),var(--dss-paper);
   border-left-color:#f59e0b;
 }
-body[data-ds-dark-theme] .dss-scope .dss-table,
+body[data-ds-dark-theme] .dss-scope .dss-card-short{
+  border-left-color:#c4b5fd;
+  background:linear-gradient(135deg,rgba(196,181,253,.16),rgba(196,181,253,0) 90%),var(--dss-paper);
+}
+body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:first-child{color:#c4b5fd}
+body[data-ds-dark-theme] .dss-scope .dss-table{
+  border-left-color:#2dd4bf;
+  background:linear-gradient(135deg,rgba(13,148,136,.22),rgba(13,148,136,0) 62%),var(--dss-paper);
+}
 body[data-ds-dark-theme] .dss-scope .dss-code{
-  background:linear-gradient(135deg,rgba(37,99,235,.18),rgba(37,99,235,0) 62%),var(--dss-paper);
+  background:linear-gradient(135deg,rgba(37,99,235,.18),rgba(37,99,235,0) 90%),var(--dss-paper);
 }
 body[data-ds-dark-theme] .dss-scope .dss-status-success{background:rgba(52,211,153,.16);color:#4ade80}
 body[data-ds-dark-theme] .dss-scope .dss-status-warn{background:rgba(251,191,36,.14);color:#fbbf24}
@@ -815,8 +837,6 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
 .dss-scope .dss-persona-head .dss-chat-meta{display:block;color:var(--dss-ink-3);font:12px/1.5 var(--dss-mono);overflow-wrap:anywhere}
 .dss-scope .dss-persona-prefix{margin:0;color:var(--dss-ink-3);font:12.5px/1.7 var(--dss-mono)}
 .dss-scope .dss-persona-suffix{margin:0;padding-top:8px;border-top:1px dotted var(--dss-line-strong);color:var(--dss-ink-3);font:12px/1.65 var(--dss-mono);overflow-wrap:anywhere}
-.dss-scope .dss-table[data-dsh-persona-neutral-table="1"]{border:0;border-radius:0;background:none;box-shadow:none}
-.dss-scope .dss-table[data-dsh-persona-neutral-table="1"] thead th{background:transparent!important}
 
 [class*="_markdown_"]{font-size:13.5px;line-height:1.7;letter-spacing:.01em;color:var(--dss-ink-2)}
 [class*="_markdown_"] p{margin:.7em 0}
@@ -1144,74 +1164,138 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
 
     const removePersonaHeads = (root) => {
       for (const head of root?.querySelectorAll?.(`[${PERSONA_HEAD_ATTR}]`) ?? []) head.remove()
-      for (const element of root?.querySelectorAll?.(`[${PERSONA_KIND_ATTR}], [${PERSONA_FALLBACK_ATTR}], [${PERSONA_TABLE_ATTR}], .dss-persona-prefix, .dss-persona-suffix`) ?? []) {
+      for (const element of root?.querySelectorAll?.(`[${PERSONA_KIND_ATTR}], [${PERSONA_FALLBACK_ATTR}], [${PERSONA_ERROR_ATTR}], .dss-persona-prefix, .dss-persona-suffix`) ?? []) {
         element.removeAttribute?.(PERSONA_KIND_ATTR)
         element.removeAttribute?.(PERSONA_FALLBACK_ATTR)
-        element.removeAttribute?.(PERSONA_TABLE_ATTR)
+        element.removeAttribute?.(PERSONA_ERROR_ATTR)
         element.classList?.remove?.('dss-persona-prefix')
         element.classList?.remove?.('dss-persona-suffix')
       }
     }
 
-    const directElements = (markdown) => [...(markdown.children ?? [])]
-    const textOfDirect = (element) => (element?.textContent ?? '').trim()
+    const personaObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value)
+    const personaText = (value) => typeof value === 'string' && value.trim().length > 0
+    const strictKeys = (value, allowed) => Object.keys(value).every((key) => allowed.includes(key))
 
-    const validatePersonaCards = (markdown, config, requireSuffix = true) => {
-      const elements = directElements(markdown)
-      const cards = elements.filter((element) => element.tagName === 'BLOCKQUOTE')
-      const types = cards.map((card) => cardTypeFor(card))
-      if (cards.length !== 3 || types[0] !== 'conclusion' || types[1] !== 'next' || types[2] !== 'risk') return null
-      const first = elements.indexOf(cards[0])
-      const last = elements.indexOf(cards[2])
-      const prefix = elements.slice(0, first).find((element) => element.tagName === 'P' && textOfDirect(element))
-      const suffix = elements.slice(last + 1).reverse().find((element) => element.tagName === 'P' && textOfDirect(element))
-      if (config.prefix.trim() && !prefix) return null
-      if (requireSuffix && config.suffix.trim() && !suffix) return null
-      return { cards, prefix: prefix ?? null, suffix: suffix ?? null, elements, first, last }
-    }
-
-    const validatePersonaNormal = (markdown, config) => {
-      const info = validatePersonaCards(markdown, config)
-      if (!info) return null
-      if (info.elements.some((element) => element.tagName === 'TABLE' || /^H[1-6]$/.test(element.tagName) || element.classList?.contains?.('md-code-block'))) return null
-      return info
-    }
-
-    const validatePersonaTable = (markdown, config) => {
-      const info = validatePersonaCards(markdown, config, false)
-      if (!info) return null
-      const tables = info.elements.filter((element) => element.tagName === 'TABLE')
-      if (tables.length !== 1) return null
-      const table = tables[0]
-      const tableAt = info.elements.indexOf(table)
-      if (tableAt < info.first || tableAt > info.elements.indexOf(info.cards[1])) return null
-      if (config.suffix.trim() && info.suffix) return null
-      if (info.elements.some((element) => /^H[1-6]$/.test(element.tagName) || element.classList?.contains?.('md-code-block'))) return null
-      return { ...info, table }
-    }
-
-    const validatePersonaShort = (markdown, config) => {
-      if (inGenui(markdown)) return null
-      const elements = directElements(markdown)
-      if (elements.some((element) => element.tagName === 'TABLE' || /^H[1-6]$/.test(element.tagName) || element.classList?.contains?.('md-code-block'))) return null
-      const cards = elements.filter((element) => element.tagName === 'BLOCKQUOTE')
-      if (cards.length !== 1 || cardTypeFor(cards[0]) !== 'short') return null
-      const first = elements.indexOf(cards[0])
-      const prefix = elements.slice(0, first).find((element) => element.tagName === 'P' && textOfDirect(element))
-      if (config.prefix.trim() && !prefix) return null
-      const suffix = elements.slice(first + 1).find((element) => element.tagName === 'P' && textOfDirect(element))
-      if (config.suffix.trim() && suffix) return null
-      return { cards, prefix: prefix ?? null, card: cards[0] }
-    }
-
-    const markPersonaAffixes = (markdown, info, kind) => {
-      for (const element of directElements(markdown)) {
-        if (element.tagName !== 'P') continue
-        element.classList?.remove?.('dss-persona-prefix')
-        element.classList?.remove?.('dss-persona-suffix')
+    const validatePersonaContent = (raw) => {
+      if (!personaObject(raw)) return { ok: false, error: 'JSON 必须是对象' }
+      if (raw.version !== 1) return { ok: false, error: 'version 必须为 1' }
+      if (raw.kind === 'short') {
+        if (!strictKeys(raw, ['version', 'kind', 'text'])) return { ok: false, error: 'short 含未定义字段' }
+        if (!personaText(raw.text)) return { ok: false, error: 'short.text 必须是非空字符串' }
+        return { ok: true, content: { kind: 'short', text: raw.text } }
       }
-      if (info?.prefix) info.prefix.classList?.add?.('dss-persona-prefix')
-      if (info?.suffix && kind === 'normal') info.suffix.classList?.add?.('dss-persona-suffix')
+      if (raw.kind !== 'normal' && raw.kind !== 'table') return { ok: false, error: 'kind 只能是 normal / short / table' }
+      const allowed = raw.kind === 'table' ? ['version', 'kind', 'conclusion', 'suggestions', 'risk', 'table'] : ['version', 'kind', 'conclusion', 'suggestions', 'risk']
+      if (!strictKeys(raw, allowed)) return { ok: false, error: raw.kind + ' 含未定义字段' }
+      const conclusion = raw.conclusion
+      if (!personaObject(conclusion) || !strictKeys(conclusion, ['lead', 'body'])) return { ok: false, error: 'conclusion 形状非法' }
+      if (!personaText(conclusion.lead)) return { ok: false, error: 'conclusion.lead 必须是非空字符串' }
+      if (conclusion.body !== undefined && typeof conclusion.body !== 'string') return { ok: false, error: 'conclusion.body 必须是字符串' }
+      if (!Array.isArray(raw.suggestions) || raw.suggestions.length < 1 || raw.suggestions.length > 5 || !raw.suggestions.every(personaText)) return { ok: false, error: 'suggestions 必须是 1-5 条非空字符串' }
+      if (!personaText(raw.risk)) return { ok: false, error: 'risk 必须是非空字符串' }
+      const content = {
+        kind: raw.kind,
+        conclusion: { lead: conclusion.lead, ...(conclusion.body === undefined ? {} : { body: conclusion.body }) },
+        suggestions: [...raw.suggestions],
+        risk: raw.risk,
+      }
+      if (raw.kind === 'table') {
+        const table = raw.table
+        if (!personaObject(table) || !strictKeys(table, ['head', 'rows'])) return { ok: false, error: 'table 形状非法' }
+        if (!Array.isArray(table.head) || table.head.length < 2 || table.head.length > 6 || !table.head.every(personaText)) return { ok: false, error: 'table.head 必须是 2-6 个非空表头' }
+        if (!Array.isArray(table.rows) || table.rows.length < 1 || table.rows.length > 20) return { ok: false, error: 'table.rows 必须是 1-20 行' }
+        if (!table.rows.every((row) => Array.isArray(row) && row.length === table.head.length && row.every((cell) => typeof cell === 'string'))) return { ok: false, error: 'table.rows 行列数必须与 head 一致' }
+        content.table = { head: [...table.head], rows: table.rows.map((row) => [...row]) }
+      }
+      return { ok: true, content }
+    }
+
+    const extractPersonaEnvelope = (markdown) => {
+      const blocks = [...(markdown.querySelectorAll?.('.md-code-block') ?? [])]
+      const personaBlocks = blocks.filter((code) => bannerLanguage(code) === 'persona')
+      if (personaBlocks.length === 0) return { kind: 'none' }
+      if (personaBlocks.length > 1 || blocks.length > 1) return { ok: false, error: 'persona 内容块必须唯一' }
+      const code = personaBlocks[0]
+      const meaningful = [...(markdown.children ?? [])].filter((element) => (element.textContent ?? '').trim())
+      if (meaningful.length !== 1 || meaningful[0] !== code) return { ok: false, error: 'persona 块外不得有内容' }
+      const text = code.querySelector('pre')?.textContent ?? ''
+      if (!text.trim()) return { ok: false, error: 'persona 内容块为空' }
+      return { ok: true, text }
+    }
+
+    const makePersonaElement = (doc, tag, className, text) => {
+      const element = doc.createElement(tag)
+      if (className) element.className = className
+      if (text !== undefined) element.textContent = text
+      return element
+    }
+
+    const appendPersonaCard = (doc, markdown, label, bodies) => {
+      const card = makePersonaElement(doc, 'blockquote')
+      const labelParagraph = makePersonaElement(doc, 'p')
+      const strong = makePersonaElement(doc, 'strong', '', label)
+      labelParagraph.appendChild(strong)
+      card.appendChild(labelParagraph)
+      for (const body of bodies) card.appendChild(body)
+      markdown.appendChild(card)
+    }
+
+    const renderPersonaContent = (markdown, content, config) => {
+      const doc = markdown.ownerDocument ?? document
+      while (markdown.firstChild) markdown.removeChild(markdown.firstChild)
+      if (config.prefix) markdown.appendChild(makePersonaElement(doc, 'p', 'dss-persona-prefix', config.prefix))
+      if (content.kind === 'short') {
+        appendPersonaCard(doc, markdown, '短答', [makePersonaElement(doc, 'p', '', content.text)])
+      } else {
+        const conclusionLead = makePersonaElement(doc, 'p')
+        conclusionLead.appendChild(makePersonaElement(doc, 'strong', '', content.conclusion.lead))
+        const conclusionBodies = [conclusionLead]
+        if (content.conclusion.body) conclusionBodies.push(makePersonaElement(doc, 'p', '', content.conclusion.body))
+        appendPersonaCard(doc, markdown, '结论', conclusionBodies)
+        if (content.kind === 'table') {
+          const table = makePersonaElement(doc, 'table')
+          const thead = makePersonaElement(doc, 'thead')
+          const headRow = makePersonaElement(doc, 'tr')
+          for (const head of content.table.head) headRow.appendChild(makePersonaElement(doc, 'th', '', head))
+          thead.appendChild(headRow)
+          table.appendChild(thead)
+          const tbody = makePersonaElement(doc, 'tbody')
+          for (const row of content.table.rows) {
+            const tr = makePersonaElement(doc, 'tr')
+            for (const cell of row) tr.appendChild(makePersonaElement(doc, 'td', '', cell))
+            tbody.appendChild(tr)
+          }
+          table.appendChild(tbody)
+          markdown.appendChild(table)
+        }
+        const list = makePersonaElement(doc, 'ol')
+        for (const suggestion of content.suggestions) list.appendChild(makePersonaElement(doc, 'li', '', suggestion))
+        appendPersonaCard(doc, markdown, '下一步', [list])
+        appendPersonaCard(doc, markdown, '风险', [makePersonaElement(doc, 'p', '', content.risk)])
+      }
+      if (config.suffix && content.kind === 'normal') markdown.appendChild(makePersonaElement(doc, 'p', 'dss-persona-suffix', config.suffix))
+      markdown.removeAttribute?.(PERSONA_ERROR_ATTR)
+      markdown.removeAttribute?.(PERSONA_FALLBACK_ATTR)
+      markdown.setAttribute(PERSONA_KIND_ATTR, content.kind)
+      decorateStructured(markdown)
+      return content.kind
+    }
+
+    const renderPersonaError = (markdown, message) => {
+      const doc = markdown.ownerDocument ?? document
+      while (markdown.firstChild) markdown.removeChild(markdown.firstChild)
+      const card = makePersonaElement(doc, 'blockquote', 'dss-card dss-card-risk')
+      card.setAttribute(PERSONA_ERROR_ATTR, '1')
+      const label = makePersonaElement(doc, 'p')
+      label.appendChild(makePersonaElement(doc, 'strong', '', '内容合同错误'))
+      card.appendChild(label)
+      card.appendChild(makePersonaElement(doc, 'p', '', message))
+      markdown.appendChild(card)
+      markdown.setAttribute(PERSONA_KIND_ATTR, 'error')
+      markdown.setAttribute(PERSONA_ERROR_ATTR, '1')
+      markdown.removeAttribute?.(PERSONA_FALLBACK_ATTR)
+      return 'error'
     }
 
     const renderPersonaMarkdown = (markdown, config, flowOverride, options = {}) => {
@@ -1223,50 +1307,32 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
       }
       if (flow) mountPersonaHead(flow, config)
       markdown.removeAttribute?.(PERSONA_FALLBACK_ATTR)
-      markdown.removeAttribute?.(PERSONA_KIND_ATTR)
-
-      const code = markdown.querySelector?.('.md-code-block')
+      markdown.removeAttribute?.(PERSONA_ERROR_ATTR)
       const genui = inGenui(markdown) || Boolean(markdown.querySelector?.('[data-genui], [class*="genui-root"]'))
-      const cards = directElements(markdown).filter((element) => element.tagName === 'BLOCKQUOTE')
-      let kind = null
-      let info = null
-      if (genui) kind = 'genui'
-      else if (code) kind = 'code'
-      else if (cards.length === 1) {
-        const short = validatePersonaShort(markdown, config)
-        if (short) {
-          kind = 'short'
-          info = short
-        } else kind = 'fallback'
-      }
-      else if (cards.length !== 3) kind = 'fallback'
-      else {
-        const table = validatePersonaTable(markdown, config)
-        if (table) {
-          kind = 'table'
-          info = table
-          table.table.setAttribute(PERSONA_TABLE_ATTR, '1')
-        } else {
-          const normal = validatePersonaNormal(markdown, config)
-          if (normal) {
-            kind = 'normal'
-            info = normal
-          } else kind = 'fallback'
-        }
-      }
-
-      if (kind === 'fallback') {
-        markdown.setAttribute(PERSONA_FALLBACK_ATTR, '1')
-        markdown.setAttribute(PERSONA_KIND_ATTR, 'fallback')
-        markPersonaAffixes(markdown, null, kind)
+      if (genui) {
+        markdown.setAttribute(PERSONA_KIND_ATTR, 'genui')
         decorateStructured(markdown)
-        return kind
+        return 'genui'
       }
-      markdown.setAttribute(PERSONA_KIND_ATTR, kind)
-      if (kind === 'table' || kind === 'normal' || kind === 'short') markPersonaAffixes(markdown, info, kind)
-      else markPersonaAffixes(markdown, null, kind)
-      decorateStructured(markdown)
-      return kind
+      const envelope = extractPersonaEnvelope(markdown)
+      if (envelope.kind === 'none') {
+        if (markdown.querySelector?.('.md-code-block')) {
+          markdown.setAttribute(PERSONA_KIND_ATTR, 'code')
+          decorateStructured(markdown)
+          return 'code'
+        }
+        return renderPersonaError(markdown, 'PersonaMode 需要且仅需要一个 ```persona 内容块；本次未收到内容合同。')
+      }
+      if (!envelope.ok) return renderPersonaError(markdown, envelope.error)
+      let parsed
+      try {
+        parsed = JSON.parse(envelope.text)
+      } catch (error) {
+        return renderPersonaError(markdown, 'persona JSON 解析失败：' + String(error.message ?? error))
+      }
+      const validated = validatePersonaContent(parsed)
+      if (!validated.ok) return renderPersonaError(markdown, validated.error)
+      return renderPersonaContent(markdown, validated.content, config)
     }
 
     function decorateStructured(root) {
@@ -1407,6 +1473,7 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
         ensureCodeCopy(code)
       }
     }
+
 
     // Actual replies and the settings preview both run through this same
     // structural decorator; the preview only differs in its host container.
@@ -1640,24 +1707,28 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
         return PREVIEW_SAMPLES.playful
       }
       const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]))
-      const previewRawHtml = (sample, styleText, persona = {}) => {
+      const previewContent = (sample, styleText) => {
         const variant = previewVariant(String(styleText ?? ''))
-        const prefix = persona.prefix ? `<p>${escapeHtml(persona.prefix)}</p>` : ''
-        const suffix = persona.suffix ? `<p>${escapeHtml(persona.suffix)}</p>` : ''
-        const conclusion = `<blockquote><p><strong>结论</strong></p><p><strong>${escapeHtml(variant.normal.lead)}</strong></p><p>${escapeHtml(variant.normal.sub)}</p></blockquote>`
-        const next = `<blockquote><p><strong>下一步</strong></p><ol>${variant.normal.steps.map((step) => `<li>${escapeHtml(step)}</li>`).join('')}</ol></blockquote>`
-        const risk = `<blockquote><p><strong>风险</strong></p><p>${escapeHtml(variant.normal.risk)}</p></blockquote>`
         if (sample === 'table') {
-          const table = `<table><thead><tr>${PREVIEW_TABLE.head.map((head) => `<th>${escapeHtml(head)}</th>`).join('')}</tr></thead><tbody>${PREVIEW_TABLE.rows.map(([module, state, note]) => `<tr><td>${escapeHtml(module)}</td><td>${escapeHtml(PREVIEW_STATUS_TEXT[state])}</td><td>${escapeHtml(note)}</td></tr>`).join('')}</tbody></table>`
-          return `${prefix}${conclusion}${table}${next}${risk}`
+          return {
+            version: 1,
+            kind: 'table',
+            conclusion: { lead: variant.tableLead, body: '' },
+            suggestions: variant.normal.steps.slice(0, 2),
+            risk: variant.normal.risk,
+            table: { head: [...PREVIEW_TABLE.head], rows: PREVIEW_TABLE.rows.map(([module, state, note]) => [module, PREVIEW_STATUS_TEXT[state], note]) },
+          }
         }
-        if (sample === 'code') {
-          return `<div class="md-code-block"><div class="bannerWrap"><div data-code-block-banner><span class="_heading_preview">tone-loader.js</span><div class="_actions_preview"></div></div></div><div data-code-block-content><pre>${escapeHtml(PREVIEW_CODE.join(String.fromCharCode(10)))}</pre></div></div>`
+        return {
+          version: 1,
+          kind: 'normal',
+          conclusion: { lead: variant.normal.lead, body: variant.normal.sub },
+          suggestions: [...variant.normal.steps],
+          risk: variant.normal.risk,
         }
-        return `${prefix}${conclusion}${next}${risk}${suffix}`
       }
-      // One renderer for both surfaces: preview and real replies both build a
-      // flow host, then run renderPersonaMarkdown on the same sample/host shape.
+      // Preview and real replies both receive a typed content object and run the
+      // same plugin renderer; no model-authored Markdown cards are involved.
       const previewHtml = (sample, styleText, docOverride, personaOverride = {}) => {
         const doc = docOverride ?? (typeof document !== 'undefined' ? document : null)
         if (!doc || typeof doc.createElement !== 'function') return ''
@@ -1675,15 +1746,21 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
         host.setAttribute('data-chat-flow-kind', 'assistant-step')
         host.setAttribute('data-chat-node-key', 'preview')
         host.setAttribute('data-chat-turn', '0')
+        mountPersonaHead(host, persona)
         const body = doc.createElement('div')
         body.className = 'dss-chat-body'
         body.setAttribute('data-slot', 'conversation.chat.node')
         const markdown = doc.createElement('div')
         markdown.className = '_markdown_preview'
-        markdown.innerHTML = previewRawHtml(sample, styleText, persona)
         body.appendChild(markdown)
         host.appendChild(body)
-        renderPersonaMarkdown(markdown, persona, host, { force: true })
+        if (sample === 'code') {
+          markdown.innerHTML = `<div class="md-code-block"><div class="bannerWrap"><div data-code-block-banner><span class="_heading_preview">tone-loader.js</span><div class="_actions_preview"></div></div></div><div data-code-block-content><pre>${escapeHtml(PREVIEW_CODE.join(String.fromCharCode(10)))}</pre></div></div>`
+          markdown.setAttribute(PERSONA_KIND_ATTR, 'code')
+          decorateStructured(markdown)
+        } else {
+          renderPersonaContent(markdown, previewContent(sample, styleText), persona)
+        }
         return host.innerHTML
       }
       const useEffect = typeof react.useEffect === 'function' ? react.useEffect : () => {}
@@ -2097,6 +2174,7 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
               ],
             }),
             jsx('p', { className: 'dss-rules', children: '代码 / diff / 报错 / 日志 / 表格 / 正式文档 / 高风险结论的正文固定中性；开场与收尾只在界面展示、复制不带。' }),
+            jsx('p', { className: 'dss-known-limit', children: '已知限制：模型需输出 persona 内容块；缺失或非法显示“内容合同错误”，不回落普通排版。旧历史消息不回溯；验收请使用新回复。' }),
             jsxs('div', {
               className: 'dss-save',
               children: [
@@ -2120,7 +2198,7 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
                       className: 'dss-preview-title-row',
                       children: [
                         jsx('h2', { className: 'dss-preview-title', children: '样式预览' }),
-                        jsx('span', { className: 'dss-preview-note', children: '预览为 PersonaMode 合同样本：身份头、卡外前缀、结论 / 下一步 / 风险、收尾；真实回复与预览同源。' }),
+                        jsx('span', { className: 'dss-preview-note', children: '预览为 PersonaMode 合同样本：身份头、卡外前缀、结论 / 建议 / 风险、收尾；真实回复与预览同源。' }),
                       ],
                     }),
                     jsx('div', {
@@ -2152,7 +2230,7 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
         })
       }
 
-      personaTestApi = { parseToneJson, emptyTone, byteLength, statusLabels, personaUiFlags, PersonaEditor, previewRawHtml, previewHtml }
+      personaTestApi = { parseToneJson, emptyTone, byteLength, statusLabels, personaUiFlags, PersonaEditor, previewContent, previewHtml, renderPersonaContent }
 
       const StructuredConfigCard = (props) => {
         const [tab, setTab] = react.useState('structured')
@@ -2342,7 +2420,7 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
         document.body?.removeAttribute(THEME_ATTR)
         document.body?.removeAttribute(PERSONA_MODE_ATTR)
         removePersonaHeads(document)
-        for (const attr of [CARD_ATTR, CARD_TYPE_ATTR, ICON_ATTR, TONE_ATTR, LANG_ATTR, CODE_ATTR, SKIP_ATTR, STATUS_ATTR, STATUS_TABLE_ATTR, LEAD_ATTR, ROW_ATTR, PERSONA_KIND_ATTR, PERSONA_FALLBACK_ATTR, PERSONA_TABLE_ATTR]) {
+        for (const attr of [CARD_ATTR, CARD_TYPE_ATTR, ICON_ATTR, TONE_ATTR, LANG_ATTR, CODE_ATTR, SKIP_ATTR, STATUS_ATTR, STATUS_TABLE_ATTR, LEAD_ATTR, ROW_ATTR, PERSONA_KIND_ATTR, PERSONA_FALLBACK_ATTR, PERSONA_ERROR_ATTR]) {
           for (const element of document.querySelectorAll('[' + attr + ']')) element.removeAttribute(attr)
         }
         try {
@@ -2363,7 +2441,7 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
       document.body?.removeAttribute(THEME_ATTR)
       document.body?.removeAttribute(PERSONA_MODE_ATTR)
       removePersonaHeads(document)
-      for (const attr of [CARD_ATTR, CARD_TYPE_ATTR, ICON_ATTR, TONE_ATTR, LANG_ATTR, CODE_ATTR, SKIP_ATTR, STATUS_ATTR, STATUS_TABLE_ATTR, LEAD_ATTR, ROW_ATTR, PERSONA_KIND_ATTR, PERSONA_FALLBACK_ATTR, PERSONA_TABLE_ATTR]) {
+      for (const attr of [CARD_ATTR, CARD_TYPE_ATTR, ICON_ATTR, TONE_ATTR, LANG_ATTR, CODE_ATTR, SKIP_ATTR, STATUS_ATTR, STATUS_TABLE_ATTR, LEAD_ATTR, ROW_ATTR, PERSONA_KIND_ATTR, PERSONA_FALLBACK_ATTR, PERSONA_ERROR_ATTR]) {
         for (const element of document.querySelectorAll('[' + attr + ']')) element.removeAttribute(attr)
       }
     }

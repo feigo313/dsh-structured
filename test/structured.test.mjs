@@ -14,6 +14,7 @@ import {
   REMINDER_NAME,
   SECTION_NAME,
   PERSONA_MAX_BYTES,
+  PERSONA_MODE_RULES,
   PERSONA_ORDER,
   PERSONA_SECTION_NAME,
   PERSONA_WRAPPER_HEAD,
@@ -127,6 +128,17 @@ test('内置规则覆盖首句结论、组件、清晰度三件事', () => {
   assert.match(TAIL_REMINDER_TEXT, /不得用组件充当首卡/)
   assert.match(GENUI_ROUTING_TEXT, /不得用它的 title 充当首卡/)
   assert.match(GENUI_ROUTING_TEXT, /以本节为准/)
+})
+
+test('PersonaMode 合同：内容块 JSON，不是模型 Markdown 卡片', () => {
+  assert.match(PERSONA_MODE_RULES, /```persona/)
+  assert.match(PERSONA_MODE_RULES, /"version":1/)
+  assert.match(PERSONA_MODE_RULES, /"kind":"normal"/)
+  assert.match(PERSONA_MODE_RULES, /"suggestions"/)
+  assert.match(PERSONA_MODE_RULES, /"kind":"short"/)
+  assert.match(PERSONA_MODE_RULES, /"kind":"table"/)
+  assert.doesNotMatch(PERSONA_MODE_RULES, /> \*\*结论\*\*/)
+  assert.match(TONE_ANCHOR, /persona 内容块/)
 })
 
 test('detectGenui：profile 清单不再作为 auto 依据，config 可强制', () => {
@@ -248,7 +260,7 @@ test('apply：tone 关闭/开启/invalid 的独立 section', () => {
     assert.equal(onAnchor.order, TONE_ANCHOR_ORDER)
     assert.equal(onAnchor.text(mainContext('session-a')), '')
     assert.match(onSection.text(mainContext('session-a')), /发送前自检/)
-    assert.match(onSection.text(mainContext('session-a')), /最后一行保留 suffix/)
+    assert.match(onSection.text(mainContext('session-a')), /persona 内容块/)
 
     const mutable = { defaultEnabled: true, personaEnabled: true, persona: DEFAULT_PERSONA_JSON, personaRevision: 1 }
     const shared = fakeCtx()
@@ -289,15 +301,15 @@ test('tone：顺序 10250、64KB、style.md 覆盖、tail 锚点、wrapper 对�
     assert.equal(sections[0].text(mainContext('session-a')), '')
     const toneSection = sections.find((section) => section.name === PERSONA_SECTION_NAME)
     assert.ok(toneSection.text(mainContext('session-a')).startsWith(PERSONA_WRAPPER_HEAD))
-    assert.match(toneSection.text(mainContext('session-a')), /结尾后缀：只在普通实质回复/)
-    assert.match(toneSection.text(mainContext('session-a')), /skipIn 只控制结尾后缀/)
-    assert.match(toneSection.text(mainContext('session-a')), /风格落在正文 \/ 结论卡正文 \/ 吐槽句/)
+    assert.match(toneSection.text(mainContext('session-a')), /结尾后缀：模型不输出后缀/)
+    assert.match(toneSection.text(mainContext('session-a')), /skipIn 只控制插件渲染的结尾后缀/)
+    assert.match(toneSection.text(mainContext('session-a')), /风格落在 persona 内容槽位/)
     assert.match(toneSection.text(mainContext('session-a')), /表格单元格保持中性/)
     assert.match(toneSection.text(mainContext('session-a')), /像朋友说话/)
     assert.match(toneSection.text(mainContext('session-a')), /正文至少两处自然体现风格/)
-    assert.match(toneSection.text(mainContext('session-a')), /PersonaMode 输出合同/)
+    assert.match(toneSection.text(mainContext('session-a')), /PersonaMode 内容合同/)
     assert.match(toneSection.text(mainContext('session-a')), /发送前自检/)
-    assert.match(toneSection.text(mainContext('session-a')), /最后一行保留 suffix/)
+    assert.match(toneSection.text(mainContext('session-a')), /persona 内容块/)
     const reminder = sections.find((section) => section.name === 'dsh-structured:reminder')
     assert.equal(reminder.text(mainContext('session-a')), '')
     const anchor = sections.find((section) => section.name === TONE_ANCHOR_SECTION_NAME)
@@ -341,13 +353,12 @@ test('PersonaMode：互斥注入与 /structured 行为', () => {
     const onPersona = on.sections.find((section) => section.name === PERSONA_SECTION_NAME)
     assert.equal(onMain.text(mainContext('session-a')), '')
     assert.equal(onReminder.text(mainContext('session-a')), '')
-    assert.match(onPersona.text(mainContext('session-a')), /PersonaMode 输出合同/)
-    assert.match(onPersona.text(mainContext('session-a')), /> \*\*结论\*\*/)
-    assert.match(onPersona.text(mainContext('session-a')), /> \*\*下一步\*\*/)
-    assert.match(onPersona.text(mainContext('session-a')), /> \*\*风险\*\*/)
-    assert.match(onPersona.text(mainContext('session-a')), /无已知风险/)
-    assert.match(onPersona.text(mainContext('session-a')), /> \*\*短答\*\*/)
-    assert.match(onPersona.text(mainContext('session-a')), /判定矩阵/)
+    assert.match(onPersona.text(mainContext('session-a')), /PersonaMode 内容合同/)
+    assert.match(onPersona.text(mainContext('session-a')), /```persona/)
+    assert.match(onPersona.text(mainContext('session-a')), /"kind":"normal"/)
+    assert.match(onPersona.text(mainContext('session-a')), /"kind":"short"/)
+    assert.match(onPersona.text(mainContext('session-a')), /"kind":"table"/)
+    assert.doesNotMatch(onPersona.text(mainContext('session-a')), /> \*\*结论\*\*/)
     assert.match(onPersona.text(mainContext('session-a')), /不为了格式加内容/)
     assert.doesNotMatch(onPersona.text(mainContext('session-a')), /结构化输出（本会话已启用/)
     assert.doesNotMatch(onPersona.text(mainContext('session-a')), /提醒：本轮最终回复/)
