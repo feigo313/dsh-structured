@@ -27,6 +27,7 @@ window.__ModuleLoader__.load({
     const PERSONA_MODE_ATTR = 'data-dsh-persona-mode'
     const PERSONA_FALLBACK_ATTR = 'data-dsh-persona-fallback'
     const PERSONA_ERROR_ATTR = 'data-dsh-persona-error'
+    const PERSONA_PENDING_ATTR = 'data-dsh-persona-pending'
     const PERSONA_KIND_ATTR = 'data-dsh-persona-kind'
     const LEAD_ATTR = 'data-dsh-structured-lead'
     const ROW_ATTR = 'data-dsh-structured-row'
@@ -52,6 +53,7 @@ window.__ModuleLoader__.load({
       prefix: '',
       suffix: '',
     }
+    const personaRenderCache = new WeakMap()
 
     /** 六个配置字段的界面文案；field 与 host Config schema 对齐，fallback 为 schema 默认值。 */
     const CONFIG_FIELDS = [
@@ -1104,7 +1106,7 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
       else document.body?.removeAttribute(PERSONA_MODE_ATTR)
       if (active) {
         if (!personaModeState.enabled) removePersonaHeads(document)
-        decorate(document)
+        decorate(document, { fresh: false })
       }
     }
 
@@ -1136,11 +1138,12 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
 
     const updatePersonaHead = (head, config) => {
       const image = head.querySelector?.('.dss-chat-avatar img')
-      if (image) image.src = config.avatar || DEFAULT_AVATAR
+      const src = config.avatar || DEFAULT_AVATAR
+      if (image && image.getAttribute?.('src') !== src) image.src = src
       const name = head.querySelector?.('.dss-chat-name')
-      if (name) name.textContent = config.name
+      if (name && name.textContent !== config.name) name.textContent = config.name
       const signature = head.querySelector?.('.dss-chat-meta')
-      if (signature) signature.textContent = config.signature
+      if (signature && signature.textContent !== config.signature) signature.textContent = config.signature
     }
 
     const findAssistantFlow = (markdown) => {
@@ -1164,12 +1167,16 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
 
     const removePersonaHeads = (root) => {
       for (const head of root?.querySelectorAll?.(`[${PERSONA_HEAD_ATTR}]`) ?? []) head.remove()
-      for (const element of root?.querySelectorAll?.(`[${PERSONA_KIND_ATTR}], [${PERSONA_FALLBACK_ATTR}], [${PERSONA_ERROR_ATTR}], .dss-persona-prefix, .dss-persona-suffix`) ?? []) {
+      const markdowns = root?.matches?.('[class*="_markdown_"]')
+        ? [root]
+        : [...(root?.querySelectorAll?.('[class*="_markdown_"]') ?? [])]
+      for (const markdown of markdowns) personaRenderCache.delete(markdown)
+      for (const node of root?.querySelectorAll?.('.dss-persona-prefix, .dss-persona-suffix') ?? []) node.remove()
+      for (const element of root?.querySelectorAll?.(`[${PERSONA_KIND_ATTR}], [${PERSONA_FALLBACK_ATTR}], [${PERSONA_ERROR_ATTR}], [${PERSONA_PENDING_ATTR}]`) ?? []) {
         element.removeAttribute?.(PERSONA_KIND_ATTR)
         element.removeAttribute?.(PERSONA_FALLBACK_ATTR)
         element.removeAttribute?.(PERSONA_ERROR_ATTR)
-        element.classList?.remove?.('dss-persona-prefix')
-        element.classList?.remove?.('dss-persona-suffix')
+        element.removeAttribute?.(PERSONA_PENDING_ATTR)
       }
     }
 
@@ -1277,8 +1284,13 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
       if (config.suffix && content.kind === 'normal') markdown.appendChild(makePersonaElement(doc, 'p', 'dss-persona-suffix', config.suffix))
       markdown.removeAttribute?.(PERSONA_ERROR_ATTR)
       markdown.removeAttribute?.(PERSONA_FALLBACK_ATTR)
+      markdown.removeAttribute?.(PERSONA_PENDING_ATTR)
       markdown.setAttribute(PERSONA_KIND_ATTR, content.kind)
       decorateStructured(markdown)
+      personaRenderCache.set(markdown, {
+        content,
+        signature: JSON.stringify([content, config.prefix, config.suffix]),
+      })
       return content.kind
     }
 
@@ -1295,39 +1307,73 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
       markdown.setAttribute(PERSONA_KIND_ATTR, 'error')
       markdown.setAttribute(PERSONA_ERROR_ATTR, '1')
       markdown.removeAttribute?.(PERSONA_FALLBACK_ATTR)
+      markdown.removeAttribute?.(PERSONA_PENDING_ATTR)
+      personaRenderCache.delete(markdown)
       return 'error'
     }
 
     const renderPersonaMarkdown = (markdown, config, flowOverride, options = {}) => {
       if (!config?.enabled && options.force !== true) return null
       const flow = flowOverride === undefined ? findAssistantFlow(markdown) : flowOverride
-      if (!flow && flowOverride === undefined) {
-        decorateStructured(markdown)
-        return null
+      if (!flow) {
+        if (markdown.getAttribute(PERSONA_ERROR_ATTR) === '1') return 'error'
+        if (options.fresh === false) {
+          decorateStructured(markdown)
+          return 'legacy'
+        }
+        return renderPersonaError(markdown, 'PersonaMode 找不到 assistant flow；拒绝把普通排版当通过。')
       }
-      if (flow) mountPersonaHead(flow, config)
+      mountPersonaHead(flow, config)
       markdown.removeAttribute?.(PERSONA_FALLBACK_ATTR)
-      markdown.removeAttribute?.(PERSONA_ERROR_ATTR)
+      markdown.removeAttribute?.(PERSONA_PENDING_ATTR)
+      const cached = personaRenderCache.get(markdown)
+      const diff = inDiff(markdown) || Boolean(markdown.querySelector?.('.md-diff, [data-diff], [class*="diff"]'))
+      const errorReply = Boolean(markdown.closest?.('[data-error], [data-status="error"], [data-severity="error"]')) || Boolean(markdown.querySelector?.('[data-error], .md-error'))
+      if (diff || errorReply) {
+        const kind = diff ? 'diff' : 'exception'
+        markdown.removeAttribute?.(PERSONA_ERROR_ATTR)
+        markdown.setAttribute(PERSONA_KIND_ATTR, kind)
+        decorateStructured(markdown)
+        personaRenderCache.delete(markdown)
+        return kind
+      }
       const genui = inGenui(markdown) || Boolean(markdown.querySelector?.('[data-genui], [class*="genui-root"]'))
       if (genui) {
+        markdown.removeAttribute?.(PERSONA_ERROR_ATTR)
         markdown.setAttribute(PERSONA_KIND_ATTR, 'genui')
         decorateStructured(markdown)
+        personaRenderCache.delete(markdown)
         return 'genui'
       }
       const envelope = extractPersonaEnvelope(markdown)
       if (envelope.kind === 'none') {
+        if (cached) {
+          if (markdown.getAttribute(PERSONA_KIND_ATTR) === cached.content.kind && JSON.stringify([cached.content, config.prefix, config.suffix]) === cached.signature) return cached.content.kind
+          return renderPersonaContent(markdown, cached.content, config)
+        }
+        if (markdown.getAttribute(PERSONA_ERROR_ATTR) === '1') return 'error'
+        if (markdown.getAttribute(PERSONA_PENDING_ATTR) === '1') return 'pending'
         if (markdown.querySelector?.('.md-code-block')) {
+          markdown.removeAttribute?.(PERSONA_ERROR_ATTR)
           markdown.setAttribute(PERSONA_KIND_ATTR, 'code')
           decorateStructured(markdown)
           return 'code'
         }
-        return renderPersonaError(markdown, 'PersonaMode 需要且仅需要一个 ```persona 内容块；本次未收到内容合同。')
+        if (options.fresh === false) {
+          decorateStructured(markdown)
+          return 'legacy'
+        }
+        return renderPersonaError(markdown, 'PersonaMode 需要且仅需要一个 persona 内容块；本次未收到内容合同。')
       }
       if (!envelope.ok) return renderPersonaError(markdown, envelope.error)
       let parsed
       try {
         parsed = JSON.parse(envelope.text)
       } catch (error) {
+        if (!envelope.text.trim().endsWith('}')) {
+          markdown.setAttribute(PERSONA_PENDING_ATTR, '1')
+          return 'pending'
+        }
         return renderPersonaError(markdown, 'persona JSON 解析失败：' + String(error.message ?? error))
       }
       const validated = validatePersonaContent(parsed)
@@ -1477,7 +1523,7 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
 
     // Actual replies and the settings preview both run through this same
     // structural decorator; the preview only differs in its host container.
-    function decorate(root) {
+    function decorate(root, options = {}) {
       markScopes(root)
       if (!personaModeState.enabled) {
         removePersonaHeads(root)
@@ -1487,7 +1533,7 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
       const markdowns = root?.matches?.('[class*="_markdown_"]')
         ? [root]
         : [...(root?.querySelectorAll?.('[class*="_markdown_"]') ?? [])]
-      for (const markdown of markdowns) renderPersonaMarkdown(markdown, personaModeState)
+      for (const markdown of markdowns) renderPersonaMarkdown(markdown, personaModeState, undefined, options)
     }
 
     /**
@@ -2198,7 +2244,7 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
                       className: 'dss-preview-title-row',
                       children: [
                         jsx('h2', { className: 'dss-preview-title', children: '样式预览' }),
-                        jsx('span', { className: 'dss-preview-note', children: '预览为 PersonaMode 合同样本：身份头、卡外前缀、结论 / 建议 / 风险、收尾；真实回复与预览同源。' }),
+                        jsx('span', { className: 'dss-preview-note', children: '预览为 PersonaMode 合同样本：身份头、卡外前缀、结论 / 下一步 / 风险、收尾；真实回复与预览同源。' }),
                       ],
                     }),
                     jsx('div', {
@@ -2369,7 +2415,7 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
         const roots = pendingRoots
         pendingRoots = null
         if (roots === null) {
-          decorate(document)
+          decorate(document, { fresh: false })
           return
         }
         const list = [...roots]
@@ -2377,7 +2423,7 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
           if (root?.isConnected === false) continue
           // 被另一个待扫根包含时跳过，避免重复工作。
           if (list.some((other) => other !== root && other.contains?.(root))) continue
-          decorate(root)
+          decorate(root, { fresh: true })
         }
       }
       const schedule = () => {

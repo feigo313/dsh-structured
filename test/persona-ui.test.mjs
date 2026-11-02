@@ -350,7 +350,7 @@ test('v5 预览：三态走公共装饰管线，不再手写卡片/状态签', a
   const harness = makeHarness(baseState, async () => true)
   assert.ok(harness.findButton('普通'))
   const text = harness.nodes().map((item) => String(textOf(item.props.children))).join(' ')
-  assert.match(text, /预览为 PersonaMode 合同样本：身份头、卡外前缀、结论 \/ 建议 \/ 风险、收尾；真实回复与预览同源。/)
+  assert.match(text, /预览为 PersonaMode 合同样本：身份头、卡外前缀、结论 \/ 下一步 \/ 风险、收尾；真实回复与预览同源。/)
   await harness.click('表格')
   let html = harness.previewHtml()
   assert.match(html, /注入链路/)
@@ -503,6 +503,81 @@ test('PersonaMode：缺失/非法内容块显式 error，不补卡；code 例外
     assert.equal(item.markdown.getAttribute('data-dsh-persona-error'), null)
     assert.equal(item.markdown.querySelectorAll('.dss-persona-prefix, .dss-persona-suffix').length, 0)
   }
+})
+
+test('PersonaMode：幂等、旧历史、流式、no-flow、diff、关闭文本', () => {
+  const harness = makeHarness(baseState, async () => true)
+  const persona = { prefix: 'Boss，', suffix: '——完' }
+  const tone = JSON.stringify({ schema: 'dsh-structured/tone@1', ...persona, style: '搞怪', skipIn: ['code', 'diff', 'error', 'short', 'table'] })
+  const config = { personaEnabled: true, persona: tone, personaName: 'N', personaSignature: 'S', personaAvatar: '' }
+  harness.plugin.__test.setPersonaModeConfig(config)
+  const buildFlow = (html) => {
+    const flow = harness.document.createElement('div')
+    flow.setAttribute('data-chat-flow-kind', 'assistant-step')
+    flow.setAttribute('data-chat-node-key', 'runtime-' + Math.random())
+    const slot = harness.document.createElement('div')
+    slot.setAttribute('data-slot', 'conversation.chat.node')
+    const markdown = harness.document.createElement('div')
+    markdown.className = '_markdown_preview'
+    markdown.innerHTML = html
+    slot.appendChild(markdown)
+    flow.appendChild(slot)
+    harness.document.body.appendChild(flow)
+    return { flow, markdown }
+  }
+  const flowFor = (html) => {
+    const item = buildFlow(html)
+    harness.plugin.__test.decorate(item.flow)
+    return item
+  }
+  const normalContent = { version: 1, kind: 'normal', conclusion: { lead: 'L' }, suggestions: ['S'], risk: 'R' }
+  const normal = flowFor(personaEnvelope(normalContent))
+  assert.equal(normal.markdown.getAttribute('data-dsh-persona-kind'), 'normal')
+  harness.plugin.__test.decorate(normal.flow)
+  assert.equal(normal.markdown.getAttribute('data-dsh-persona-kind'), 'normal', 'redecorate must stay normal')
+  assert.equal(normal.markdown.querySelectorAll('[data-dsh-structured-card-type]').length, 3)
+  assert.doesNotMatch(normal.markdown.textContent, /内容合同错误/)
+
+  const old = buildFlow('<p>旧消息正文</p>')
+  harness.plugin.__test.decorate(old.flow, { fresh: false })
+  assert.equal(old.markdown.getAttribute('data-dsh-persona-kind'), null, 'old history must not be rewritten')
+  assert.equal(old.markdown.getAttribute('data-dsh-persona-error'), null)
+  assert.match(old.markdown.textContent, /旧消息正文/)
+
+  const partial = flowFor('<div class="md-code-block"><div class="bannerWrap"><div data-code-block-banner><span class="_heading_persona">persona</span></div></div><div data-code-block-content><pre>{"version":1,"kind":"normal",</pre></div></div>')
+  assert.equal(partial.markdown.getAttribute('data-dsh-persona-kind'), null, 'partial stream must not error')
+  assert.equal(partial.markdown.getAttribute('data-dsh-persona-error'), null)
+  assert.equal(partial.markdown.getAttribute('data-dsh-persona-pending'), '1')
+  assert.equal(partial.markdown.querySelectorAll('.md-code-block').length, 1, 'partial block must be preserved')
+
+  const loose = harness.document.createElement('div')
+  loose.className = '_markdown_preview'
+  loose.innerHTML = '<p>no flow</p>'
+  harness.document.body.appendChild(loose)
+  harness.plugin.__test.decorate(loose)
+  assert.equal(loose.getAttribute('data-dsh-persona-kind'), 'error', 'no-flow must be explicit error')
+  assert.equal(loose.getAttribute('data-dsh-persona-error'), '1')
+
+  const diff = flowFor('<div class="md-diff"><p>diff text</p></div>')
+  assert.equal(diff.markdown.getAttribute('data-dsh-persona-kind'), 'diff')
+  assert.equal(diff.markdown.getAttribute('data-dsh-persona-error'), null, 'diff is an exception, not a content error')
+
+  const six = flowFor(personaEnvelope({ ...normalContent, suggestions: ['1', '2', '3', '4', '5', '6'] }))
+  assert.equal(six.markdown.getAttribute('data-dsh-persona-kind'), 'error', '6 suggestions must be rejected')
+  const rows = Array.from({ length: 21 }, (_, i) => [String(i), 'x'])
+  const tooMany = flowFor(personaEnvelope({ version: 1, kind: 'table', conclusion: { lead: 'L' }, suggestions: ['S'], risk: 'R', table: { head: ['A', 'B'], rows } }))
+  assert.equal(tooMany.markdown.getAttribute('data-dsh-persona-kind'), 'error', '21 table rows must be rejected')
+
+  const close = flowFor(personaEnvelope(normalContent))
+  assert.match(close.markdown.textContent, /Boss，/)
+  assert.match(close.markdown.textContent, /——完/)
+  harness.plugin.__test.setPersonaModeConfig({ ...config, personaEnabled: false })
+  harness.plugin.__test.decorate(close.flow)
+  assert.equal(close.flow.querySelectorAll('[data-dsh-persona-head]').length, 0)
+  assert.equal(close.markdown.getAttribute('data-dsh-persona-kind'), null)
+  assert.equal(close.markdown.querySelectorAll('.dss-persona-prefix, .dss-persona-suffix').length, 0)
+  assert.doesNotMatch(close.markdown.textContent, /Boss，|——完/, 'close must remove visible prefix/suffix text')
+  assert.equal(close.markdown.querySelectorAll('blockquote').length, 3, 'generic cards remain')
 })
 
 test('v5 emptyTone 兜底只写语言风格，不写结构要求', () => {

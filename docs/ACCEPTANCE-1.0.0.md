@@ -1,8 +1,8 @@
 # dsh-structured 1.0.0 验收
 
-[1.0.0 · 代码/构建] `npm test` 92/92；`npm run build` 完成；`desktop-check` 全 PASS；`theme-contrast` 60；`theme-hue-distance` 12；`lib` 由 src 构建并注入鲸鱼娘 JSON；pack 58 文件 / 841345 B / unpacked 1329182 B。
+[1.0.0 · 代码/构建] `npm test` 92/92；`npm run build` 完成；`desktop-check` 全 PASS；`theme-contrast` 60；`theme-hue-distance` 12；`lib` 由 src 构建并注入鲸鱼娘 JSON；pack 58 文件 / 842662 B / unpacked 1334487 B。
 
-[1.0.0 · v5 回复皮肤] 软面卡片台：12px 圆角卡 + 3px 左条 + 同构渐变面；结论 / 建议 / 风险线标题；表格蓝 tint 表头、26% / 18% 列宽、首列 600 墨字、三色状态签；代码浅色卡 + 「代码 · 语言」线标题 + 双方框复制钮；深色卡面 / 表头 / 代码面 / 状态签全量适配。静态三态×明暗×三主题证据：`artifacts/prototype/v5-<theme>-<light|dark>-<normal|table|code>.png`（18 张；三主题统一 v5 token，按主题分组校验）；设置页证据：`artifacts/prototype/v5-settings-light.png` / `v5-settings-dark.png`。
+[1.0.0 · v5 回复皮肤] 软面卡片台：12px 圆角卡 + 3px 左条 + 同构渐变面；结论 / 下一步 / 风险线标题；表格蓝 tint 表头、26% / 18% 列宽、首列 600 墨字、三色状态签；代码浅色卡 + 「代码 · 语言」线标题 + 双方框复制钮；深色卡面 / 表头 / 代码面 / 状态签全量适配。静态三态×明暗×三主题证据：`artifacts/prototype/v5-<theme>-<light|dark>-<normal|table|code>.png`（18 张；三主题统一 v5 token，按主题分组校验）；设置页证据：`artifacts/prototype/v5-settings-light.png` / `v5-settings-dark.png`。
 
 [1.0.0 · 语气设置页] 无基础 / 进阶页签、无 JSON 编辑入口；档案行（88px 头像可上传并居中裁方压 128px JPEG dataURL、名称、签名）+ 开场 / 性格 / 收尾三字段 + 80/1200/80 计数 + 64 格 emoji 弹层 + 固定规则行 + 保存行 + 样式预览（普通 / 表格 / 代码）。模板只保留默认蓝色大肥鱼 + 用户另存模板，支持行内删除 / 删空提示 / 恢复默认。保存走宿主 `form.mutate` 一次原子六字段操作（persona / personaEnabled / personaRevision / personaName / personaSignature / personaAvatar）；无 `mutate` 的旧宿主才顺序写 + 写后读回 + 补偿回滚，回滚失败显示“回滚失败，profile 可能半保存”。
 
@@ -10,13 +10,13 @@
 
 [1.0.0 · PersonaMode] `personaEnabled=true` 只注入内容合同；`BUILTIN_STYLE_TEXT` / `TAIL_REMINDER` / `GENUI_ROUTING_TEXT` 不注入；`personaEnabled=false` 保持 StructuredMode 原行为。模型只交一个 `persona` fenced JSON（version 1；kind normal/short/table；内容槽位），身份头、前缀、三卡、收尾由 `renderPersonaContent` 固定渲染；模型不再输出 Markdown 卡片。缺块 / JSON 非法 / 字段非法显示「内容合同错误」，不补卡、不回落当通过。`/structured` 在 PersonaMode 下只报模式，不切换。默认关闭。
 
-[1.0.0 · 预览/真实共用 PersonaRenderer] 预览与真实回复共用 `renderPersonaContent`，输入都是内容对象，不再先造 Markdown 样例；身份头、前缀、三卡、收尾、table/code/short 例外同源。真实回复按 Phase 0 spike 候选插入 `[data-chat-flow-kind="assistant-step"]`；身份头 live 验证移到 Phase 4。
+[1.0.0 · 预览/真实共用 PersonaRenderer] normal/table 预览与真实回复共用 `renderPersonaContent`，输入都是内容对象，不再先造 Markdown 样例；身份头、前缀、三卡、收尾同源。code 预览与真实 code 都走 `decorateStructured` 的 code 例外通道；short 不在预览 tab，真实 short 由同一内容对象渲染。真实回复按 Phase 0 spike 候选插入 `[data-chat-flow-kind="assistant-step"]`；身份头 live 验证移到 Phase 4。
 
 [1.0.0 · 关闭清理] `personaEnabled=false` 时从每个 `_markdown_` 清除身份头、`data-dsh-persona-kind`、`data-dsh-persona-fallback`、`dss-persona-prefix` / `dss-persona-suffix`，再走 `decorateStructured`；通用卡保留。测试覆盖 normal 开启 → 关闭 → 再装饰。
 
 [1.0.0 · 审计修复] P1：深色表格表头改用独立 `--dss-th-text`（浅色 `#1d4ed8` / 深色 `#93c5fd`），不再复用线标签的 `--dss-blue-text`；gate 期望同步为 `rgb(147, 197, 253)`。P2：`emptyTone()` 兜底文案去掉“先给结论”，只保留语言风格；short 改为 `kind=short` 内容槽位，由 renderer 生成短答卡；删除用户文本正则猜 short 与模型 Markdown 短答卡。`style-gate --check` 新增源码树绑定：`src/lib/scripts/test/fixtures` 与证据 HEAD 不一致时直接 `STYLE_GATE_STALE`。
 
-[1.0.0 · 手动样式 gate] 真实浏览器检查不进 `npm test`；显式 `DSH_STRUCTURED_STYLE_GATE=1 node scripts/style-gate.mjs` 启动 detached worker 后立即返回，`node scripts/style-gate.mjs --check` 读结果；校验 computedStyle（v5 卡片 / 表头 / 状态签 / 代码卡 / 深色）与 800px，证据写入 `artifacts/style-gate/<timestamp>/`。当前证据：`artifacts/style-gate/2026-11-02T05-48-58-073Z/`（HEAD `c904f07`，ok=true，failures=[]；源码树绑定会拒绝旧证据）。
+[1.0.0 · 手动样式 gate] 真实浏览器检查不进 `npm test`；显式 `DSH_STRUCTURED_STYLE_GATE=1 node scripts/style-gate.mjs` 启动 detached worker 后立即返回，`node scripts/style-gate.mjs --check` 读结果；校验 computedStyle（v5 卡片 / 表头 / 状态签 / 代码卡 / 深色）与 800px，证据写入 `artifacts/style-gate/<timestamp>/`。当前证据：运行态修复 code commit 后重跑（源码树绑定会拒绝旧证据）。 gate 只覆盖 v5 通用样式，不覆盖 Persona 身份头/前后缀；Persona 视觉走 Phase 4 live 对照。
 
 [1.0.0 · 已知限制提示] PersonaMode 仍需模型输出 `persona` 内容块；解析失败显示显式「内容合同错误」，不再回落普通排版。旧历史消息不会回溯重渲染；验收使用新回复。
 
