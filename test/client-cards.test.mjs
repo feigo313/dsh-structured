@@ -143,3 +143,17 @@ test('严格卡片：不再有普通首引用 lead 与文本前缀 tone 逻辑',
   assert.match(clientSource, /CARD_TYPES = new Map/)
   assert.match(clientSource, /isStatementCard/)
 })
+
+test('兜底：首段加粗段落且无引用块时按 statement 卡渲染', () => {
+  const document = render('<div class="_markdown_x"><p id="lead"><strong>人格已关闭，本轮回到 StructuredMode</strong></p><ul><li>a</li></ul></div>')
+  const lead = document.getElementById('lead')
+  assert.equal(lead.getAttribute('data-dsh-structured-card'), '1')
+  assert.equal(lead.getAttribute('data-dsh-structured-card-type'), 'statement')
+  assert.ok(lead.classList.contains('dss-card'))
+  assert.ok(lead.classList.contains('dss-card-statement'))
+})
+
+test('兜底不误伤：已有引用块时不改写首段', () => {
+  const document = render('<div class="_markdown_y"><p id="lead"><strong>一句说明</strong></p><blockquote><p><strong>结论</strong><br>正文</p></blockquote></div>')
+  assert.equal(document.getElementById('lead').getAttribute('data-dsh-structured-card'), null)
+})

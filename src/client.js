@@ -1628,6 +1628,22 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
         }
       }
 
+      // 兜底：模型把首段写成普通加粗段落（不是引用块）时，直接给这段上卡片样式，
+      // 避免整条回复「没有卡片」。只在整段没有任何引用块时生效，避免误伤正常卡片。
+      for (const markdown of root.querySelectorAll?.('[class*="_markdown_"]') ?? []) {
+        if (inGenui(markdown) || inDiff(markdown) || markdown.querySelector('blockquote, table, [class*="_codeBlock"], .md-code-block')) continue
+        const first = markdown.firstElementChild
+        if (!first || first.tagName !== 'P' || first.childElementCount !== 1) continue
+        const strong = first.firstElementChild
+        if (!strong || strong.tagName !== 'STRONG') continue
+        const text = (strong.textContent ?? '').trim()
+        if (!text || text.length > 120) continue
+        first.classList?.add?.('dss-card', 'dss-card-statement')
+        first.setAttribute(CARD_ATTR, '1')
+        first.setAttribute(CARD_TYPE_ATTR, 'statement')
+        first.setAttribute(TONE_ATTR, 'info')
+      }
+
       for (const element of root.querySelectorAll('[class*="_markdown_"] p, [class*="_markdown_"] li')) {
         if (inGenui(element) || inDiff(element) || element.closest('blockquote, table')) {
           element.removeAttribute(STATUS_ATTR)
