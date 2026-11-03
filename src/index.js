@@ -56,7 +56,7 @@ const readConfig = (x) => (x && typeof x.get === 'function' ? x.get() : x)
 export const THEMES = ['deepseek', 'codex', 'anthropic']
 
 /** 1.0 语气风格发布默认值；正式是否开启由 Boss 拍板，代码不写死。 */
-export const DEFAULT_PERSONA_ENABLED = false
+export const DEFAULT_PERSONA_ENABLED = true
 export const DEFAULT_PERSONA_NAME = '蓝色大肥鱼'
 export const DEFAULT_PERSONA_SIGNATURE = '主人，再来一碗白米饭！！~'
 export const DEFAULT_PERSONA_AVATAR = ''
@@ -232,7 +232,7 @@ export const Config = Schema.object({
   tailReminder: k(Schema.boolean().default(true).description('尾部提醒 / Tail reminder: 每轮追加一句结构化提醒')),
   includeSubagents: k(Schema.boolean().default(false).description('子代理注入 / Include subagents: 默认关闭')),
   genui: k(Schema.union(['auto', 'on', 'off']).default('auto').description('GenUI 联动 / GenUI routing: auto | on | off').loose()),
-  personaEnabled: k(Schema.boolean().default(DEFAULT_PERSONA_ENABLED).description('语气风格 / Tone: 默认关闭，开启后注入鲸鱼娘语气模板')),
+  personaEnabled: k(Schema.boolean().default(DEFAULT_PERSONA_ENABLED).description('语气风格 / Tone: 默认开启，可在设置中关闭')),
   persona: k(Schema.string().default(DEFAULT_PERSONA_JSON).description('语气风格 JSON / tone@1 JSON: 内部 canonical 数据，不向用户暴露裸编辑')),
   personaRevision: k(Schema.number().default(0).description('语气风格全局修订号 / 内部：保存时递增，供所有会话重建 prompt')),
   personaName: k(Schema.string().default(DEFAULT_PERSONA_NAME).description('语气风格 / 显示名: 档案行与预览身份行')),

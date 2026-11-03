@@ -169,7 +169,7 @@ GenUI 联动              auto | on | off
     tailReminder: true     # system prompt 末尾追加一句提醒
     includeSubagents: false # 子代理会话不注入（它的产出不直接面向用户）
     genui: auto            # auto | on | off；auto 检测到 GenUI 才追加 dsh-ui 路由
-    personaEnabled: false  # 语气风格开关
+    personaEnabled: true   # 语气风格开关
     persona: '{"schema":"dsh-structured/tone@1",...}' # 内部 canonical tone@1，不暴露裸编辑
     personaName: 蓝色大肥鱼
     personaSignature: 主人，再来一碗白米饭！！~
