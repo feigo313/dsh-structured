@@ -125,6 +125,8 @@ test('内置规则覆盖首句结论、组件、清晰度三件事', () => {
   assert.match(BUILTIN_STYLE_TEXT, /✅ 完成/)
   assert.match(GENUI_ROUTING_TEXT, /dsh-ui/)
   assert.match(TAIL_REMINDER_TEXT, /即使后文要用组件也一样/)
+  assert.match(BUILTIN_STYLE_TEXT, /普通加粗段落或标题行不算卡/)
+  assert.match(TAIL_REMINDER_TEXT, /普通加粗段落、标题行『# 』、列表开头都不算标题卡/)
   assert.match(TAIL_REMINDER_TEXT, /不得用组件充当首卡/)
   assert.match(GENUI_ROUTING_TEXT, /不得用它的 title 充当首卡/)
   assert.match(GENUI_ROUTING_TEXT, /以本节为准/)
