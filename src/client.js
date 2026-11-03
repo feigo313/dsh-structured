@@ -2467,8 +2467,7 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
                 jsx('div', { className: 'dss-field-meta', children: jsx('span', { className: 'dss-counter', children: String(doc.suffix ?? '').length + ' / 80' }) }),
               ],
             }),
-            jsx('p', { className: 'dss-rules', children: '代码 / diff / 报错 / 日志 / 表格 / 正式文档 / 高风险结论的正文固定中性；开场与收尾只在界面展示、复制不带。' }),
-            jsx('p', { className: 'dss-known-limit', children: '保存只影响新回复，旧消息不变。' }),
+            jsx('p', { className: 'dss-rules', children: '开场与收尾只在界面展示、复制不带；代码 / 表格等正文保持中性；保存只影响新回复。' }),
             jsxs('div', {
               className: 'dss-save',
               children: [

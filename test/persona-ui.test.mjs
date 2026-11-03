@@ -179,7 +179,7 @@ test('v5 语气设置：档案行 + 三字段 + 规则行 + 样式预览，不�
   assert.match(text, /性格/)
   assert.match(text, /收尾/)
   assert.match(text, /放在最前面 · 可留空/)
-  assert.match(text, /代码 \/ diff \/ 报错/)
+  assert.match(text, /代码 \/ 表格等正文保持中性/)
   assert.doesNotMatch(text, /基础|进阶|JSON 编辑|开头前缀|中间风格|结尾后缀/)
   assert.equal(harness.findButton('保存').props.disabled, true)
   assert.ok(harness.nodeByClass('dss-config'))
