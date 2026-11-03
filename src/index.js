@@ -73,6 +73,8 @@ export const TONE_MAX_BYTES = 64 * 1024
 export const FALLBACK_PERSONA_JSON = JSON.stringify({
   schema: TONE_SCHEMA,
   prefix: 'Boss，',
+  userName: 'Boss',
+  selfName: '',
   style: '先给结论，简洁、直接；专业场景不卖萌',
   suffix: '',
   skipIn: TONE_SKIP_DEFAULT,
@@ -94,6 +96,7 @@ export const PERSONA_WRAPPER_HEAD = [
   '本轮必须使用以下表达风格要求；在 PersonaMode 下，它只改变语气 / 称呼；身份头、前缀、三卡、收尾由插件固定渲染。',
   '结构规则 / 【已启用的表达风格】以外的系统要求 / 事实 / 工具权限 / GenUI / 代码 diff 隔离 / 安全规则优先；冲突时结构 / 事实 / 安全优先。',
   '- 开头前缀 + 中间风格：模型不输出前缀；前缀由插件从配置渲染在卡片之外。中间风格落在 persona 内容槽位；表格单元格保持中性。',
+  '- 对用户称呼与自称分别由【对用户称呼】【自称】给出，必须照着用；性格只描述说话倾向，不在性格里重复称呼。',
   '- 结尾后缀：模型不输出后缀；插件按配置渲染；short / table / code / diff / error 由插件跳过。',
   '- 短答判定看用户请求，不看回复长短：问时间 / 状态 / 确认 / 简单事实，或要求一句话，一律交 kind=short 的内容块；插件渲染前缀 + 短答卡，无后缀。',
   '- skipIn 只控制插件渲染的结尾后缀：short / table 仍保留前缀与中间风格；代码 / diff / 报错则前缀 / 中间风格 / 后缀全部跳过。',
@@ -174,11 +177,13 @@ export function parsePersona(raw) {
   }
   if (!isRecord(doc)) return { ok: false, error: 'tone must be an object', pointer: '/' }
   if (doc.schema !== TONE_SCHEMA) return { ok: false, error: 'schema must be ' + TONE_SCHEMA, pointer: '/schema' }
-  const unknownPaths = Object.keys(doc).filter((key) => !['schema', 'prefix', 'style', 'suffix', 'skipIn'].includes(key)).map((key) => '/' + key)
+  const unknownPaths = Object.keys(doc).filter((key) => !['schema', 'prefix', 'style', 'suffix', 'skipIn', 'userName', 'selfName'].includes(key)).map((key) => '/' + key)
   if (unknownPaths.length > 0) return { ok: false, error: 'unknown field: ' + unknownPaths[0], pointer: unknownPaths[0] }
   if (!toneString(doc.prefix, 80)) return { ok: false, error: 'prefix must be a string of ≤80 chars', pointer: '/prefix' }
   if (!toneRequiredString(doc.style, 1200)) return { ok: false, error: 'style must be a non-empty string of ≤1200 chars', pointer: '/style' }
   if (!toneString(doc.suffix, 80)) return { ok: false, error: 'suffix must be a string of ≤80 chars', pointer: '/suffix' }
+  if (doc.userName !== undefined && !toneString(doc.userName, 20)) return { ok: false, error: 'userName must be a string of ≤20 chars', pointer: '/userName' }
+  if (doc.selfName !== undefined && !toneString(doc.selfName, 20)) return { ok: false, error: 'selfName must be a string of ≤20 chars', pointer: '/selfName' }
   if (doc.skipIn !== undefined && (!Array.isArray(doc.skipIn) || doc.skipIn.length > TONE_SKIP_DEFAULT.length || new Set(doc.skipIn).size !== doc.skipIn.length || !doc.skipIn.every((item) => TONE_SKIP_DEFAULT.includes(item)))) return { ok: false, error: 'skipIn invalid', pointer: '/skipIn' }
   return { ok: true, doc, unknownPaths: [] }
 }
@@ -191,6 +196,8 @@ export function compilePersona(raw) {
   const skipIn = doc.skipIn ?? TONE_SKIP_DEFAULT
   const lines = [
     '【开头前缀】' + (sanitizeToneText(doc.prefix) || '（无）'),
+    '【对用户称呼】' + (sanitizeToneText(doc.userName) || 'Boss'),
+    '【自称】' + (sanitizeToneText(doc.selfName) || '（未设置）'),
     '【中间风格】' + sanitizeToneText(doc.style),
     '【结尾后缀】' + (sanitizeToneText(doc.suffix) || '（无）'),
     '【跳过场景】' + skipIn.join(' / '),

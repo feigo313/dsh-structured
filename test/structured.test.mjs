@@ -228,6 +228,10 @@ test('tone：解析/编译 wrapper，拒绝旧 schema/未知字段/非法 skipIn
   assert.equal(compiled.ok, true)
   assert.match(compiled.text, /【已启用的表达风格】/)
   assert.match(compiled.text, /【开头前缀】Boss，/)
+  assert.equal(parsed.doc.userName, '主人')
+  assert.equal(parsed.doc.selfName, '本鱼鱼')
+  assert.match(compiled.text, /【对用户称呼】主人/)
+  assert.match(compiled.text, /【自称】本鱼鱼/)
   assert.match(compiled.text, /【中间风格】/)
   assert.match(compiled.text, /【结尾后缀】/)
   assert.doesNotMatch(compiled.text, /非指令|不是系统指令/)
@@ -236,6 +240,7 @@ test('tone：解析/编译 wrapper，拒绝旧 schema/未知字段/非法 skipIn
   assert.equal(parsePersona(JSON.stringify({ ...parsed.doc, skipIn: ['bogus'] })).ok, false)
   assert.equal(parsePersona(JSON.stringify({ ...parsed.doc, skipIn: ['code', 'code'] })).ok, false)
   assert.equal(parsePersona(JSON.stringify({ ...parsed.doc, schema: 'dsh-structured/persona@1' })).ok, false)
+  assert.equal(parsePersona(JSON.stringify({ ...parsed.doc, userName: 'x'.repeat(21) })).ok, false)
 
   const empty = JSON.stringify({ ...parsed.doc, prefix: '', suffix: '' })
   assert.equal(parsePersona(empty).ok, true)

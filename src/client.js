@@ -1849,11 +1849,13 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
         try { doc = JSON.parse(text) } catch (error) { return { ok: false, error: 'JSON 解析失败：' + String(error.message ?? error), pointer: '/' } }
         if (!isToneObject(doc)) return { ok: false, error: '顶层必须是对象', pointer: '/' }
         if (doc.schema !== TONE_SCHEMA) return { ok: false, error: 'schema 必须是 ' + TONE_SCHEMA, pointer: '/schema' }
-        const unknown = Object.keys(doc).filter((key) => !['schema', 'prefix', 'style', 'suffix', 'skipIn'].includes(key))
+        const unknown = Object.keys(doc).filter((key) => !['schema', 'prefix', 'style', 'suffix', 'skipIn', 'userName', 'selfName'].includes(key))
         if (unknown.length) return { ok: false, error: '未知字段', pointer: '/' + unknown[0] }
         if (!toneString(doc.prefix, 80)) return { ok: false, error: 'prefix 需为 ≤80 字字符串', pointer: '/prefix' }
         if (!toneString(doc.style, 1200) || doc.style.trim() === '') return { ok: false, error: 'style 必填且 ≤1200 字', pointer: '/style' }
         if (!toneString(doc.suffix, 80)) return { ok: false, error: 'suffix 需为 ≤80 字字符串', pointer: '/suffix' }
+        if (doc.userName !== undefined && !toneString(doc.userName, 20)) return { ok: false, error: 'userName 需为 ≤20 字字符串', pointer: '/userName' }
+        if (doc.selfName !== undefined && !toneString(doc.selfName, 20)) return { ok: false, error: 'selfName 需为 ≤20 字字符串', pointer: '/selfName' }
         if (doc.skipIn !== undefined && (!Array.isArray(doc.skipIn) || doc.skipIn.length > 5 || new Set(doc.skipIn).size !== doc.skipIn.length || !doc.skipIn.every((item) => TONE_SKIP_DEFAULT.includes(item)))) return { ok: false, error: 'skipIn 无效', pointer: '/skipIn' }
         return { ok: true, doc }
       }
@@ -2403,6 +2405,22 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
             jsxs('div', {
               className: 'dss-field',
               children: [
+                jsxs('div', { className: 'dss-field-label', children: [jsx('label', { htmlFor: 'dss-username', children: '昵称' }), jsx('span', { className: 'dss-hint', children: '模型怎么称呼你 · 可留空' })] }),
+                jsx('input', { id: 'dss-username', className: 'dss-input', value: doc.userName ?? '', maxLength: 20, disabled: formLocked, onChange: (event) => updateTone('userName', event.target.value) }),
+                jsx('div', { className: 'dss-field-meta', children: jsx('span', { className: 'dss-counter', children: String(doc.userName ?? '').length + ' / 20' }) }),
+              ],
+            }),
+            jsxs('div', {
+              className: 'dss-field',
+              children: [
+                jsxs('div', { className: 'dss-field-label', children: [jsx('label', { htmlFor: 'dss-selfname', children: '自称' }), jsx('span', { className: 'dss-hint', children: '模型怎么称呼自己 · 可留空' })] }),
+                jsx('input', { id: 'dss-selfname', className: 'dss-input', value: doc.selfName ?? '', maxLength: 20, disabled: formLocked, onChange: (event) => updateTone('selfName', event.target.value) }),
+                jsx('div', { className: 'dss-field-meta', children: jsx('span', { className: 'dss-counter', children: String(doc.selfName ?? '').length + ' / 20' }) }),
+              ],
+            }),
+            jsxs('div', {
+              className: 'dss-field',
+              children: [
                 jsxs('div', { className: 'dss-field-label', children: [jsx('label', { htmlFor: 'dss-prefix', children: '开场' }), jsx('span', { className: 'dss-hint', children: '放在最前面 · 可留空' })] }),
                 jsxs('div', {
                   className: 'dss-control',
@@ -2422,7 +2440,7 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
             jsxs('div', {
               className: 'dss-field',
               children: [
-                jsxs('div', { className: 'dss-field-label', children: [jsx('label', { htmlFor: 'dss-style', children: '性格' }), jsx('span', { className: 'dss-hint', children: '角色 / 语气 / 表达习惯' })] }),
+                jsxs('div', { className: 'dss-field-label', children: [jsx('label', { htmlFor: 'dss-style', children: '性格' }), jsx('span', { className: 'dss-hint', children: '只写说话倾向，不写称呼' })] }),
                 jsx('textarea', { id: 'dss-style', className: 'dss-textarea', value: doc.style ?? '', maxLength: 1200, rows: 4, disabled: formLocked, onChange: (event) => updateTone('style', event.target.value) }),
                 jsx('div', { className: 'dss-field-meta', children: jsx('span', { className: 'dss-counter', children: String(doc.style ?? '').length + ' / 1200' }) }),
               ],
