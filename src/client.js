@@ -2531,7 +2531,7 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
                 jsx('div', {
                   className: 'dss-chat-card' + (enabled ? '' : ' is-off'),
                   onClick: handlePreviewClick,
-                  children: jsx('div', { dangerouslySetInnerHTML: { __html: previewMarkup } }),
+                  children: jsx('div', { className: 'dss-persona-preview', dangerouslySetInnerHTML: { __html: previewMarkup } }),
                 }),
               ],
             }),

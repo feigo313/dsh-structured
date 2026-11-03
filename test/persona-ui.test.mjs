@@ -141,7 +141,8 @@ function makeHarness(state, setField, extraProps = {}) {
     api, plugin, document, window, nodes, findButton, findTextarea, click,
     inputByValue(value) { return nodes().find((item) => item.type === 'input' && item.props.value === value) },
     nodeByClass(name) { return nodes().find((item) => String(item.props?.className ?? '').split(/\s+/).includes(name)) },
-    previewHtml() { return nodes().find((item) => item.props?.dangerouslySetInnerHTML)?.props.dangerouslySetInnerHTML.__html ?? '' },
+    previewHost() { return nodes().find((item) => item.props?.dangerouslySetInnerHTML) ?? null },
+    previewHtml() { return this.previewHost()?.props.dangerouslySetInnerHTML.__html ?? '' },
     setWindowConfirm(value) { window.confirm = () => value },
     flushPersonaErrors() { plugin.__test.flushPersonaErrors() },
     applyPlugin() {
@@ -184,6 +185,7 @@ test('v5 语气设置：档案行 + 三字段 + 规则行 + 样式预览，不�
   assert.equal(harness.findButton('保存').props.disabled, true)
   assert.ok(harness.nodeByClass('dss-config'))
   assert.ok(harness.nodeByClass('dss-preview'))
+  assert.ok(String(harness.previewHost()?.props?.className ?? '').includes('dss-persona-preview'), 'preview host must mark persona scope')
   assert.ok(harness.inputByValue('我最爱💗的Boss~！！鱼鱼🐳报告📢！'))
   assert.ok(harness.inputByValue('Boss💗'))
   assert.ok(harness.inputByValue('本鱼鱼🐳'))
