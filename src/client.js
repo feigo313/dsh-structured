@@ -2703,7 +2703,23 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
         if (typeof requestAnimationFrame === 'function') pending = requestAnimationFrame(run)
         else pending = setTimeout(run, 16)
       }
-      const observer = new MutationObserver((records) => {
+      // 兜底：流式结束/宿主结构重排后，静默 300ms 做一次全量重扫，
+      // 防止个别 markdown 容器没被增量扫描命中（表现为「有的回复没卡片」）。
+      let quietTimer = null
+      const scheduleQuietSweep = () => {
+        if (disposed) return
+        if (quietTimer !== null) clearTimeout(quietTimer)
+        quietTimer = setTimeout(() => {
+          quietTimer = null
+          if (disposed) return
+          try {
+            decorate(document, { fresh: false })
+          } catch {
+            // 全量兜底失败不影响已有装饰。
+          }
+        }, 300)
+      }
+            const observer = new MutationObserver((records) => {
         let touched = false
         try {
           for (const record of records) {
@@ -2723,11 +2739,13 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
           touched = true
         }
         if (touched) schedule()
+        scheduleQuietSweep()
       })
       observer.observe(document.body, { childList: true, subtree: true, characterData: true })
       decorate(document, { fresh: false })
 
       disposeLayer = () => {
+        if (quietTimer !== null) { clearTimeout(quietTimer); quietTimer = null }
         if (disposed) return
         disposed = true
         active = false
