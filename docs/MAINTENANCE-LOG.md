@@ -263,3 +263,12 @@
 - **6 条抽样（Boss 现场确认，均无错误卡）**：1 normal 三卡；2 table（表在结论与下一步之间、无收尾）；3 short 单选卡；4 code（无 persona chrome）；5 diff（无 persona chrome）；6 无信封回落 legacy，无「内容合同错误」→ 命中 6/6（≥5/6 达标）。
 - **仍缺**：Persona 视觉自动 gate（当前 style-gate 只覆盖通用 v5）；跨会话 A→B、关闭回归、设置页全链路、三主题六组、窄窗；标签「下一步 / 建议」口径未定。
 - **发布**：未 push / 未 publish，门禁维持 NO-GO。
+
+## 2026-11-03 · 第 14 轮
+
+- **issue 水位**：0 open / 2 closed。
+- **线上**：npm `latest=0.9.9`；Release v0.9.9 资产未变；CI 无新 run。
+- **desktop**：app 15:53:45 重启，已加载 `client 3966f4d4`（青绿表头 + Persona 探针版）；依赖指向 `artifacts/1.0.0-test/dsh-structured-1.0.0.tgz`。
+- **门禁**：`style-gate --check` PASS（evidence `12-27-01-069Z`，head `17b7692`）；HEAD `9e7c16b`（docs only）。
+- **未验**：Phase 4 四组界面（关闭回归 / A→B / 设置页 / 三主题六组）仍 UNVERIFIED；仓库 1 处 docs 修改 + 11 个未跟踪文档未收口。发布维持 NO-GO。
+- **本轮动作**：只读复核与记录。
