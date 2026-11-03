@@ -547,8 +547,7 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
 .dss-field-meta{display:flex;justify-content:flex-end;margin-top:4px;min-height:14px}
 .dss-counter{color:var(--dss-ink-3);font:10.5px/1.4 var(--dss-mono)}
 .dss-rules{margin:14px 0 0;color:var(--dss-ink-3);font-size:11.5px;line-height:1.65}
-.dss-known-limit{margin:10px 0 0;padding:10px 12px;border:1px solid #f1d39b;border-radius:8px;background:#fffaf0;color:var(--dss-ink-2);font-size:11.5px;line-height:1.65}
-body[data-ds-dark-theme] .dss-known-limit{border-color:rgba(245,158,11,.35);background:rgba(245,158,11,.08)}
+.dss-known-limit{margin:8px 0 0;color:var(--dss-ink-3);font-size:11.5px;line-height:1.65}
 .dss-save{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:4px}
 .dss-save-state{color:var(--dss-ink-3);font-size:12px;line-height:1.5}
 .dss-save-state.is-error{color:var(--dss-red)}
@@ -2469,7 +2468,7 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
               ],
             }),
             jsx('p', { className: 'dss-rules', children: '代码 / diff / 报错 / 日志 / 表格 / 正式文档 / 高风险结论的正文固定中性；开场与收尾只在界面展示、复制不带。' }),
-            jsx('p', { className: 'dss-known-limit', children: '保存后只对新回复生效，旧消息不回溯；模型漏交内容块时按普通排版显示，不会丢内容——只有内容块格式非法时才提示「内容合同错误」。' }),
+            jsx('p', { className: 'dss-known-limit', children: '保存只影响新回复，旧消息不变。' }),
             jsxs('div', {
               className: 'dss-save',
               children: [

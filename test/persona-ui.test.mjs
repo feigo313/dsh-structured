@@ -173,6 +173,8 @@ test('v5 语气设置：档案行 + 三字段 + 规则行 + 样式预览，不�
   assert.match(text, /语气风格/)
   assert.match(text, /样式预览/)
   assert.match(text, /切换人格/)
+  assert.match(text, /昵称/)
+  assert.match(text, /自称/)
   assert.match(text, /开场/)
   assert.match(text, /性格/)
   assert.match(text, /收尾/)
@@ -182,8 +184,10 @@ test('v5 语气设置：档案行 + 三字段 + 规则行 + 样式预览，不�
   assert.equal(harness.findButton('保存').props.disabled, true)
   assert.ok(harness.nodeByClass('dss-config'))
   assert.ok(harness.nodeByClass('dss-preview'))
-  assert.ok(harness.inputByValue('Boss，'))
-  assert.ok(harness.findTextarea('搞怪 / 傲娇怪'))
+  assert.ok(harness.inputByValue('我最爱💗的Boss~！！鱼鱼🐳报告📢！'))
+  assert.ok(harness.inputByValue('Boss💗'))
+  assert.ok(harness.inputByValue('本鱼鱼🐳'))
+  assert.ok(harness.findTextarea('搞怪/傲娇'))
   assert.ok(harness.inputByValue('蓝色大肥鱼'))
   assert.ok(harness.inputByValue('主人，再来一碗白米饭！！~'))
   assert.equal(harness.nodes().some((item) => item.type === 'select'), false)
@@ -195,9 +199,9 @@ test('v5 语气设置：档案行 + 三字段 + 规则行 + 样式预览，不�
 test('v5 编辑三字段/名称/签名 → 保存 persona + enabled + revision + 档案字段', async () => {
   const calls = []
   const harness = makeHarness(baseState, async (field, value) => { calls.push([field, value]) })
-  harness.inputByValue('Boss，').props.onChange({ target: { value: '老板，' } })
-  harness.findTextarea('搞怪 / 傲娇怪').props.onChange({ target: { value: '直接 / 克制' } })
-  harness.inputByValue('——本鲸鱼娘可不背锅').props.onChange({ target: { value: '——收工' } })
+  harness.inputByValue('我最爱💗的Boss~！！鱼鱼🐳报告📢！').props.onChange({ target: { value: '老板，' } })
+  harness.findTextarea('搞怪/傲娇').props.onChange({ target: { value: '直接 / 克制' } })
+  harness.inputByValue('本鱼鱼🐳 精准！🚀高效的完成了任务！🔥快夸我！🌝 ~ 报告完毕！~').props.onChange({ target: { value: '——收工' } })
   harness.inputByValue('蓝色大肥鱼').props.onChange({ target: { value: '新名字' } })
   harness.inputByValue('主人，再来一碗白米饭！！~').props.onChange({ target: { value: '新签名' } })
   assert.equal(harness.findButton('保存').props.disabled, false)
@@ -223,7 +227,7 @@ test('v5 批量保存：payload 六字段一次提交，revision 从快照读取
     async (field, value) => { calls.push([field, value]); return true },
     { mutateFields: async (ops, revision) => { batch = { ops, revision }; return true } },
   )
-  harness.inputByValue('Boss，').props.onChange({ target: { value: '批量前缀' } })
+  harness.inputByValue('我最爱💗的Boss~！！鱼鱼🐳报告📢！').props.onChange({ target: { value: '批量前缀' } })
   await harness.click('保存')
   assert.equal(calls.length, 0, 'batch path must not call setField')
   assert.ok(batch)
@@ -244,7 +248,7 @@ test('v5 批量保存被拒绝：保留草稿并允许重试', async () => {
     async () => { throw new Error('setField must not run') },
     { mutateFields: async () => { batchCalls += 1; return false } },
   )
-  harness.inputByValue('Boss，').props.onChange({ target: { value: '批量失败草稿' } })
+  harness.inputByValue('我最爱💗的Boss~！！鱼鱼🐳报告📢！').props.onChange({ target: { value: '批量失败草稿' } })
   await harness.click('保存')
   assert.equal(batchCalls, 1)
   assert.ok(harness.inputByValue('批量失败草稿'))
@@ -260,7 +264,7 @@ test('v5 回滚：persona 失败不继续写后续字段', async () => {
     if (field === 'persona') throw new Error('persona failed')
     return true
   })
-  harness.inputByValue('Boss，').props.onChange({ target: { value: 'persona 失败草稿' } })
+  harness.inputByValue('我最爱💗的Boss~！！鱼鱼🐳报告📢！').props.onChange({ target: { value: 'persona 失败草稿' } })
   await harness.click('保存')
   assert.deepEqual(calls.map(([field]) => field), ['persona'])
   assert.ok(harness.inputByValue('persona 失败草稿'))
@@ -274,7 +278,7 @@ test('v5 回滚：revision 失败回滚 enabled/persona', async () => {
     if (field === 'personaRevision') throw new Error('revision failed')
     return true
   })
-  harness.inputByValue('Boss，').props.onChange({ target: { value: 'revision 失败草稿' } })
+  harness.inputByValue('我最爱💗的Boss~！！鱼鱼🐳报告📢！').props.onChange({ target: { value: 'revision 失败草稿' } })
   await harness.click('保存')
   assert.deepEqual(calls.map(([field]) => field), ['persona', 'personaEnabled', 'personaRevision', 'personaEnabled', 'persona'])
   assert.equal(calls[3][1], false)
@@ -289,7 +293,7 @@ test('v5 回滚：写后读回不一致触发六字段回滚', async () => {
     async (field, value) => { calls.push([field, value]); return true },
     { readFields: () => ({ status: 'ready', writable: true, value: { persona: 'not-the-doc', personaEnabled: true, personaRevision: 99, personaName: 'x', personaSignature: 'y', personaAvatar: 'z' } }) },
   )
-  harness.inputByValue('Boss，').props.onChange({ target: { value: '读回失败草稿' } })
+  harness.inputByValue('我最爱💗的Boss~！！鱼鱼🐳报告📢！').props.onChange({ target: { value: '读回失败草稿' } })
   await harness.click('保存')
   assert.ok(harness.inputByValue('读回失败草稿'))
   assert.ok(harness.nodes().some((item) => item.type === 'span' && String(textOf(item.props.children)).includes('写后读回校验失败')))
@@ -301,7 +305,7 @@ test('v5 回滚：写后读回不一致触发六字段回滚', async () => {
 
 test('v5 缺少读回接口：不宣布保存成功', async () => {
   const harness = makeHarness(baseState, async () => true, { readFields: undefined })
-  harness.inputByValue('Boss，').props.onChange({ target: { value: '无读回草稿' } })
+  harness.inputByValue('我最爱💗的Boss~！！鱼鱼🐳报告📢！').props.onChange({ target: { value: '无读回草稿' } })
   await harness.click('保存')
   assert.ok(harness.inputByValue('无读回草稿'))
   assert.ok(harness.nodes().some((item) => item.type === 'span' && String(textOf(item.props.children)).includes('缺少配置读回接口')))
@@ -311,8 +315,8 @@ test('v5 readonly：档案行/字段/保存/恢复默认全部禁用', () => {
   const harness = makeHarness({ status: 'ready', writable: false, value: { persona: whale, personaEnabled: true } }, async () => true)
   assert.equal(harness.findButton('保存').props.disabled, true)
   assert.equal(harness.findButton('恢复默认').props.disabled, true)
-  assert.equal(harness.inputByValue('Boss，').props.disabled, true)
-  assert.equal(harness.findTextarea('搞怪 / 傲娇怪').props.disabled, true)
+  assert.equal(harness.inputByValue('我最爱💗的Boss~！！鱼鱼🐳报告📢！').props.disabled, true)
+  assert.equal(harness.findTextarea('搞怪/傲娇').props.disabled, true)
   assert.equal(harness.nodes().some((item) => item.type === 'input' && item.props.type === 'file'), true)
   const file = harness.nodes().find((item) => item.type === 'input' && item.props.type === 'file')
   assert.equal(file.props.disabled, true)
@@ -339,7 +343,7 @@ test('v5 tabGuard：dirty 时确认，clean 时放行', () => {
   const guard = {}
   const harness = makeHarness(baseState, async () => true, { tabGuard: guard })
   assert.equal(guard.confirm(), true)
-  harness.inputByValue('Boss，').props.onChange({ target: { value: '草稿' } })
+  harness.inputByValue('我最爱💗的Boss~！！鱼鱼🐳报告📢！').props.onChange({ target: { value: '草稿' } })
   harness.setWindowConfirm(false)
   assert.equal(guard.confirm(), false)
   harness.setWindowConfirm(true)
@@ -398,7 +402,7 @@ test('v5 预览：三态走公共装饰管线，不再手写卡片/状态签', a
   assert.match(html, /data-dsh-persona-kind="code"/)
   await harness.click('普通')
   html = harness.previewHtml()
-  assert.match(html, /这版能上/)
+  assert.match(html, /能上/)
   assert.match(html, /data-dsh-structured-card-type="conclusion"/)
   assert.match(html, /dss-card-conclusion/)
 })
