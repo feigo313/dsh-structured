@@ -30,6 +30,7 @@ import {
   handleCommand,
   isEnabledFor,
   isSubagentContext,
+  isRootSessionContext,
   loadSessions,
   parsePersona,
   pruneSessions,
@@ -510,6 +511,30 @@ test('子代理会话识别：origin / delegationDepth；用户 fork 不跳过',
   assert.equal(isSubagentContext({ agent: { session: { header: { delegationDepth: 2 } } } }), true)
   assert.equal(isSubagentContext({ agent: { session: { header: { delegationDepth: 0 } } } }), false)
   assert.equal(isSubagentContext({}), false)
+})
+
+test('人格只注入根会话：子代理 / fork / 委派会话全部排除', () => {
+  assert.equal(isRootSessionContext({ agent: { session: { header: { delegationDepth: 0 } } } }), true)
+  assert.equal(isRootSessionContext({ agent: { session: { header: { origin: 'subagent', delegationDepth: 1 } } } }), false)
+  assert.equal(isRootSessionContext({ agent: { session: { header: { origin: 'fork' } } } }), false)
+  assert.equal(isRootSessionContext({ agent: { session: { header: { delegationDepth: 2 } } } }), false)
+  assert.equal(isRootSessionContext({ agent: { session: { header: { parentSession: 'session-a' } } } }), false)
+  assert.equal(isRootSessionContext({ agent: { session: { header: { parentSessionId: 'session-a' } } } }), false)
+  assert.equal(isRootSessionContext({}), true)
+
+  const box = isolate()
+  try {
+    const whale = readFileSync('docs/1.0-PERSONA-WHALE.json', 'utf8')
+    const { ctx, sections } = fakeCtx()
+    apply(ctx, { defaultEnabled: true, personaEnabled: true, persona: whale })
+    const persona = sections.find((section) => section.name === PERSONA_SECTION_NAME)
+    const root = mainContext('session-root')
+    const sub = { agent: { id: 'session-sub', session: { id: 'session-sub', header: { origin: 'subagent', delegationDepth: 1, parentSession: 'session-root' } } } }
+    assert.match(persona.text(root), /【开头前缀】/)
+    assert.equal(persona.text(sub), '')
+  } finally {
+    box.cleanup()
+  }
 })
 
 test('fail-open：section 求值异常时返回空串并回调错误', () => {
