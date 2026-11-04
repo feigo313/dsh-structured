@@ -133,7 +133,7 @@ export const PERSONA_MODE_RULES = [
   '- 卡片标签固定为 结论 / 建议 / 风险，由插件渲染，模型不写。',
   '- 代码 / diff / 报错 / GenUI 不交 persona 内容块，按原格式输出。',
   '- 高风险结论的 risk 保持中性；事实优先，不编造。',
-  '- 缺块走 legacy 普通排版；块外内容或块数不唯一显示「内容合同错误」。',
+  '- 缺块走 legacy 普通排版；多个 persona 块显示「内容合同错误」。',
   '- 不为了格式加内容；三卡之外不写导语、总结或填充句。',
 ].join(String.fromCharCode(10))
 

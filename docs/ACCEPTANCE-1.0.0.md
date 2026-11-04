@@ -1,6 +1,6 @@
 # dsh-structured 1.0.0 验收
 
-[1.0.0 · 代码/构建] `npm test` 98/98；`npm run build` 完成；`desktop-check` 全 PASS；`theme-contrast` 60；`theme-hue-distance` 12；`lib` 由 src 构建并注入鲸鱼娘 JSON；pack 58 文件 / 857212 B / unpacked 1401617 B。
+[1.0.0 · 代码/构建] `npm test` 98/98；`npm run build` 完成；`desktop-check` 全 PASS；`theme-contrast` 60；`theme-hue-distance` 12；`lib` 由 src 构建并注入鲸鱼娘 JSON；pack 58 文件 / 856948 B / unpacked 1394365 B。
 
 [1.0.0 · v5 回复皮肤] 软面卡片台：12px 圆角卡 + 3px 左条 + 同构渐变面；结论 / 下一步 / 风险线标题（PersonaMode 的模型内容槽位卡标签统一为「建议」）；表格蓝 tint 表头、26% / 18% 列宽、首列 600 墨字、三色状态签；代码浅色卡 + 「代码 · 语言」线标题 + 双方框复制钮；深色卡面 / 表头 / 代码面 / 状态签全量适配。静态三态×明暗×三主题证据：`artifacts/prototype/v5-<theme>-<light|dark>-<normal|table|code>.png`（18 张；三主题统一 v5 token，按主题分组校验）；设置页证据：`artifacts/prototype/v5-settings-light.png` / `v5-settings-dark.png`。这些证据在 `artifacts/` 下，被 `.gitignore` 忽略，**local-only，不进 git**。
 
@@ -8,7 +8,7 @@
 
 [1.0.0 · tone 合同] tone@1 schema / 长度上限 / 严格白名单 / 64KB / 转义逻辑保持；默认鲸鱼 JSON style 已清为纯语言描述；档案字段不进 tone JSON。默认鲸鱼头像内嵌为 128px JPEG dataURL，`personaAvatar` 空值使用内置图。
 
-[1.0.0 · PersonaMode] `personaEnabled=true` 只注入内容合同；`BUILTIN_STYLE_TEXT` / `TAIL_REMINDER` / `GENUI_ROUTING_TEXT` 不注入；`personaEnabled=false` 保持 StructuredMode 原行为。模型只交一个 `persona` fenced JSON（version 1；kind normal/short/table；内容槽位），身份头、前缀、三卡、收尾由 `renderPersonaContent` 固定渲染；模型不再输出 Markdown 卡片。合同与实现一致：`suggestions` 1-5 条、`table.head` 2-6 列、`table.rows` 1-20 行。assistant 回复缺块走 legacy 普通排版并保留原文；块外内容、多块、JSON / 字段非法才显示「内容合同错误」。代码 / diff / 报错 / GenUI 走例外通道。旧历史消息在 `personaEnabled` 激活时快照，不回溯、不重写；配置变化只刷新已受管渲染与身份头。流式半截内容先用宿主 `data-streaming` 信号 + 可测试稳定窗口保留原内容，块完成且仍非法才报错。`/structured` 在 PersonaMode 下只报模式，不切换。人格只注入根会话（lead）：子代理（origin=subagent / delegationDepth>0 / parentSession）、委派与聊天 fork 会话硬排除，不受 `includeSubagents` 影响（Boss 2026-11-04 拍板）；header 缺失 fail-open 按根会话处理。默认开启，用户可在设置中关闭；已显式关闭的配置在升级后保持关闭。
+[1.0.0 · PersonaMode] `personaEnabled=true` 只注入内容合同；`BUILTIN_STYLE_TEXT` / `TAIL_REMINDER` / `GENUI_ROUTING_TEXT` 不注入；`personaEnabled=false` 保持 StructuredMode 原行为。模型只交一个 `persona` fenced JSON（version 1；kind normal/short/table；内容槽位），身份头、前缀、三卡、收尾由 `renderPersonaContent` 固定渲染；模型不再输出 Markdown 卡片。合同与实现一致：`suggestions` 1-5 条、`table.head` 2-6 列、`table.rows` 1-20 行。assistant 回复缺块走 legacy 普通排版并保留原文；多块、JSON / 字段非法才显示「内容合同错误」。块存在时模型写在块外的自然正文由插件优先渲染信封内容；裸文本残留交给 legacy 结构化，不弹错误卡。代码 / diff / 报错 / GenUI 走例外通道。旧历史消息在 `personaEnabled` 激活时快照，不回溯、不重写；配置变化只刷新已受管渲染与身份头。流式半截内容先用宿主 `data-streaming` 信号 + 可测试稳定窗口保留原内容，块完成且仍非法才报错。`/structured` 在 PersonaMode 下只报模式，不切换。人格只注入根会话（lead）：子代理（origin=subagent / delegationDepth>0 / parentSession）、委派与聊天 fork 会话硬排除，不受 `includeSubagents` 影响（Boss 2026-11-04 拍板）；header 缺失 fail-open 按根会话处理。默认开启，用户可在设置中关闭；已显式关闭的配置在升级后保持关闭。
 
 [1.0.0 · 预览/真实共用 PersonaRenderer] normal/table/short 预览与真实回复共用 `renderPersonaContent`，输入都是内容对象，不再先造 Markdown 样例；身份头、前缀、三卡、收尾同源。code 预览与真实 code 都走 `decorateStructured` 的 code 例外样式；code 预览样本在设置页构造，不参与内容合同。预览 tab 为普通 / 表格 / 短答 / 代码；真实回复按宿主真实 DOM 选择器定位：`[data-chat-flow-kind="assistant-step"]`、`[data-chat-group-part="response"]`、`[class*="assistantContent"]`、`[data-slot="conversation.chat.node"]` 父级兜底；reasoning / step-process / 上下文注入等过程节点不套内容合同。找不到 assistant flow 显示显式 error，不回落普通排版。身份头 live 验证移到 Phase 4（未执行，UNVERIFIED）。
 
