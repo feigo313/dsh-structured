@@ -1,0 +1,32 @@
+# 统一行尾策略：仓库内一律 LF。
+#
+# 背景：core.autocrlf=true 的检出会把工作树写成 CRLF，而仓库 blob 是 LF。
+# npm pack 打的是工作树，于是发布体积随检出状态漂移（同一提交在不同机器上
+# pack 出的 tgz 大小不同），发布数字无法复现。
+#
+# 规则：
+#   * text=auto eol=lf —— 文本文件在仓库内统一存 LF，检出到工作树也强制 LF。
+#   * binary —— 图片等二进制文件不做任何行尾转换。
+#   * *.mjs / *.js / *.json / *.md 的 text 判定显式列出，避免 auto 判定在
+#     缺后缀或内容特殊时误判。
+* text=auto eol=lf
+
+*.js text eol=lf
+*.mjs text eol=lf
+*.cjs text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.txt text eol=lf
+*.html text eol=lf
+*.css text eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.svg text eol=lf
+*.tgz binary

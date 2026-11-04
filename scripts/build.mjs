@@ -9,6 +9,9 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 const whale = JSON.parse(readFileSync('docs/1.0-PERSONA-WHALE.json', 'utf8'))
 const whaleLiteral = JSON.stringify(JSON.stringify(whale))
 const PERSONA_MARKER = "const PERSONA_WHALE_JSON = '__DSH_STRUCTURED_WHALE_JSON__'"
+// 归一化行尾：core.autocrlf=true 时检出可能把 src 写成 CRLF，直接透传会让
+// lib/ 与提交的 blob 不字节一致（pack 体积随之漂移）。这里统一折成 LF。
+const normalizeEol = (source) => source.replace(/\r\n/g, '\n')
 const injectPersona = (source, label) => {
   if (!source.includes(PERSONA_MARKER)) throw new Error(`missing persona marker in ${label}`)
   return source.replace(PERSONA_MARKER, `const PERSONA_WHALE_JSON = ${whaleLiteral}`)
@@ -21,8 +24,8 @@ const CLIENT_BANNER =
   '// Generated from src/client.js by scripts/build.mjs — edit src/, then run `npm run build`.\n' +
   '// dsh-structured client module: renders "结论：" blockquotes as cards.\n'
 
-const host = injectPersona(readFileSync('src/index.js', 'utf8'), 'src/index.js')
-const client = injectPersona(readFileSync('src/client.js', 'utf8'), 'src/client.js')
+const host = injectPersona(normalizeEol(readFileSync('src/index.js', 'utf8')), 'src/index.js')
+const client = injectPersona(normalizeEol(readFileSync('src/client.js', 'utf8')), 'src/client.js')
 
 mkdirSync('lib', { recursive: true })
 writeFileSync('lib/index.js', HOST_BANNER + host, 'utf8')
