@@ -1,14 +1,5 @@
 # Changelog
 
-## 1.0.0 — 2026-10-31
-
-- v5 回复皮肤：软面卡片台（12px 圆角 + 3px 左条 + 同构渐变面）；结论 / 下一步 / 风险线标题；表格蓝 tint 表头、26% / 18% 列宽、首列 600 墨字、三色状态签；代码浅色卡 + 线标题 + 双方框复制钮；深色卡面 / 表头 / 代码面 / 状态签全量适配；单一强调色 `#2563eb`。
-- 语气设置页：去掉基础 / 进阶页签与 JSON 编辑；档案行（88px 头像可上传并压 128px JPEG dataURL + 名称 + 签名）+ 开场 / 性格 / 收尾 + 计数 + 64 格 emoji + 固定规则行 + 保存行 + 样式预览（普通 / 表格 / 代码）。
-- Host：Config 增加 `personaEnabled/persona/personaRevision/personaName/personaSignature/personaAvatar`；独立 tone section（order 10250）；保存一次原子写六字段，旧宿主 fallback 读回 + 回滚；tone@1 schema / 64KB / 严格白名单不变，默认鲸鱼 style 清为纯语言描述。
-- 模板只保留默认蓝色大肥鱼 + 用户另存；行内删除、删空提示、恢复默认；tone 注入 / skipIn 语义不变。
-- 鲸鱼娘模板随包：`docs/1.0-PERSONA-WHALE.json` + `LICENSE-WHALE` + `NOTICE-WHALE`；CC-BY-NC-SA-4.0，非官方，不打包美术；构建从 JSON 单一源注入 host/client。
-- 1.0.0 状态收口（2026-11-04）：桌面实机三主题×明暗截图、两会话 A 保存→B 即时生效、渲染兜底与身份头 live 抽查已完成；隔离 temp cwd P01–P10 基线与 beta/default-on 用户 gate 仍未执行；发布走 1.0.3。
-
 ## 1.0.3 — 2026-11-04
 
 - persona 内容合同：模型只交一个 `persona` fenced JSON（version 1；normal / short / table 内容槽位），身份头、前缀、三卡（结论 / 建议 / 风险）、收尾由插件 `renderPersonaContent` 固定渲染；模型不再输出 Markdown 卡片。
@@ -20,6 +11,15 @@
 - 人格只注入根会话（lead）：子代理（origin=subagent / delegationDepth>0 / parentSession）、委派、聊天 fork 会话硬排除，不受 `includeSubagents` 影响；header 缺失 fail-open。
 - 发布前修复 ①（合法 persona JSON 被判死）：模型输出里的不可见字符（ZWSP / ZWNJ / ZWJ / LRM / RLM / BOM / U+180E / NBSP / U+2007 / U+202F / U+2028 / U+2029 / NEL / VT / FF）会让 V8 报 `Unexpected non-whitespace character after JSON` 并把整条回复替换成错误卡；现在解析前按码位剥离这些字符再试，报错时原文保留在错误卡下方。
 - 发布前修复 ②（块外正文被静默删除 / 误报块冲突）：模型写在 persona 块外的自然正文不再被清掉，渲染后保留在卡片下方；persona 块与其它代码块共存不再误报「内容块必须唯一」，只有多个 persona 块才算冲突。
+
+## 1.0.0 — 2026-10-31
+
+- v5 回复皮肤：软面卡片台（12px 圆角 + 3px 左条 + 同构渐变面）；结论 / 下一步 / 风险线标题；表格蓝 tint 表头、26% / 18% 列宽、首列 600 墨字、三色状态签；代码浅色卡 + 线标题 + 双方框复制钮；深色卡面 / 表头 / 代码面 / 状态签全量适配；单一强调色 `#2563eb`。
+- 语气设置页：去掉基础 / 进阶页签与 JSON 编辑；档案行（88px 头像可上传并压 128px JPEG dataURL + 名称 + 签名）+ 开场 / 性格 / 收尾 + 计数 + 64 格 emoji + 固定规则行 + 保存行 + 样式预览（普通 / 表格 / 代码）。
+- Host：Config 增加 `personaEnabled/persona/personaRevision/personaName/personaSignature/personaAvatar`；独立 tone section（order 10250）；保存一次原子写六字段，旧宿主 fallback 读回 + 回滚；tone@1 schema / 64KB / 严格白名单不变，默认鲸鱼 style 清为纯语言描述。
+- 模板只保留默认蓝色大肥鱼 + 用户另存；行内删除、删空提示、恢复默认；tone 注入 / skipIn 语义不变。
+- 鲸鱼娘模板随包：`docs/1.0-PERSONA-WHALE.json` + `LICENSE-WHALE` + `NOTICE-WHALE`；CC-BY-NC-SA-4.0，非官方，不打包美术；构建从 JSON 单一源注入 host/client。
+- 1.0.0 状态收口（2026-11-04）：桌面实机三主题×明暗截图、两会话 A 保存→B 即时生效、渲染兜底与身份头 live 抽查已完成；隔离 temp cwd P01–P10 基线与 beta/default-on 用户 gate 仍未执行；发布走 1.0.3。
 
 ## 0.9.9 — 2026-10-26
 
