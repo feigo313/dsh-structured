@@ -131,19 +131,17 @@ Phase 2 已落地 2.1–2.4：卡片类型（结论/判断/指标/风险/下一�
 
 ![人格表格回复](assets/screenshots/06-status-table.png)
 
-![结构化回复](assets/screenshots/07-code-block.png)
+![人格短答回复](assets/screenshots/07-code-block.png)
 
-![会话对照](assets/screenshots/08-narrow.png)
+![人格明色主题](assets/screenshots/09-theme-light.png)
 
-![明色主题](assets/screenshots/09-theme-light.png)
+![人格暗色主题](assets/screenshots/09-theme-dark.png)
 
-![暗色主题](assets/screenshots/09-theme-dark.png)
-
-![人格暗色](assets/screenshots/10-theme-dark.png)
+![人格暗色主题（对照）](assets/screenshots/10-theme-dark.png)
 
 ![语气风格设置页](assets/screenshots/11-config-page.png)
 
-`screenshots.json` 列出全部 8 张；1.0.3 起 7 张换成真实界面截图（人格三卡 / 表格 / 结构化、明暗主题），设置页截图为语气风格 tab 实机渲染（1.0.3）。
+`screenshots.json` 列出全部 7 张，全部是 1.0.3 本地部署实机截图（DSH Web GUI + 已安装的 dsh-structured v1.0.3）：身份头、卡外前缀、结论 / 建议 / 风险三卡、收尾，以及语气风格设置页。
 
 ### 配置
 
