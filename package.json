@@ -1,6 +1,6 @@
 {
   "name": "dsh-structured",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Structured output for DSH: no-label title card first, then tables/lists/steps; per-session switch and style.md override. 让 DSH 的每条实质回复默认结构化。",
   "type": "module",
   "main": "lib/index.js",
@@ -75,7 +75,8 @@
     "docs/1.0-PERSONA-WHALE.json",
     "!test/fixtures/baseline/P04-meeting.md",
     "!test/fixtures/baseline/P07-python.py",
-    "!test/fixtures/persona-gate/no-persona.md","!test/fixtures/persona-glance.html",
+    "!test/fixtures/persona-gate/no-persona.md",
+    "!test/fixtures/persona-glance.html",
     "!test/fixtures/persona-gate/persona-append.md",
     "!test/fixtures/persona-gate/style-override.md",
     "!test/pack.test.mjs",

@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.4 — 2026-11-04
+
+- 发布前两个严重 bug 修复（1.0.3 未发布，修复并入本版）：
+  - 合法 persona JSON 被判死：模型输出里的不可见字符（ZWSP / ZWNJ / ZWJ / LRM / RLM / BOM / U+180E / NBSP / U+2007 / U+202F / U+2028 / U+2029 / NEL / VT / FF）会让 JSON.parse 报错并把整条回复替换成「内容合同错误」卡；现在解析前按码位剥离这些字符，解析失败时原文保留在错误卡下方。
+  - 块外自然正文被静默删除：persona 块前后的正文现在保留在卡片下方；persona 块与其它代码块共存时不再误报「persona 内容块必须唯一」，只有多个 persona 块才算冲突。
+- 行尾：`.gitattributes` 钉死 LF，`scripts/build.mjs` 输出折行尾，`lib/` 与 `src/` 跨检出保持逐字节一致。
+
 ## 1.0.3 — 2026-11-04
 
 - persona 内容合同：模型只交一个 `persona` fenced JSON（version 1；normal / short / table 内容槽位），身份头、前缀、三卡（结论 / 建议 / 风险）、收尾由插件 `renderPersonaContent` 固定渲染；模型不再输出 Markdown 卡片。
