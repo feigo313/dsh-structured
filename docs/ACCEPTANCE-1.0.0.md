@@ -1,6 +1,6 @@
 # dsh-structured 1.0.0 验收
 
-[1.0.0 · 代码/构建] `npm test` 98/98；`npm run build` 完成；`desktop-check` 全 PASS；`theme-contrast` 60；`theme-hue-distance` 12；`lib` 由 src 构建并注入鲸鱼娘 JSON；pack 58 文件 / 857212 B / unpacked 1402442 B。
+[1.0.0 · 代码/构建] `npm test` 98/98；`npm run build` 完成；`desktop-check` 全 PASS；`theme-contrast` 60；`theme-hue-distance` 12；`lib` 由 src 构建并注入鲸鱼娘 JSON；pack 58 文件 / 857212 B / unpacked 1401617 B。
 
 [1.0.0 · v5 回复皮肤] 软面卡片台：12px 圆角卡 + 3px 左条 + 同构渐变面；结论 / 下一步 / 风险线标题（PersonaMode 的模型内容槽位卡标签统一为「建议」）；表格蓝 tint 表头、26% / 18% 列宽、首列 600 墨字、三色状态签；代码浅色卡 + 「代码 · 语言」线标题 + 双方框复制钮；深色卡面 / 表头 / 代码面 / 状态签全量适配。静态三态×明暗×三主题证据：`artifacts/prototype/v5-<theme>-<light|dark>-<normal|table|code>.png`（18 张；三主题统一 v5 token，按主题分组校验）；设置页证据：`artifacts/prototype/v5-settings-light.png` / `v5-settings-dark.png`。这些证据在 `artifacts/` 下，被 `.gitignore` 忽略，**local-only，不进 git**。
 
