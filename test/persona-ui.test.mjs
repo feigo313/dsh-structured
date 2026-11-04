@@ -813,6 +813,45 @@ test('PersonaMode：reasoning / step-process / compaction 不套内容合同', (
   assert.match(compaction.textContent, /压缩摘要/)
 })
 
+test('PersonaMode：不可见字符不判死、错误卡保留原文', () => {
+  const harness = makeHarness(baseState, async () => true)
+  const tone = JSON.stringify({ schema: 'dsh-structured/tone@1', prefix: 'Boss，', style: '搞怪', suffix: '——完', skipIn: ['code', 'diff', 'error', 'short', 'table'] })
+  harness.plugin.__test.setPersonaModeConfig({ personaEnabled: true, persona: tone, personaName: 'N', personaSignature: 'S', personaAvatar: '' })
+  const flowFor = (html) => {
+    const flow = harness.document.createElement('div')
+    flow.setAttribute('data-chat-flow-kind', 'assistant-step')
+    flow.setAttribute('data-chat-node-key', 'inv-' + Math.random())
+    const slot = harness.document.createElement('div')
+    slot.setAttribute('data-slot', 'conversation.chat.node')
+    const markdown = harness.document.createElement('div')
+    markdown.className = '_markdown_preview'
+    markdown.innerHTML = html
+    slot.appendChild(markdown)
+    flow.appendChild(slot)
+    harness.document.body.appendChild(flow)
+    harness.plugin.__test.decorate(flow)
+    return { flow, markdown }
+  }
+  const payload = { version: 1, kind: 'normal', conclusion: { lead: 'L' }, suggestions: ['S'], risk: 'R' }
+  const clean = JSON.stringify(payload)
+  const rawBlock = (text) => `<div class="md-code-block"><div class="bannerWrap"><div data-code-block-banner><span class="_heading_persona">persona</span></div></div><div data-code-block-content><pre>${text}</pre></div></div>`
+  // 尾部/内部插入不可见字符：JSON 本身合法，不应判死。
+  for (const invisible of ['​', ' ', '﻿']) {
+    const dirty = clean.slice(0, -1) + invisible + '}'
+    const item = flowFor(rawBlock(dirty))
+    assert.equal(item.markdown.getAttribute('data-dsh-persona-kind'), 'normal', 'invisible char must not break persona render: ' + invisible)
+    assert.equal(item.markdown.getAttribute('data-dsh-persona-error'), null)
+    assert.equal(item.markdown.querySelectorAll('[data-dsh-structured-card-type]').length, 3)
+  }
+  // 真非法 JSON：显示错误卡，但原始内容保留，不被抹掉。
+  const broken = flowFor(rawBlock('{"version":1,"kind":"normal",'))
+  harness.flushPersonaErrors()
+  assert.equal(broken.markdown.getAttribute('data-dsh-persona-kind'), 'error')
+  assert.match(broken.markdown.textContent, /内容合同错误/)
+  assert.match(broken.markdown.textContent, /version/, 'original content must survive the error card')
+  assert.equal(broken.markdown.querySelectorAll('[data-dsh-structured-card-type]').length, 0, 'error must not fabricate cards')
+})
+
 test('v5 emptyTone 兜底只写语言风格，不写结构要求', () => {
   const harness = makeHarness(baseState, async () => true)
   const tone = harness.api.emptyTone()
