@@ -272,3 +272,12 @@
 - **门禁**：`style-gate --check` PASS（evidence `12-27-01-069Z`，head `17b7692`）；HEAD `9e7c16b`（docs only）。
 - **未验**：Phase 4 四组界面（关闭回归 / A→B / 设置页 / 三主题六组）仍 UNVERIFIED；仓库 1 处 docs 修改 + 11 个未跟踪文档未收口。发布维持 NO-GO。
 - **本轮动作**：只读复核与记录。
+
+## 2026-11-04 · 第 15 轮
+
+- **issue 水位**：0 open / 2 closed。
+- **线上**：npm `latest=0.9.9`；Release 资产未变；CI 无新 run。
+- **冻结**：HEAD `69e0e96`（发布检查点），代码树冻结于 `ed69703`；`style-gate --check` PASS 仍绑 `ed69703`（docs 提交不使证据失效）；工作树 13 项未收口。
+- **desktop**：app 08:25 重启，persona 内容合同注入正常。
+- **发布**：按 Boss 要求挂起，待按 `docs/1.0-3-RELEASE-CHECKPOINT.md` 执行 4 件 P1 + bump 1.0.3 / tag / Release / npm / 市场。
+- **本轮动作**：只读复核与记录。
