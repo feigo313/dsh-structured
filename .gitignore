@@ -10,3 +10,8 @@ out/
 TASK.md
 docs/RE-AUDIT-REPORT.md
 docs/PUBLISH-READY.md
+assets/screenshots-1.0.3/
+.zcode/
+.tools/ego/
+.tools/audit-pkg/
+.tools/audit-installed-client.mjs

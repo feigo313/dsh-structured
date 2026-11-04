@@ -96,17 +96,17 @@ pnpm add $tgz
 - 新会话默认开启；`defaultEnabled: false` 可改默认值（见配置）。
 - 视觉层由插件设置 `visual` 控制（默认开启），不写 `state.json`；`/structured on|off` 只控制提示词注入，不影响视觉层。
 - 自定义规则：写 `$DSH_HOME/dsh-structured/style.md`，**非空即整份覆盖**内置文本，保存后下一轮生效；文件为空或删除时回落内置。
-- **用 `style.md` 承载长期设定（可选）**：`style.md` 的内容会被原样放进每次请求的 section，代价是**整份覆盖**内置文本；想同时保留结构规则，把 `src/index.js` 的 `BUILTIN_STYLE_TEXT` 全文抄进去再追加。1.0 起输出语气请用下方“语气风格”设置页；`style.md` 语义不变。
+- **用 `style.md` 承载长期设定（可选）**：`style.md` 的内容会被原样放进每次请求的 section，代价是**整份覆盖**内置文本；想同时保留结构规则，把 `src/index.js` 的 `BUILTIN_STYLE_TEXT` 全文抄进去再追加。注意互斥：**persona 开启时 `style.md` 不注入**（PersonaMode 只注入内容合同）；要长期设定请迁移到语气设置页的性格字段，或显式关闭人格后再用 `style.md`。
 - 内置文本与 `~/.dsh/AGENTS.md` 第 7 节同源：首句结论、组件化正文、一段一主题、禁过程叙事与复述、证据优先、短答不套卡；清晰优先，不设硬性篇幅上限。
 
 ### 语气风格（Tone，1.0）
 
-- 插件详情页第二个 tab：**语气风格**。只有 AI 档案行 + 开场 / 性格 / 收尾三字段 + 固定规则行 + 保存行 + 样式预览；**没有基础 / 进阶页签，也没有 JSON 编辑入口**（内部仍是 tone@1 canonical JSON）。
+- 插件详情页第二个 tab：**语气风格**。AI 档案行 + 昵称 / 自称 / 开场 / 性格 / 收尾五字段 + 固定规则行 + 保存行 + 样式预览；**没有基础 / 进阶页签，也没有 JSON 编辑入口**（内部仍是 tone@1 canonical JSON）。昵称（userName）是「模型怎么称呼你」，自称（selfName）是「模型怎么称呼自己」；性格只写说话倾向，不写任务规则。**1.0 起默认开启，显式关闭保持关闭**。
 - 档案行：头像 88px 可点击上传（png / jpeg / webp，前端居中裁方并压到 128px JPEG dataURL）、名称、个性签名；名称 / 签名实时绑定预览身份行。
 - 存储为 profile Config：`personaEnabled:boolean` + `persona:string` + `personaRevision:number` + `personaName` + `personaSignature` + `personaAvatar`；不读 `persona.md`，不引入文件路径。保存时一次批量写六字段（旧宿主走顺序写 + 写后读回 + 补偿回滚）；保存后全局生效（新消息使用），不需要每次重启；**安装/升级 1.0 后完整重启 Desktop 一次**。
-- tone JSON 只有 `schema / prefix / style / suffix / skipIn`；`schema` 必须是 `dsh-structured/tone@1`。作者/许可/来源/署名链不在 JSON，见 `NOTICE-WHALE` / `LICENSE-WHALE`。
+- tone JSON 只有 `schema / prefix / style / suffix / skipIn / userName / selfName`；`schema` 必须是 `dsh-structured/tone@1`。作者/许可/来源/署名链不在 JSON，见 `NOTICE-WHALE` / `LICENSE-WHALE`。
 - 开场放在最前面；性格只写语言风格（角色 / 语气 / 句式 / 称呼）；收尾是最后一行签名/态度，不是总结，`code / diff / error / short / table` 按 `skipIn` 跳过。结构 / 事实 / 安全永远优先。
-- 模板只保留默认「蓝色大肥鱼」+ 用户另存的模板；「切换人格」弹层支持行内删除，删空提示用「恢复默认」找回。模板存当前三字段 + 名称 + 签名，不自动选中。
+- 模板只保留默认「蓝色大肥鱼」+ 用户另存的模板；「切换人格」弹层支持行内删除，删空提示用「恢复默认」找回。模板存当前五字段 + 名称 + 签名 + 头像，不自动选中。
 - 蓝色大肥鱼是社区二创模板，非 DeepSeek 官方；模板单独 CC-BY-NC-SA-4.0，不打包美术。64KB 硬拒；非法 tone JSON 拒绝保存。
 
 ### 代码 / diff 例外
@@ -127,25 +127,27 @@ Phase 2 已落地 2.1–2.4：卡片类型（结论/判断/指标/风险/下一�
 
 ## Screenshots
 
-![无标签标题卡](assets/screenshots/01-title-card.png)
+![人格普通回复](assets/screenshots/01-title-card.png)
 
-![状态表](assets/screenshots/06-status-table.png)
+![人格表格回复](assets/screenshots/06-status-table.png)
 
-![代码块](assets/screenshots/07-code-block.png)
+![结构化回复](assets/screenshots/07-code-block.png)
 
-![窄窗](assets/screenshots/08-narrow.png)
+![会话对照](assets/screenshots/08-narrow.png)
 
-![三套主题·浅色](assets/screenshots/09-theme-light.png)
+![明色主题](assets/screenshots/09-theme-light.png)
 
-![三套主题·暗色](assets/screenshots/10-theme-dark.png)
+![暗色主题](assets/screenshots/09-theme-dark.png)
 
-![插件设置页](assets/screenshots/11-config-page.png)
+![人格暗色](assets/screenshots/10-theme-dark.png)
 
-`screenshots.json` 列出全部 7 张；这些是 0.9.6 旧皮肤的归档图，保留用于对比，**不代表 1.0 v5 皮肤**。1.0 v5 的三态×明暗证据在本地 `artifacts/prototype/v5-fixture-{light,dark}.png`（不进 npm 包）。GenUI 截图因避免暴露工作区未收录。
+![插件设置页（0.9.2 旧图，待更新）](assets/screenshots/11-config-page.png)
+
+`screenshots.json` 列出全部 8 张；1.0.3 起 7 张换成真实界面截图（人格三卡 / 表格 / 结构化、明暗主题），`11-config-page.png` 仍是 0.9.2 旧图，**设置页截图待更新**。
 
 ### 配置
 
-**首选：插件板块 → dsh-structured → 详情页的配置区**（0.9.2 起）。插件自己的浏览器半侧把基础六字段注册进宿主 `plugins.bundle.config` slot；「语气风格」tab 再提供档案行与 tone 三字段（共九项配置），改完写入 active profile 的 Cordis patch：
+**首选：插件板块 → dsh-structured → 详情页的配置区**（0.9.2 起）。插件自己的浏览器半侧把基础六字段注册进宿主 `plugins.bundle.config` slot；「语气风格」tab 再提供档案行与 tone 五字段（共十一项配置），改完写入 active profile 的 Cordis patch：
 
 ```text
 主题 / Theme           deepseek | codex | anthropic

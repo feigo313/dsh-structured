@@ -7,7 +7,17 @@
 - Host：Config 增加 `personaEnabled/persona/personaRevision/personaName/personaSignature/personaAvatar`；独立 tone section（order 10250）；保存一次原子写六字段，旧宿主 fallback 读回 + 回滚；tone@1 schema / 64KB / 严格白名单不变，默认鲸鱼 style 清为纯语言描述。
 - 模板只保留默认蓝色大肥鱼 + 用户另存；行内删除、删空提示、恢复默认；tone 注入 / skipIn 语义不变。
 - 鲸鱼娘模板随包：`docs/1.0-PERSONA-WHALE.json` + `LICENSE-WHALE` + `NOTICE-WHALE`；CC-BY-NC-SA-4.0，非官方，不打包美术；构建从 JSON 单一源注入 host/client。
-- 未完成：桌面实机三主题×明暗真实截图、两会话 A 保存→B 下一条、隔离 temp cwd P01–P10 基线、beta/default-on 用户 gate 均未验；不宣称 gate 通过，不 push / publish。
+- 1.0.0 状态收口（2026-11-04）：桌面实机三主题×明暗截图、两会话 A 保存→B 即时生效、渲染兜底与身份头 live 抽查已完成；隔离 temp cwd P01–P10 基线与 beta/default-on 用户 gate 仍未执行；发布走 1.0.3。
+
+## 1.0.3 — 2026-11-04
+
+- persona 内容合同：模型只交一个 `persona` fenced JSON（version 1；normal / short / table 内容槽位），身份头、前缀、三卡（结论 / 建议 / 风险）、收尾由插件 `renderPersonaContent` 固定渲染；模型不再输出 Markdown 卡片。
+- 人格默认开启：新配置默认 `personaEnabled=true`；显式关闭的配置升级后保持关闭。
+- 语气字段扩为五项：昵称（userName，模型怎么称呼你）/ 自称（selfName，模型怎么称呼自己）/ 开场（prefix）/ 性格（style）/ 收尾（suffix）；昵称、自称 ≤20 字。
+- 模板含头像：人格模板保存 / 恢复携带当前头像，默认模板烘焙内置鲸鱼头像。
+- 渲染兜底：缺 persona 块走 legacy 普通排版并保留原文（缺块不报错）；块外自然内容容忍，不再弹「内容合同错误」；多块、JSON / 字段非法才显示错误卡；流式半截先保留原内容，完成且仍非法才报错。
+- persona 合同压缩：注入文本从 2,157 字压到约 1,380 字。
+- 人格只注入根会话（lead）：子代理（origin=subagent / delegationDepth>0 / parentSession）、委派、聊天 fork 会话硬排除，不受 `includeSubagents` 影响；header 缺失 fail-open。
 
 ## 0.9.9 — 2026-10-26
 
