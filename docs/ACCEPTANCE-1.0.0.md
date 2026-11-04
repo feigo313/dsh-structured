@@ -1,6 +1,6 @@
 # dsh-structured 1.0.3 验收
 
-[1.0.3 · 代码/构建] `npm test` 100/100；`npm run build` 完成；`desktop-check` 全 PASS；`theme-contrast` 60；`theme-hue-distance` 12；`lib` 由 src 构建并注入鲸鱼娘 JSON；pack 58 文件 / 756617 B / unpacked 1304495 B（1.0.3 起 7 张截图全部为本地部署实机图）。
+[1.0.3 · 代码/构建] `npm test` 100/100；`npm run build` 完成；`desktop-check` 全 PASS；`theme-contrast` 60；`theme-hue-distance` 12；`lib` 由 src 构建并注入鲸鱼娘 JSON；pack 58 文件 / 815618 B / unpacked 1366387 B（1.0.3 起 7 张截图全部为本地部署实机图）。
 
 [1.0.0 · v5 回复皮肤] 软面卡片台：12px 圆角卡 + 3px 左条 + 同构渐变面；结论 / 下一步 / 风险线标题（PersonaMode 的模型内容槽位卡标签统一为「建议」）；表格蓝 tint 表头、26% / 18% 列宽、首列 600 墨字、三色状态签；代码浅色卡 + 「代码 · 语言」线标题 + 双方框复制钮；深色卡面 / 表头 / 代码面 / 状态签全量适配。静态三态×明暗×三主题证据：`artifacts/prototype/v5-<theme>-<light|dark>-<normal|table|code>.png`（18 张；三主题统一 v5 token，按主题分组校验）；设置页证据：`assets/screenshots/11-config-page.png`（1.0.3 语气风格 tab 实机渲染）+ `artifacts/prototype/v5-settings-light.png` / `v5-settings-dark.png`。这些证据在 `artifacts/` 下，被 `.gitignore` 忽略，**local-only，不进 git**。
 
@@ -15,6 +15,8 @@
 [1.0.0 · 关闭清理] `personaEnabled=false` 时从每个受管 `_markdown_` 清除 `data-dsh-persona-kind`、`data-dsh-persona-fallback`、`data-dsh-persona-error`、`data-dsh-persona-pending`，删除 `.dss-persona-prefix` / `.dss-persona-suffix` 节点，再走 `decorateStructured`；通用卡保留，前后缀文本不再可见。测试覆盖 normal 开启 → 关闭 → 再装饰，以及 active 状态下配置订阅自动清理。
 
 [1.0.0 · 审计修复] P1：深色表格表头改用独立 `--dss-th-text`（浅色 `#115e59` / 深色 `#5eead4`），不再复用线标签的 `--dss-blue-text`；gate 期望同步为 `rgb(94, 234, 212)`。P2：`emptyTone()` 兜底文案去掉“先给结论”，只保留语言风格；short 改为 `kind=short` 内容槽位，由 renderer 生成短答卡；删除用户文本正则猜 short 与模型 Markdown 短答卡。`style-gate --check` 新增源码树绑定：`src/lib/scripts/test/fixtures` 与证据 HEAD 不一致时直接 `STYLE_GATE_STALE`。
+
+[1.0.3 · 发布前 bug 修复（2026-11-04）] ① 合法 persona JSON 被不可见字符判死：模型输出里的 15 种不可见字符（ZWSP/ZWNJ/ZWJ/LRM/RLM/BOM/U+180E/NBSP/U+2007/U+202F/U+2028/U+2029/NEL/VT/FF）会让 V8 报 `Unexpected non-whitespace character after JSON` 并把整条回复替换成错误卡；现在解析前按码位剥离再试，报错时原文保留在错误卡下方。② 块外正文被静默删除 / 误报块冲突：模型写在 persona 块外的自然正文保留在卡片下方；persona 块与其它代码块共存不再误报「必须唯一」，只有多个 persona 块才算冲突。回归：探针 A/B/C1–C8/D + 15 种不可见字符用例，100/100。
 
 [1.0.0 · PersonaMode 修复轮（2026-11-02，FAIL 审计复核）] P0：渲染缓存保存原始 envelope 文本 / 哈希与配置签名，重复 `decorate`（含 observer 自触发）仍为原 kind；插件生成节点带 `data-dsh-plugin-generated` 标记，MutationObserver 忽略自生成子树；PersonaMode 激活时快照旧历史 + `data-chat-turn` 水位，配置变化只走 `managedOnly` 刷新，不对旧历史全量重扫。P1：流式半截 JSON / 字段不全先 pending（`data-streaming` 完成信号 + 500ms 稳定窗口）并保留原 DOM，完成且仍非法才 error；找不到 assistant flow 显式 error；关闭删除前后缀节点与文本；合同写明 1-5 / 1-20 并测 6 / 21；`.md-diff` 与报错回复走例外，不再显示内容合同错误。P2：Persona 建议卡标签统一「建议」；预览补短答 tab，code 预览改走真实 code 例外通道；回归测试补 observer 自触发 / 旧历史 / 配置订阅 / partial-stream / no-flow / diff / 6 / 21 / 关闭文本 / 预览同源。
 

@@ -18,6 +18,8 @@
 - 渲染兜底：缺 persona 块走 legacy 普通排版并保留原文（缺块不报错）；块外自然内容容忍，不再弹「内容合同错误」；多块、JSON / 字段非法才显示错误卡；流式半截先保留原内容，完成且仍非法才报错。
 - persona 合同压缩：注入文本从 2,157 字压到约 1,380 字。
 - 人格只注入根会话（lead）：子代理（origin=subagent / delegationDepth>0 / parentSession）、委派、聊天 fork 会话硬排除，不受 `includeSubagents` 影响；header 缺失 fail-open。
+- 发布前修复 ①（合法 persona JSON 被判死）：模型输出里的不可见字符（ZWSP / ZWNJ / ZWJ / LRM / RLM / BOM / U+180E / NBSP / U+2007 / U+202F / U+2028 / U+2029 / NEL / VT / FF）会让 V8 报 `Unexpected non-whitespace character after JSON` 并把整条回复替换成错误卡；现在解析前按码位剥离这些字符再试，报错时原文保留在错误卡下方。
+- 发布前修复 ②（块外正文被静默删除 / 误报块冲突）：模型写在 persona 块外的自然正文不再被清掉，渲染后保留在卡片下方；persona 块与其它代码块共存不再误报「内容块必须唯一」，只有多个 persona 块才算冲突。
 
 ## 0.9.9 — 2026-10-26
 
