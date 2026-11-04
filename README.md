@@ -141,9 +141,9 @@ Phase 2 已落地 2.1–2.4：卡片类型（结论/判断/指标/风险/下一�
 
 ![人格暗色](assets/screenshots/10-theme-dark.png)
 
-![插件设置页（0.9.2 旧图，待更新）](assets/screenshots/11-config-page.png)
+![语气风格设置页](assets/screenshots/11-config-page.png)
 
-`screenshots.json` 列出全部 8 张；1.0.3 起 7 张换成真实界面截图（人格三卡 / 表格 / 结构化、明暗主题），`11-config-page.png` 仍是 0.9.2 旧图，**设置页截图待更新**。
+`screenshots.json` 列出全部 8 张；1.0.3 起 7 张换成真实界面截图（人格三卡 / 表格 / 结构化、明暗主题），设置页截图为语气风格 tab 实机渲染（1.0.3）。
 
 ### 配置
 

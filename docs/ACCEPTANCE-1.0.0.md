@@ -1,8 +1,8 @@
 # dsh-structured 1.0.0 验收
 
-[1.0.0 · 代码/构建] `npm test` 98/98；`npm run build` 完成；`desktop-check` 全 PASS；`theme-contrast` 60；`theme-hue-distance` 12；`lib` 由 src 构建并注入鲸鱼娘 JSON；pack 59 文件 / 2768035 B / unpacked 3461477 B（1.0.3 起 7 张截图换成真实界面图，体积上升属预期）。
+[1.0.0 · 代码/构建] `npm test` 98/98；`npm run build` 完成；`desktop-check` 全 PASS；`theme-contrast` 60；`theme-hue-distance` 12；`lib` 由 src 构建并注入鲸鱼娘 JSON；pack 59 文件 / 2810780 B / unpacked 3504788 B（1.0.3 起 7 张截图换成真实界面图，体积上升属预期）。
 
-[1.0.0 · v5 回复皮肤] 软面卡片台：12px 圆角卡 + 3px 左条 + 同构渐变面；结论 / 下一步 / 风险线标题（PersonaMode 的模型内容槽位卡标签统一为「建议」）；表格蓝 tint 表头、26% / 18% 列宽、首列 600 墨字、三色状态签；代码浅色卡 + 「代码 · 语言」线标题 + 双方框复制钮；深色卡面 / 表头 / 代码面 / 状态签全量适配。静态三态×明暗×三主题证据：`artifacts/prototype/v5-<theme>-<light|dark>-<normal|table|code>.png`（18 张；三主题统一 v5 token，按主题分组校验）；设置页证据：`artifacts/prototype/v5-settings-light.png` / `v5-settings-dark.png`。这些证据在 `artifacts/` 下，被 `.gitignore` 忽略，**local-only，不进 git**。
+[1.0.0 · v5 回复皮肤] 软面卡片台：12px 圆角卡 + 3px 左条 + 同构渐变面；结论 / 下一步 / 风险线标题（PersonaMode 的模型内容槽位卡标签统一为「建议」）；表格蓝 tint 表头、26% / 18% 列宽、首列 600 墨字、三色状态签；代码浅色卡 + 「代码 · 语言」线标题 + 双方框复制钮；深色卡面 / 表头 / 代码面 / 状态签全量适配。静态三态×明暗×三主题证据：`artifacts/prototype/v5-<theme>-<light|dark>-<normal|table|code>.png`（18 张；三主题统一 v5 token，按主题分组校验）；设置页证据：`assets/screenshots/11-config-page.png`（1.0.3 语气风格 tab 实机渲染）+ `artifacts/prototype/v5-settings-light.png` / `v5-settings-dark.png`。这些证据在 `artifacts/` 下，被 `.gitignore` 忽略，**local-only，不进 git**。
 
 [1.0.0 · 语气设置页] 无基础 / 进阶页签、无 JSON 编辑入口；档案行（88px 头像可上传并居中裁方压 128px JPEG dataURL、名称、签名）+ 昵称 / 自称 / 开场 / 性格 / 收尾五字段 + 计数 + 64 格 emoji 弹层 + 固定规则行 + 保存行 + 样式预览（普通 / 表格 / 短答 / 代码）。模板只保留默认蓝色大肥鱼 + 用户另存模板，支持行内删除 / 删空提示 / 恢复默认。保存走宿主 `form.mutate` 一次原子六字段操作（persona / personaEnabled / personaRevision / personaName / personaSignature / personaAvatar）；无 `mutate` 的旧宿主才顺序写 + 写后读回 + 补偿回滚，回滚失败显示“回滚失败，profile 可能半保存”。
 
