@@ -758,6 +758,7 @@ test('PersonaMode：MutationObserver 忽略插件自生成子树，重复 decora
   const nextTone = JSON.stringify({ schema: 'dsh-structured/tone@1', prefix: '新前缀，', style: '搞怪', suffix: '——新尾', skipIn: ['code', 'diff', 'error', 'short', 'table'] })
   harness.plugin.__test.setPersonaModeConfig({ personaEnabled: true, persona: nextTone, personaName: '新名字', personaSignature: '新签名', personaAvatar: '' })
   assert.equal(markdown.getAttribute('data-dsh-persona-kind'), 'normal', 'config change must keep the rendered message')
+  assert.equal(markdown.querySelectorAll('[data-dsh-structured-card-type]').length, 3, 'config change must not duplicate cards')
   assert.equal(markdown.querySelectorAll('.dss-persona-prefix').length, 1, 'prefix must not duplicate on config change')
   assert.equal(markdown.querySelector('.dss-persona-prefix').textContent, '新前缀，')
   assert.match(flow.querySelector('[data-dsh-persona-head]').textContent, /新名字/)
@@ -850,6 +851,82 @@ test('PersonaMode：不可见字符不判死、错误卡保留原文', () => {
   assert.match(broken.markdown.textContent, /内容合同错误/)
   assert.match(broken.markdown.textContent, /version/, 'original content must survive the error card')
   assert.equal(broken.markdown.querySelectorAll('[data-dsh-structured-card-type]').length, 0, 'error must not fabricate cards')
+})
+
+const personaBlock = (text, lang = 'persona') =>
+  `<div class="md-code-block"><div class="bannerWrap"><div data-code-block-banner><span class="_heading_${lang}">${lang}</span></div></div><div data-code-block-content><pre>${text}</pre></div></div>`
+
+const personaNormalPayload = JSON.stringify({
+  version: 1,
+  kind: 'normal',
+  conclusion: { lead: '结论L' },
+  suggestions: ['建议S'],
+  risk: '风险R',
+})
+
+test('PersonaMode：块外正文保留、其它代码块不误报、不可见字符全覆盖', () => {
+  const harness = makeHarness(baseState, async () => true)
+  const tone = JSON.stringify({ schema: 'dsh-structured/tone@1', prefix: 'Boss，', style: '搞怪', suffix: '——完', skipIn: ['code', 'diff', 'error', 'short', 'table'] })
+  harness.plugin.__test.setPersonaModeConfig({ personaEnabled: true, persona: tone, personaName: 'N', personaSignature: 'S', personaAvatar: '' })
+  const flowFor = (html) => {
+    const flow = harness.document.createElement('div')
+    flow.setAttribute('data-chat-flow-kind', 'assistant-step')
+    flow.setAttribute('data-chat-node-key', 'edge-' + Math.random())
+    const slot = harness.document.createElement('div')
+    slot.setAttribute('data-slot', 'conversation.chat.node')
+    const markdown = harness.document.createElement('div')
+    markdown.className = '_markdown_preview'
+    markdown.innerHTML = html
+    slot.appendChild(markdown)
+    flow.appendChild(slot)
+    harness.document.body.appendChild(flow)
+    harness.plugin.__test.decorate(flow)
+    return { flow, markdown }
+  }
+
+  // A. 模型在 persona 块外还有自然正文：正文不能被静默删除。
+  const withOutside = flowFor('<p>说明一下：先看结论。</p>' + personaBlock(personaNormalPayload))
+  assert.equal(withOutside.markdown.getAttribute('data-dsh-persona-kind'), 'normal')
+  assert.match(withOutside.markdown.textContent, /说明一下：先看结论。/, 'outside prose must survive persona rendering')
+  assert.equal(withOutside.markdown.querySelectorAll('[data-dsh-structured-card-type]').length, 3)
+
+  // B. persona 块 + 另一个普通代码块：不是合同冲突。
+  const withOtherCode = flowFor(personaBlock(personaNormalPayload) + personaBlock('const x = 1', 'js'))
+  assert.equal(withOtherCode.markdown.getAttribute('data-dsh-persona-kind'), 'normal')
+  assert.equal(withOtherCode.markdown.getAttribute('data-dsh-persona-error'), null)
+  assert.equal(withOtherCode.markdown.querySelectorAll('[data-dsh-structured-card-type]').length, 3)
+
+  // C. 各种不可见字符都不能击穿解析。
+  for (const [name, ch] of [
+    ['ZWSP U+200B', '\u200b'],
+    ['ZWNJ U+200C', '\u200c'],
+    ['ZWJ U+200D', '\u200d'],
+    ['LRM U+200E', '\u200e'],
+    ['RLM U+200F', '\u200f'],
+    ['BOM U+FEFF', '\ufeff'],
+    ['MONGOLIAN U+180E', '\u180e'],
+    ['NBSP U+00A0', '\u00a0'],
+    ['FIGURE SP U+2007', '\u2007'],
+    ['NNBSP U+202F', '\u202f'],
+    ['LINE SEP U+2028', '\u2028'],
+    ['PARA SEP U+2029', '\u2029'],
+    ['NEL U+0085', '\u0085'],
+    ['VT U+000B', '\u000b'],
+    ['FF U+000C', '\u000c'],
+  ]) {
+    const dirty = personaNormalPayload.slice(0, -1) + ch + '}'
+    const item = flowFor(personaBlock(dirty))
+    assert.equal(item.markdown.getAttribute('data-dsh-persona-kind'), 'normal', 'invisible char must not break persona render: ' + name)
+    assert.equal(item.markdown.getAttribute('data-dsh-persona-error'), null, 'no error for ' + name)
+    assert.equal(item.markdown.querySelectorAll('[data-dsh-structured-card-type]').length, 3, 'cards must render for ' + name)
+  }
+
+  // D. 真非法 JSON：仍然显式 error，且原文保留。
+  const broken = flowFor(personaBlock('{"version":1,"kind":"normal",'))
+  harness.flushPersonaErrors()
+  assert.equal(broken.markdown.getAttribute('data-dsh-persona-kind'), 'error')
+  assert.match(broken.markdown.textContent, /内容合同错误/)
+  assert.match(broken.markdown.textContent, /version/, 'original content must survive the error card')
 })
 
 test('v5 emptyTone 兜底只写语言风格，不写结构要求', () => {
