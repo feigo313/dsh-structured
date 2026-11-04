@@ -169,7 +169,7 @@ GenUI 联动              auto | on | off
     tailReminder: true     # system prompt 末尾追加一句提醒
     includeSubagents: false # 子代理会话不注入（它的产出不直接面向用户）
     genui: auto            # auto | on | off；auto 检测到 GenUI 才追加 dsh-ui 路由
-    personaEnabled: true   # 语气风格开关
+    personaEnabled: true   # 语气风格开关（只注入根会话/lead；子代理、委派与聊天 fork 会话一律不注入）
     persona: '{"schema":"dsh-structured/tone@1",...}' # 内部 canonical tone@1，不暴露裸编辑
     personaName: 蓝色大肥鱼
     personaSignature: 主人，再来一碗白米饭！！~
@@ -251,7 +251,7 @@ node scripts/measure-prose.mjs --sessions session-a,session-b --json
 - **不 append 消息、不改 agent 循环、不改工具权限、不接管 GenUI**。GenUI 负责组件渲染，本插件只负责「强制形状 + 注入规则」。
 - **fail-open 是红线**：section 求值、`style.md` 读取、状态读写、`/structured` 处理全程 try/catch；section 求值失败返回空串，本轮不结构化但请求照常放行。
 - `interpolate: false`：`style.md` 里出现 `{{...}}` 也不会触发严格变量插值而打断组装。
-- 子代理默认不注入：子代理产出由父代理消费，不是用户可见回复，注入只会浪费上下文。
+- 子代理默认不注入：子代理产出由父代理消费，不是用户可见回复，注入只会浪费上下文。PersonaMode 更进一步：人格只注入根会话（lead），子代理 / 委派 / 聊天 fork 会话一律硬排除，不受 `includeSubagents` 影响。
 
 ## 目录
 

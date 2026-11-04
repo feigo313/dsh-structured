@@ -513,14 +513,17 @@ test('子代理会话识别：origin / delegationDepth；用户 fork 不跳过',
   assert.equal(isSubagentContext({}), false)
 })
 
-test('人格只注入根会话：子代理 / fork / 委派会话全部排除', () => {
+test('人格只注入根会话：子代理 / 委派 / 聊天 fork 会话全部排除', () => {
   assert.equal(isRootSessionContext({ agent: { session: { header: { delegationDepth: 0 } } } }), true)
   assert.equal(isRootSessionContext({ agent: { session: { header: { origin: 'subagent', delegationDepth: 1 } } } }), false)
-  assert.equal(isRootSessionContext({ agent: { session: { header: { origin: 'fork' } } } }), false)
   assert.equal(isRootSessionContext({ agent: { session: { header: { delegationDepth: 2 } } } }), false)
   assert.equal(isRootSessionContext({ agent: { session: { header: { parentSession: 'session-a' } } } }), false)
   assert.equal(isRootSessionContext({ agent: { session: { header: { parentSessionId: 'session-a' } } } }), false)
   assert.equal(isRootSessionContext({}), true)
+  // 宿主真实聊天 fork 形状：origin 缺省 + parentSession + isSeeded（dsh-session fork meta 不写 origin）。
+  assert.equal(isRootSessionContext({ agent: { session: { header: { parentSession: 'session-root', isSeeded: true } } } }), false)
+  // 宿主真实 subagent 形状：origin=subagent + delegationDepth + parentSession（2271 个真实头实测）。
+  assert.equal(isRootSessionContext({ agent: { session: { header: { parentSession: 'session-root', isSeeded: false, origin: 'subagent', delegationDepth: 1 } } } }), false)
 
   const box = isolate()
   try {
@@ -530,8 +533,10 @@ test('人格只注入根会话：子代理 / fork / 委派会话全部排除', (
     const persona = sections.find((section) => section.name === PERSONA_SECTION_NAME)
     const root = mainContext('session-root')
     const sub = { agent: { id: 'session-sub', session: { id: 'session-sub', header: { origin: 'subagent', delegationDepth: 1, parentSession: 'session-root' } } } }
+    const forked = { agent: { id: 'session-fork', session: { id: 'session-fork', header: { parentSession: 'session-root', isSeeded: true } } } }
     assert.match(persona.text(root), /【开头前缀】/)
     assert.equal(persona.text(sub), '')
+    assert.equal(persona.text(forked), '')
   } finally {
     box.cleanup()
   }
