@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.5 — 2026-11-05
+
+- 修复 persona JSON 尾部多余字符导致整条回复判死：模型偶尔在合法 JSON 后多写 1–3 个 `}`，解析报 `Unexpected non-whitespace character after JSON at position N`。现在按 position 截断、去尾部 `}`（最多 3 个）重试，任一候选通过内容校验即正常渲染，并记 console.warn；全部失败才显示错误卡，原文保留。
+- persona 合同新增一条：整个回复只有一个 JSON 对象，结尾只写一个 `}`，不要重复闭合。
+- 回归：尾部 `}` ×1/×2/×3 三档用例，截断后语义非法仍走 error 卡。
+
 ## 1.0.4 — 2026-11-04
 
 - 发布前两个严重 bug 修复（1.0.3 未发布，修复并入本版）：
