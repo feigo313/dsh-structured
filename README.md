@@ -287,3 +287,8 @@ ACCEPTANCE.md                3 行验收记录
 - 视觉层依赖宿主内部 class 名（`[class*="_markdown_"]`、`.md-code-block`）；宿主升级后若改名，会自动退化为原生 markdown，需要按 `docs/VISUAL-PLAN.md` 跑一次视觉回归。
 - `style.md` 是整份覆盖，不做片段合并。1.0 输出语气使用“语气风格”设置页（profile Config JSON，`dsh-structured/tone@1`），**不读 `persona.md`**；旧 `1.0-PERSONA-SPEC.md` 已标 SUPERSEDED。不碰 AGENTS/soul，不开放文件路径入口。
 - 裸 `$...$` 由宿主按 `singleDollarTextMath` 解析成行内公式；需要显示美元符号时用 `\$` 转义或放进反引号；插件不改写消息内容，也不替宿主决定公式语义。0.9.7 起 `BUILTIN_STYLE_TEXT` 增加该规避规则；issue #2 已关闭。
+
+## 致谢
+
+- 人格模式的点子来自 [@cvopisso](https://github.com/cvopisso) 在 issue [#1](https://github.com/feigo313/dsh-structured/issues/1) 的提议——"您可能无意间创造出了目前 DSH 最强的人格插件"。1.0 把它做成了可开关的默认模式：模型只交 persona 内容块，身份头 / 三卡 / 收尾由插件渲染。谢谢。
+- 渲染问题由 [@ayyyyyyyya](https://github.com/ayyyyyyyya) 在 issue [#2](https://github.com/feigo313/dsh-structured/issues/2) 反馈，0.9.7 起修复 `$` 公式解析边界。
