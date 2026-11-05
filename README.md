@@ -34,8 +34,10 @@ node scripts/desktop-check.mjs
 ### 方式二：npm
 
 ```powershell
-dsh plugin --profile <profile> add dsh-structured
+dsh plugin --profile <profile> add dsh-structured@1.0.4
 ```
+
+`dsh plugin add` 会转发给 profile 里的 pnpm；1.0.4 已在临时 `DSH_HOME` 实测可装（pnpm 会自动把新版本加进 `minimumReleaseAgeExclude`）。
 
 desktop profile 由 Electron 独占，使用插件管理搜索/安装，不要跑 `--profile desktop`。
 
@@ -141,7 +143,7 @@ Phase 2 已落地 2.1–2.4：卡片类型（结论/判断/指标/风险/下一�
 
 ![语气风格设置页](assets/screenshots/11-config-page.png)
 
-`screenshots.json` 列出全部 7 张，全部是 1.0.3 本地部署实机截图（DSH Web GUI + 已安装的 dsh-structured v1.0.3）：身份头、卡外前缀、结论 / 建议 / 风险三卡、收尾，以及语气风格设置页。
+`screenshots.json` 列出全部 7 张，全部是 1.0.4 本地部署实机截图（DSH Web GUI + 已安装的 dsh-structured v1.0.4）：身份头、卡外前缀、结论 / 建议 / 风险三卡、收尾，以及语气风格设置页。
 
 ### 配置
 
