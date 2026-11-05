@@ -289,3 +289,13 @@
 - **本地**：main 分支 `2e36ebd`（1.0.4），工作树 0，origin/main 是祖先；desktop 实装 1.0.4，应用 10:12:36 重启，prompt 含 PersonaMode 合同。
 - **发现**：`npm pack` 数字随检出状态漂移——昨日 dry-run 2,380,558 / 3,036,994，今日 2,380,505 / 3,036,722（−53 / −272），导致 `test/pack.test.mjs` 1 项失败（99/100）。行尾已由 `.gitattributes` 钉 LF，但工作树文件在切换分支/编辑后仍可能以 CRLF 落盘，pack 体积随之变化。发布前必须用干净 LF 检出重新测量并锁定。
 - **本轮动作**：只读复核 + 记录，未改代码、未 push。
+
+## 2026-11-05 · 1.0.4 上线
+
+- **发布**：`v1.0.4` tag（`ca6551f` 后续 docs 提交前为 `3d3b5ad`）；GitHub Release 资产 `dsh-structured-1.0.4.tgz`（sha256 `c2805446…`，与本地逐字节一致）；npm `latest = 1.0.4`（58 文件）；市场 PR [#12161](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/12161) 已开，待维护者合并。
+- **远端历史**：昨天被回退的 `5106db2` 随本次快进重新进入 main（`6338bc7..3d3b5ad`），未再出现分叉。
+- **本地安装**：desktop 依赖从 `file:…tgz` 改为 `dsh-structured@1.0.4`（npm registry），`lib/index`、`lib/client` 与 npm 包哈希一致。
+- **门禁**：100/100；build 零 diff；对比度 60 / hue 12 / desktop PASS；style-gate PASS；pack 58 / 2,380,505 / 3,036,722。
+- **推送方式**：github.com:443 不可达，临时用 repo SSH deploy key 推送，推完即删（keys=0）。
+- **致谢**：README 新增「致谢」，@cvopisso（#1 人格模式提议）、@ayyyyyyyya（#2 渲染反馈）；issue #1 已回复 Release 链接（commit `ca6551f`）。
+- **仍未验证**：P01–P10 基线跑批、beta/default-on 真人 gate；已在 Release 说明中如实披露。
