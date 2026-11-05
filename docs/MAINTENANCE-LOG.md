@@ -281,3 +281,11 @@
 - **desktop**：app 08:25 重启，persona 内容合同注入正常。
 - **发布**：按 Boss 要求挂起，待按 `docs/1.0-3-RELEASE-CHECKPOINT.md` 执行 4 件 P1 + bump 1.0.3 / tag / Release / npm / 市场。
 - **本轮动作**：只读复核与记录。
+
+## 2026-11-05 · 第 16 轮
+
+- **issue 水位**：0 open / 2 closed；PR 仅 #3（已合并）。
+- **远端异常（重点）**：GitHub Actions 记录显示 2026-11-04 21:11（+08）main 被 push 到 `5106db2`，21:13 又被重置回 `6338bc7`（0.9.9）。当前远端 main = `6338bc7`，无 v1.0.4 tag、无新分支、npm `latest=0.9.9`、Release 无新增；即那次推送被回退，未遗留发布物。
+- **本地**：main 分支 `2e36ebd`（1.0.4），工作树 0，origin/main 是祖先；desktop 实装 1.0.4，应用 10:12:36 重启，prompt 含 PersonaMode 合同。
+- **发现**：`npm pack` 数字随检出状态漂移——昨日 dry-run 2,380,558 / 3,036,994，今日 2,380,505 / 3,036,722（−53 / −272），导致 `test/pack.test.mjs` 1 项失败（99/100）。行尾已由 `.gitattributes` 钉 LF，但工作树文件在切换分支/编辑后仍可能以 CRLF 落盘，pack 体积随之变化。发布前必须用干净 LF 检出重新测量并锁定。
+- **本轮动作**：只读复核 + 记录，未改代码、未 push。
