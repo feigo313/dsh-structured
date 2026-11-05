@@ -929,6 +929,46 @@ test('PersonaMode：块外正文保留、其它代码块不误报、不可见字
   assert.match(broken.markdown.textContent, /version/, 'original content must survive the error card')
 })
 
+test('PersonaMode：尾部多余 } 不判死、按正常信封渲染', () => {
+  const harness = makeHarness(baseState, async () => true)
+  const tone = JSON.stringify({ schema: 'dsh-structured/tone@1', prefix: 'Boss，', style: '搞怪', suffix: '——完', skipIn: ['code', 'diff', 'error', 'short', 'table'] })
+  harness.plugin.__test.setPersonaModeConfig({ personaEnabled: true, persona: tone, personaName: 'N', personaSignature: 'S', personaAvatar: '' })
+  const flowFor = (html) => {
+    const flow = harness.document.createElement('div')
+    flow.setAttribute('data-chat-flow-kind', 'assistant-step')
+    flow.setAttribute('data-chat-node-key', 'tail-' + Math.random())
+    const slot = harness.document.createElement('div')
+    slot.setAttribute('data-slot', 'conversation.chat.node')
+    const markdown = harness.document.createElement('div')
+    markdown.className = '_markdown_preview'
+    markdown.innerHTML = html
+    slot.appendChild(markdown)
+    flow.appendChild(slot)
+    harness.document.body.appendChild(flow)
+    harness.plugin.__test.decorate(flow)
+    return { flow, markdown }
+  }
+  const payload = { version: 1, kind: 'normal', conclusion: { lead: '结论' }, suggestions: ['建议'], risk: '风险' }
+  const clean = JSON.stringify(payload)
+  // 实机症状（session-839e98db / session-d4c1）：合法 JSON 后面多出 1-3 个 }，
+  // JSON.parse 报 Unexpected non-whitespace character after JSON at position N。
+  for (const extraBraces of ['}', '}}', '}}}']) {
+    const dirty = clean + extraBraces
+    const item = flowFor(`<div class="md-code-block"><div class="bannerWrap"><div data-code-block-banner><span class="_heading_persona">persona</span></div></div><div data-code-block-content><pre>${dirty}</pre></div></div>`)
+    assert.equal(item.markdown.getAttribute('data-dsh-persona-kind'), 'normal', 'trailing brace must not break persona render: +' + extraBraces.length)
+    assert.equal(item.markdown.getAttribute('data-dsh-persona-error'), null, 'no error for +' + extraBraces.length)
+    assert.equal(item.markdown.querySelectorAll('[data-dsh-structured-card-type]').length, 3, 'cards must render for +' + extraBraces.length)
+    assert.match(item.markdown.textContent, /结论/, 'envelope content must render for +' + extraBraces.length)
+  }
+  // 截断容错不得吞掉真错误：截断后仍过不了 validate 的块必须保持 error 路径。
+  const stillBroken = flowFor(`<div class="md-code-block"><div class="bannerWrap"><div data-code-block-banner><span class="_heading_persona">persona</span></div></div><div data-code-block-content><pre>{"version":2,"kind":"normal"}}</pre></div></div>`)
+  harness.flushPersonaErrors()
+  assert.equal(stillBroken.markdown.getAttribute('data-dsh-persona-kind'), 'error', 'semantically invalid JSON must stay an error even after brace repair')
+  assert.match(stillBroken.markdown.textContent, /内容合同错误/)
+  assert.match(stillBroken.markdown.textContent, /version/, 'original content must survive the error card')
+  assert.equal(stillBroken.markdown.querySelectorAll('[data-dsh-structured-card-type]').length, 0, 'error must not fabricate cards')
+})
+
 test('v5 emptyTone 兜底只写语言风格，不写结构要求', () => {
   const harness = makeHarness(baseState, async () => true)
   const tone = harness.api.emptyTone()

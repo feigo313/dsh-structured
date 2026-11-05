@@ -129,6 +129,7 @@ export const PERSONA_MODE_RULES = [
   '',
   '硬约束：',
   '- `version` 必须为 1；`kind` 仅 normal / short / table；不允许多余字段。',
+  '- 整个回复只有一个 JSON 对象，结尾只写一个 }，不要重复闭合。',
   '- `suggestions` 为 1-5 条；`risk` 必填；表格 `head` 2-6 列、`rows` 1-20 行，行列数一致。',
   '- 卡片标签固定为 结论 / 建议 / 风险，由插件渲染，模型不写。',
   '- 代码 / diff / 报错 / GenUI 不交 persona 内容块，按原格式输出。',

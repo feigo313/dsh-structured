@@ -11,6 +11,7 @@ TASK.md
 docs/RE-AUDIT-REPORT.md
 docs/PUBLISH-READY.md
 assets/screenshots-1.0.3/
+assets/screenshots/*-local.png
 .zcode/
 .tools/ego/
 .tools/audit-pkg/

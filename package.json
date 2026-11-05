@@ -83,6 +83,7 @@
     "LICENSE-WHALE",
     "NOTICE-WHALE",
     "assets/screenshots",
+    "!assets/screenshots/*-local.png",
     "screenshots.json",
     "test",
     "cordis.patch.yml",

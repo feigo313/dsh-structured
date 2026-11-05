@@ -1626,14 +1626,37 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
         // 模型或传输可能带入不可见字符（ZWSP / NBSP / BOM 等）：JSON 本身合法时先剥掉再试，
         // 不因为一个不可见字符把整条回复判死。
         const cleaned = stripInvisibleJsonChars(rawText)
-        if (cleaned !== rawText) {
-          try {
-            parsed = JSON.parse(cleaned)
-          } catch {
-            return schedulePersonaError(markdown, 'persona JSON 解析失败：' + String(error.message ?? error), rawText)
+        const candidates = []
+        if (cleaned !== rawText) candidates.push(cleaned)
+        // 位置截断类失败（Unexpected non-whitespace character after JSON at position N）：
+        // 常见根因是模型把闭合括号多写了一遍（session-839e98db：len=834、前 833 字符为合法 JSON）。
+        // 对这类「JSON 合法 + 结尾多余字符」做截断与去尾 } 的候选尝试，命中即按正常信封渲染。
+        const message = String(error.message ?? error)
+        const positionMatch = message.match(/Unexpected non-whitespace character after JSON at position (\d+)/)
+        if (positionMatch) {
+          const pos = Number(positionMatch[1])
+          const base = (cleaned !== rawText ? cleaned : rawText)
+          if (Number.isFinite(pos) && pos > 0 && pos <= base.length) {
+            candidates.push(base.slice(0, pos))
+            candidates.push(base.slice(0, pos).replace(/\s+$/, ''))
           }
+          for (let drop = 1; drop <= 3; drop++) {
+            const trimmedEnd = base.replace(/\s+$/, '')
+            if (trimmedEnd.endsWith('}')) candidates.push(trimmedEnd.slice(0, -drop))
+          }
+        }
+        let repaired = null
+        for (const candidate of candidates) {
+          try {
+            const candidateParsed = JSON.parse(candidate)
+            if (validatePersonaContent(candidateParsed).ok) { repaired = candidateParsed; break }
+          } catch {}
+        }
+        if (repaired) {
+          console.warn('[dsh-structured] persona JSON 已修正尾部多余字符后渲染：' + message)
+          parsed = repaired
         } else {
-          return schedulePersonaError(markdown, 'persona JSON 解析失败：' + String(error.message ?? error), rawText)
+          return schedulePersonaError(markdown, 'persona JSON 解析失败：' + message, rawText)
         }
       }
       const validated = validatePersonaContent(parsed)
