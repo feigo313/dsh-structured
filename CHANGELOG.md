@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.8 — 2026-11-06
+
+- 合同错误卡下线：模型写坏 persona JSON（缺冒号、花括号错位、数组提前闭合等）时，不再把整条回复替换成「内容合同错误」卡。渲染器现在一律降级为普通排版——原文完整保留，只在控制台留一条 `console.warn` 供排查。用户最多看到一次「没套上卡片」，不会看到内部诊断。
+- 覆盖的畸形形态：`Expected ':' after property name`、`Expected ',' or '}'`、`Unexpected non-whitespace character`，以及此前 1.0.7 修的中途闭合。修复尝试失败的块同样降级，不再报错。
+- 回归：缺块 / 非法块 / 中途闭合 / 尾部多余 } / 不可见字符全部断言「legacy + 原文保留 + 零错误卡」。
+
 ## 1.0.7 — 2026-11-06
 
 - 修复 persona JSON「中途闭合」被判死：模型把 `conclusion` 提前闭合、`body` 落到根上，body 后面多出的 `}` 提前关掉根对象，后续 `table` / `suggestions` / `risk` 变成尾随内容（`Unexpected non-whitespace character after JSON at position N`）。现在解析失败时会在该位置附近尝试删掉一个错位 `}`，并把根级 `body` 挪回 `conclusion.body`，通过内容校验即正常渲染；否则仍走错误卡并保留原文。

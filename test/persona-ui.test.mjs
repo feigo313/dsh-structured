@@ -537,12 +537,12 @@ test('PersonaMode：缺块 legacy、非法块 error，不补卡、不回落；co
   assert.equal(invalid.markdown.getAttribute('data-dsh-persona-error'), null, 'incomplete JSON waits for the grace window')
   assert.equal(invalid.markdown.getAttribute('data-dsh-persona-pending'), '1')
   harness.flushPersonaErrors()
-  assert.equal(invalid.markdown.getAttribute('data-dsh-persona-kind'), 'error')
+  assert.equal(invalid.markdown.getAttribute('data-dsh-persona-kind'), 'legacy')
   assert.equal(invalid.markdown.querySelectorAll('[data-dsh-structured-card-type]').length, 0)
 
   const unknown = flowFor(personaEnvelope({ version: 1, kind: 'normal', conclusion: { lead: 'L' }, suggestions: ['S'], risk: 'R', extra: 1 }))
   harness.flushPersonaErrors()
-  assert.equal(unknown.markdown.getAttribute('data-dsh-persona-kind'), 'error')
+  assert.equal(unknown.markdown.getAttribute('data-dsh-persona-kind'), 'legacy')
   assert.equal(unknown.markdown.querySelectorAll('[data-dsh-structured-card-type]').length, 0)
 
   const code = flowFor('<div class="md-code-block"><div class="bannerWrap"><div data-code-block-banner><span class="_heading_persona">js</span></div></div><div data-code-block-content><pre>const x = 1</pre></div></div>')
@@ -704,11 +704,11 @@ test('PersonaMode：幂等、旧历史、流式、no-flow、diff、关闭文本'
   const six = flowFor(personaEnvelope({ ...normalContent, suggestions: ['1', '2', '3', '4', '5', '6'] }))
   assert.equal(six.markdown.getAttribute('data-dsh-persona-error'), null, '6 suggestions enter the grace window first')
   harness.flushPersonaErrors()
-  assert.equal(six.markdown.getAttribute('data-dsh-persona-kind'), 'error', '6 suggestions must be rejected')
+  assert.equal(six.markdown.getAttribute('data-dsh-persona-kind'), 'legacy', '6 suggestions degrade to legacy')
   const rows = Array.from({ length: 21 }, (_, i) => [String(i), 'x'])
   const tooMany = flowFor(personaEnvelope({ version: 1, kind: 'table', conclusion: { lead: 'L' }, suggestions: ['S'], risk: 'R', table: { head: ['A', 'B'], rows } }))
   harness.flushPersonaErrors()
-  assert.equal(tooMany.markdown.getAttribute('data-dsh-persona-kind'), 'error', '21 table rows must be rejected')
+  assert.equal(tooMany.markdown.getAttribute('data-dsh-persona-kind'), 'legacy', '21 table rows degrade to legacy')
 
   const close = flowFor(personaEnvelope(normalContent))
   assert.match(close.markdown.textContent, /Boss，/)
@@ -864,10 +864,10 @@ test('PersonaMode：不可见字符不判死、错误卡保留原文', () => {
   // 真非法 JSON：显示错误卡，但原始内容保留，不被抹掉。
   const broken = flowFor(rawBlock('{"version":1,"kind":"normal",'))
   harness.flushPersonaErrors()
-  assert.equal(broken.markdown.getAttribute('data-dsh-persona-kind'), 'error')
-  assert.match(broken.markdown.textContent, /内容合同错误/)
-  assert.match(broken.markdown.textContent, /version/, 'original content must survive the error card')
-  assert.equal(broken.markdown.querySelectorAll('[data-dsh-structured-card-type]').length, 0, 'error must not fabricate cards')
+  assert.equal(broken.markdown.getAttribute('data-dsh-persona-kind'), 'legacy')
+  assert.doesNotMatch(broken.markdown.textContent, /内容合同错误/)
+  assert.match(broken.markdown.textContent, /version/, 'original content must survive')
+  assert.equal(broken.markdown.querySelectorAll('[data-dsh-structured-card-type]').length, 0, 'legacy must not fabricate cards')
 })
 
 const personaBlock = (text, lang = 'persona') =>
@@ -941,9 +941,9 @@ test('PersonaMode：块外正文保留、其它代码块不误报、不可见字
   // D. 真非法 JSON：仍然显式 error，且原文保留。
   const broken = flowFor(personaBlock('{"version":1,"kind":"normal",'))
   harness.flushPersonaErrors()
-  assert.equal(broken.markdown.getAttribute('data-dsh-persona-kind'), 'error')
-  assert.match(broken.markdown.textContent, /内容合同错误/)
-  assert.match(broken.markdown.textContent, /version/, 'original content must survive the error card')
+  assert.equal(broken.markdown.getAttribute('data-dsh-persona-kind'), 'legacy')
+  assert.doesNotMatch(broken.markdown.textContent, /内容合同错误/)
+  assert.match(broken.markdown.textContent, /version/, 'original content must survive')
 })
 
 test('PersonaMode：尾部多余 } 不判死、按正常信封渲染', () => {
@@ -980,10 +980,10 @@ test('PersonaMode：尾部多余 } 不判死、按正常信封渲染', () => {
   // 截断容错不得吞掉真错误：截断后仍过不了 validate 的块必须保持 error 路径。
   const stillBroken = flowFor(`<div class="md-code-block"><div class="bannerWrap"><div data-code-block-banner><span class="_heading_persona">persona</span></div></div><div data-code-block-content><pre>{"version":2,"kind":"normal"}}</pre></div></div>`)
   harness.flushPersonaErrors()
-  assert.equal(stillBroken.markdown.getAttribute('data-dsh-persona-kind'), 'error', 'semantically invalid JSON must stay an error even after brace repair')
-  assert.match(stillBroken.markdown.textContent, /内容合同错误/)
-  assert.match(stillBroken.markdown.textContent, /version/, 'original content must survive the error card')
-  assert.equal(stillBroken.markdown.querySelectorAll('[data-dsh-structured-card-type]').length, 0, 'error must not fabricate cards')
+  assert.equal(stillBroken.markdown.getAttribute('data-dsh-persona-kind'), 'legacy', 'semantically invalid JSON must degrade to legacy after repair')
+  assert.doesNotMatch(stillBroken.markdown.textContent, /内容合同错误/)
+  assert.match(stillBroken.markdown.textContent, /version/, 'original content must survive')
+  assert.equal(stillBroken.markdown.querySelectorAll('[data-dsh-structured-card-type]').length, 0, 'legacy must not fabricate cards')
   // 中途闭合（实机 session-f78c turn 196/200）：conclusion 提前闭合、body 落到根上，
   // body 后面那个 } 把根对象提前关掉，table / suggestions / risk 变成尾随内容。
   // 修复要同时做两件事：删掉错位的 } + 把根级 body 挪回 conclusion.body。

@@ -1534,26 +1534,17 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
 
     const renderPersonaError = (markdown, message) => {
       clearPersonaPending(markdown)
-      const doc = markdown.ownerDocument ?? document
-      // 保留原始内容：错误卡插到最前面，用户的原回复仍在下方，不因为合同问题被抹掉。
-      // 先清掉上一张错误卡，避免重扫时叠加多张。
-      for (const previous of [...(markdown.querySelectorAll?.(`[${PERSONA_ERROR_ATTR}]`) ?? [])]) previous.remove()
-      const original = [...(markdown.children ?? [])]
-      while (markdown.firstChild) markdown.removeChild(markdown.firstChild)
-      const card = makePersonaElement(doc, 'blockquote', 'dss-card dss-card-risk')
-      card.setAttribute(PERSONA_ERROR_ATTR, '1')
-      const label = makePersonaElement(doc, 'p')
-      label.appendChild(makePersonaElement(doc, 'strong', '', '内容合同错误'))
-      card.appendChild(label)
-      card.appendChild(makePersonaElement(doc, 'p', '', message))
-      markdown.appendChild(card)
-      for (const node of original) markdown.appendChild(node)
-      markdown.setAttribute(PERSONA_KIND_ATTR, 'error')
-      markdown.setAttribute(PERSONA_ERROR_ATTR, '1')
+      // 体验优先：模型偶尔写出畸形 JSON（缺冒号 / 花括号错位 / 数组提前闭合），
+      // 不能把整条回复替换成内部诊断卡。这里降级为普通排版，原文完整保留，
+      // 只在控制台留一条警告给排查用。
+      console.warn('[dsh-structured] persona 内容未按合同渲染，已降级为普通排版：' + message)
+      markdown.removeAttribute?.(PERSONA_ERROR_ATTR)
       markdown.removeAttribute?.(PERSONA_FALLBACK_ATTR)
       markdown.removeAttribute?.(PERSONA_PENDING_ATTR)
+      markdown.setAttribute(PERSONA_KIND_ATTR, 'legacy')
       personaRenderCache.delete(markdown)
-      return 'error'
+      decorateStructured(markdown)
+      return 'legacy'
     }
 
     const dropPersonaHead = (flow) => {
