@@ -490,7 +490,7 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
 .dss-scope .dss-persona-prefix{margin:0;color:var(--dss-ink-3);font:12.5px/1.7 var(--dss-mono)}
 .dss-scope .dss-persona-suffix{margin:0;padding-top:8px;border-top:1px dotted var(--dss-line-strong);color:var(--dss-ink-3);font:12px/1.65 var(--dss-mono);overflow-wrap:anywhere}
 
-.dss-scope.dss-config{width:100%;max-width:760px;color:var(--dss-ink);font:13px/1.55 var(--dss-sans)}
+.dss-scope.dss-config{width:100%;max-width:100%;color:var(--dss-ink);font:13px/1.55 var(--dss-sans)}
 .dss-config *{box-sizing:border-box}
 .dss-hidden{display:none!important}
 .dss-section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:10px}
