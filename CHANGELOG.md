@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.6 — 2026-11-06
+
+- 修复非会话界面被内容合同误判：打开第三方插件的设置页/详情页时，市场页会把项目 README 渲染成 markdown，插件此前把这段 README 当成 assistant 回复，于是在插件描述上方弹出一张「内容合同错误 / 未找到 assistant 消息容器」卡。现在不在任何会话容器内的 markdown 一律按外部界面处理——只走视觉层，不套内容合同、不挂身份头、不显示错误卡，原文完整保留。
+- 会话内但定位不到 assistant 容器时改为 fail-open 走 legacy 排版，不再把内部诊断信息暴露给用户。
+- 回归：新增「插件设置页渲染 README（标题 / 引用块 / 代码块 / 徽章）」用例，锁定非会话界面零错误卡、零身份头。
+
 ## 1.0.5 — 2026-11-05
 
 - 修复 persona JSON 尾部多余字符导致整条回复判死：模型偶尔在合法 JSON 后多写 1–3 个 `}`，解析报 `Unexpected non-whitespace character after JSON at position N`。现在按 position 截断、去尾部 `}`（最多 3 个）重试，任一候选通过内容校验即正常渲染，并记 console.warn；全部失败才显示错误卡，原文保留。

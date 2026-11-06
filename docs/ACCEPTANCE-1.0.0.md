@@ -1,6 +1,8 @@
-# dsh-structured 1.0.5 验收
+# dsh-structured 1.0.6 验收
 
-[1.0.5 · 代码/构建] `npm test` 101/101；`npm run build` 完成；`desktop-check` 全 PASS；`theme-contrast` 60；`theme-hue-distance` 12；`lib` 由 src 构建并注入鲸鱼娘 JSON；pack 58 文件 / 2382809 B / unpacked 3044670 B（1.0.3 起 7 张截图全部为本地部署实机高清图，体积较旧版明显上升属预期；代码与文档部分与 1.0.2 相当）。仓库新增 `.gitattributes` 统一 LF，`scripts/build.mjs` 构建时把 CRLF 折成 LF，保证 `lib/` 与 `src/` 字节一致、pack 体积不随检出状态漂移；本地实机截图产物统一 `*-local.png` 命名并被 `.gitignore` + package.json `files` 双重排除，不进 git 也不进包。pack 数字为**本地 Windows 基线**；`test/pack.test.mjs` 对 size/unpackedSize 按 ±4 KB 容差校验（tar 条目元数据随平台差异 ~137 B，Linux CI 与本地内容相同、字节数不同），文件数与必含/排除清单仍为精确断言。
+[1.0.6 · 代码/构建] `npm test` 101/101；`npm run build` 完成；`desktop-check` 全 PASS；`theme-contrast` 60；`theme-hue-distance` 12；`lib` 由 src 构建并注入鲸鱼娘 JSON；pack 58 文件 / 2383966 B / unpacked 3047749 B（1.0.3 起 7 张截图全部为本地部署实机高清图，体积较旧版明显上升属预期；代码与文档部分与 1.0.2 相当）。仓库新增 `.gitattributes` 统一 LF，`scripts/build.mjs` 构建时把 CRLF 折成 LF，保证 `lib/` 与 `src/` 字节一致、pack 体积不随检出状态漂移；本地实机截图产物统一 `*-local.png` 命名并被 `.gitignore` + package.json `files` 双重排除，不进 git 也不进包。pack 数字为**本地 Windows 基线**；`test/pack.test.mjs` 对 size/unpackedSize 按 ±4 KB 容差校验（tar 条目元数据随平台差异 ~137 B，Linux CI 与本地内容相同、字节数不同），文件数与必含/排除清单仍为精确断言。
+
+[1.0.6 · 非会话界面隔离] 插件设置页 / 市场详情页 / 文档预览里的 markdown 不属于模型回复：`findFlowScope` 对不在任何会话容器内的节点返回 `external`，渲染器只走视觉层，不套内容合同、不挂身份头、不显示「内容合同错误」。此前打开第三方插件设置页会在插件描述上方弹出「未找到 assistant 消息容器（PersonaMode 无法定位回复）」。会话内定位不到 assistant 容器时改为 fail-open 走 legacy 排版，不再向用户暴露内部诊断。
 
 [1.0.0 · v5 回复皮肤] 软面卡片台：12px 圆角卡 + 3px 左条 + 同构渐变面；结论 / 下一步 / 风险线标题（PersonaMode 的模型内容槽位卡标签统一为「建议」）；表格蓝 tint 表头、26% / 18% 列宽、首列 600 墨字、三色状态签；代码浅色卡 + 「代码 · 语言」线标题 + 双方框复制钮；深色卡面 / 表头 / 代码面 / 状态签全量适配。静态三态×明暗×三主题证据：`artifacts/prototype/v5-<theme>-<light|dark>-<normal|table|code>.png`（18 张；三主题统一 v5 token，按主题分组校验）；设置页证据：`assets/screenshots/11-config-page.png`（1.0.3 语气风格 tab 实机渲染）+ `artifacts/prototype/v5-settings-light.png` / `v5-settings-dark.png`。这些证据在 `artifacts/` 下，被 `.gitignore` 忽略，**local-only，不进 git**。
 
