@@ -2,7 +2,7 @@
 
 [1.0.8 · 代码/构建] `npm test` 101/101；`npm run build` 完成；`desktop-check` 全 PASS；`theme-contrast` 60；`theme-hue-distance` 12；`lib` 由 src 构建并注入鲸鱼娘 JSON；pack 58 文件 / 2386143 B / unpacked 3056815 B（1.0.3 起 7 张截图全部为本地部署实机高清图，体积较旧版明显上升属预期；代码与文档部分与 1.0.2 相当）。仓库新增 `.gitattributes` 统一 LF，`scripts/build.mjs` 构建时把 CRLF 折成 LF，保证 `lib/` 与 `src/` 字节一致、pack 体积不随检出状态漂移；本地实机截图产物统一 `*-local.png` 命名并被 `.gitignore` + package.json `files` 双重排除，不进 git 也不进包。pack 数字为**本地 Windows 基线**；`test/pack.test.mjs` 对 size/unpackedSize 按 ±4 KB 容差校验（tar 条目元数据随平台差异 ~137 B，Linux CI 与本地内容相同、字节数不同），文件数与必含/排除清单仍为精确断言。
 
-[1.0.8 · 错误卡下线] 模型输出畸形 persona JSON 时不再渲染「内容合同错误」卡：解析 / 校验失败一律 fail-open 为普通排版，原文保留，`console.warn` 留痕。覆盖 `Expected ':' after property name`、`Expected ',' or '}'`、`Unexpected non-whitespace character` 与中途闭合各类；1.0.7 的修复尝试仍先跑，失败才降级。回归用 legacy 断言替代原 error 断言。
+[1.0.8 · 错误卡下线] 模型输出畸形 persona JSON 时不再渲染「内容合同错误」卡：解析 / 校验失败一律 fail-open 为普通排版，原文保留，`console.warn` 留痕。覆盖 `Expected ':' after property name`、`Expected ',' or '}'`、`Unexpected non-whitespace character` 与中途闭合各类；1.0.7 的修复尝试仍先跑，失败才降级。回归用 legacy 断言替代原 error 断言。style-gate PASS（`artifacts/style-gate/2026-11-06T08-18-19-339Z/`）。
 
 [1.0.7 · 畸形 JSON 修复 + 设置页宽度] 1) 模型把 `conclusion` 提前闭合、`body` 落到根上时，多余 `}` 会提前关掉根对象，`table`/`suggestions`/`risk` 变成尾随内容（`Unexpected non-whitespace character after JSON at position N`）。解析失败后在该位置附近删一个错位 `}` 重试，并把根级 `body` 挪回 `conclusion.body`，过内容校验才渲染，否则仍走错误卡并保留原文。2) 语气风格页根节点继承 `.dss-config` 的 `max-width:760px`，比结构化输出窄一截；上限改为 `100%`。回归：中途闭合 table/normal 两种 kind、尾部多余 `}`、不可见字符、语义非法保持 error。style-gate PASS（证据 `artifacts/style-gate/2026-11-06T07-54-47-595Z/`）：首轮被一个残留的 headless ego 实例卡在 onboarding 提示，清掉该实例后重跑通过。
 
