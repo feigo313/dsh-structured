@@ -1321,7 +1321,8 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
         if (assistant) return { assistant }
         const slot = markdown.closest?.('[data-slot="conversation.chat.node"]')
         if (slot?.parentElement) return { assistant: slot.parentElement }
-        return { assistant: null }
+        // 完全不落在会话容器里（插件设置页 / 市场页 / 文档预览等 markdown）：不是模型回复。
+        return { external: true, assistant: null }
       } catch {
         return { assistant: flowOverride ?? null }
       }
@@ -1557,11 +1558,16 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
         decorateStructured(markdown)
         return 'skip'
       }
-      const flow = scope.assistant
-      if (!flow) {
-        // 显式 error：不得把“找不到 assistant 容器”当 legacy 通过。
-        return renderPersonaError(markdown, '未找到 assistant 消息容器（PersonaMode 无法定位回复）')
+      if (scope.external) {
+        // 非会话界面的 markdown（插件设置页 / 市场详情页 / 文档预览）不是模型回复：
+        // 不套内容合同、不挂身份头，更不能把内部诊断当成错误卡弹给用户。
+        // 只看视觉层，内容原样保留。
+        decorateStructured(markdown)
+        personaRenderCache.delete(markdown)
+        return 'external'
       }
+      const flow = scope.assistant
+      // 会话内但定位不到 assistant 容器：fail-open 走 legacy 排版，不把内部诊断暴露给用户。
       markdown.removeAttribute?.(PERSONA_FALLBACK_ATTR)
       const diff = inDiff(markdown) || Boolean(markdown.querySelector?.('.md-diff, [data-diff], [class*="diff"]'))
       const errorReply = Boolean(markdown.closest?.('[data-error], [data-status="error"], [data-severity="error"]')) || Boolean(markdown.querySelector?.('[data-error], .md-error'))

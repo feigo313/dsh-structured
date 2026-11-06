@@ -660,14 +660,31 @@ test('PersonaMode：幂等、旧历史、流式、no-flow、diff、关闭文本'
   assert.equal(partial.markdown.getAttribute('data-dsh-persona-kind'), 'normal', 'completed stream must render')
   assert.equal(partial.markdown.getAttribute('data-dsh-persona-pending'), null)
 
-  // 找不到 assistant flow：显式 error，不回落 legacy 当通过。
+  // 不在会话容器里的 markdown（插件设置页 / 市场详情页 / 文档预览）不是模型回复：
+  // 不套内容合同、不弹错误卡、不挂身份头，原文完整保留。
   const loose = harness.document.createElement('div')
   loose.className = '_markdown_preview'
   loose.innerHTML = '<p>no flow</p>'
   harness.document.body.appendChild(loose)
   harness.plugin.__test.decorate(loose)
-  assert.equal(loose.getAttribute('data-dsh-persona-kind'), 'error', 'no-flow must be an explicit error')
-  assert.match(loose.textContent, /未找到 assistant 消息容器/)
+  assert.equal(loose.getAttribute('data-dsh-persona-kind'), null, 'non-chat markdown must not be judged by the content contract')
+  assert.equal(loose.getAttribute('data-dsh-persona-error'), null, 'non-chat markdown must never show a contract error card')
+  assert.doesNotMatch(loose.textContent, /内容合同错误|未找到 assistant 消息容器/)
+  assert.match(loose.textContent, /no flow/, 'non-chat content must be preserved')
+
+  // 回归：插件设置页把项目 README 渲染成 markdown（含标题、徽章、代码块、引用块），
+  // 之前会被当成 assistant 回复并弹出「内容合同错误 / 未找到 assistant 消息容器」。
+  const settingsPanel = harness.document.createElement('div')
+  settingsPanel.setAttribute('data-slot', 'settings.detail')
+  const readme = harness.document.createElement('div')
+  readme.className = '_markdown_preview'
+  readme.innerHTML = '<h2>DSH Archive Manager</h2><p>归档、恢复、收藏和永久删除会话。</p><blockquote><p>社区维护的插件</p></blockquote><pre>npm i @nichengsi/dsh-archive-manager</pre>'
+  settingsPanel.appendChild(readme)
+  harness.document.body.appendChild(settingsPanel)
+  harness.plugin.__test.decorate(settingsPanel)
+  assert.equal(readme.getAttribute('data-dsh-persona-error'), null, 'plugin settings page must stay free of contract errors')
+  assert.equal(settingsPanel.querySelectorAll('[data-dsh-persona-head]').length, 0, 'no identity header outside chat')
+  assert.match(readme.textContent, /DSH Archive Manager/, 'README content must survive')
   // 用户消息不是 assistant 回复，不套内容合同。
   const userFlow = flowFor('<p>用户消息</p>', 'user')
   assert.equal(userFlow.markdown.getAttribute('data-dsh-persona-kind'), null)
