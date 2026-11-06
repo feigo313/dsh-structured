@@ -1171,7 +1171,7 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
      * 稳定窗口；窗口内内容再变化就重试，宿主仍在流式就继续等，稳定且仍非法
      * 才显示「内容合同错误」。
      */
-    const schedulePersonaError = (markdown, message, sourceText) => {
+    const schedulePersonaError = (markdown, message, sourceText, syntaxError = false) => {
       const hash = personaHash(sourceText ?? '')
       const existing = personaPendingErrors.get(markdown)
       if (existing && existing.hash === hash) {
@@ -1193,11 +1193,11 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
           return
         }
         if (personaIsStreaming(markdown)) {
-          schedulePersonaError(markdown, message, current ?? sourceText)
+          schedulePersonaError(markdown, message, current ?? sourceText, syntaxError)
           return
         }
         if (current === null && String(sourceText ?? '').trim() === '') return
-        renderPersonaError(markdown, message)
+        renderPersonaError(markdown, message, current ?? sourceText, syntaxError)
       }
       let timer = null
       try {
@@ -1206,7 +1206,7 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
         timer = null
       }
       personaGraceTimers.add(run)
-      personaPendingErrors.set(markdown, { hash, message, timer, run })
+      personaPendingErrors.set(markdown, { hash, message, timer, run, syntaxError })
       markdown.setAttribute(PERSONA_PENDING_ATTR, '1')
       return 'pending'
     }
@@ -1532,12 +1532,144 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
       return content.kind
     }
 
-    const renderPersonaError = (markdown, message) => {
+    // 畸形 persona JSON 的可读降级：不把原始 JSON 摆给用户，尽量把 lead / body /
+    // suggestions / risk 抽出来，按普通段落渲染；抽不到就只留一句提示。
+    const salvagePersonaText = (raw) => {
+      const text = String(raw ?? '')
+      if (!text.trim()) return null
+      const unescape = (value) => value
+        .replace(/\\n/g, '\n')
+        .replace(/\\t/g, '\t')
+        .replace(/\\"/g, '"')
+        .replace(/\\\\/g, '\\')
+      const field = (key) => {
+        const pattern = new RegExp('"' + key + '"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)"')
+        const match = pattern.exec(text)
+        return match ? unescape(match[1]).trim() : ''
+      }
+      const lead = field('lead')
+      const body = field('body')
+      const risk = field('risk')
+      const shortText = field('text')
+      const suggestions = []
+      const start = text.indexOf('"suggestions"')
+      if (start >= 0) {
+        const open = text.indexOf('[', start)
+        if (open >= 0) {
+          let depth = 1
+          let inString = false
+          let escaped = false
+          let itemStart = -1
+          for (let i = open + 1; i < text.length && suggestions.length < 5; i += 1) {
+            const ch = text[i]
+            if (inString) {
+              if (escaped) escaped = false
+              else if (ch === '\\') escaped = true
+              else if (ch === '"') {
+                inString = false
+                const value = unescape(text.slice(itemStart, i)).trim()
+                if (value) suggestions.push(value)
+                itemStart = -1
+              }
+              continue
+            }
+            if (ch === '"') { inString = true; itemStart = i + 1; continue }
+            if (ch === '[') depth += 1
+            if (ch === ']') { depth -= 1; if (depth === 0) break }
+          }
+          // 数组提前闭合的常见形态：后续项目变成裸字符串 "删除：…","校验：…"，
+          // 这里把数组结束后、risk 键之前的裸字符串也收进建议列表。
+          let rest = text.indexOf(']', open)
+          const riskIndex = text.indexOf('"risk"', open)
+          const limit = riskIndex > 0 ? riskIndex : text.length
+          while (rest > 0 && rest < limit && suggestions.length < 5) {
+            const quote = text.indexOf('"', rest + 1)
+            if (quote < 0 || quote > limit) break
+            let endQuote = quote + 1
+            let esc = false
+            for (; endQuote < limit; endQuote += 1) {
+              const ch = text[endQuote]
+              if (esc) { esc = false; continue }
+              if (ch === '\\') { esc = true; continue }
+              if (ch === '"') break
+            }
+            if (endQuote >= limit) break
+            const value = unescape(text.slice(quote + 1, endQuote)).trim()
+            if (value) suggestions.push(value)
+            rest = endQuote
+          }
+        }
+      }
+      if (!lead && !body && !risk && !shortText && suggestions.length === 0) return null
+      return { lead, body, risk, shortText, suggestions }
+    }
+
+    const renderPersonaError = (markdown, message, sourceText, syntaxError = false) => {
       clearPersonaPending(markdown)
-      // 体验优先：模型偶尔写出畸形 JSON（缺冒号 / 花括号错位 / 数组提前闭合），
-      // 不能把整条回复替换成内部诊断卡。这里降级为普通排版，原文完整保留，
-      // 只在控制台留一条警告给排查用。
-      console.warn('[dsh-structured] persona 内容未按合同渲染，已降级为普通排版：' + message)
+      // 体验优先：畸形 persona JSON 不替换成内部诊断卡，也不把原始 JSON 摊给用户。
+      // 先尝试把可读字段抽出来，能凑齐合同就用正常卡片渲染；凑不齐才降级成普通段落。
+      console.warn('[dsh-structured] persona 内容未按合同渲染，已按可用字段降级：' + message)
+      const doc = markdown.ownerDocument ?? document
+      const salvaged = salvagePersonaText(sourceText)
+      const usable = syntaxError && salvaged
+        && salvaged.lead
+        && salvaged.suggestions.length > 0
+        && salvaged.risk
+      if (usable) {
+        const content = {
+          kind: 'normal',
+          conclusion: { lead: salvaged.lead, ...(salvaged.body ? { body: salvaged.body } : {}) },
+          suggestions: salvaged.suggestions.slice(0, 5),
+          risk: salvaged.risk,
+        }
+        const scope = findFlowScope(markdown)
+        const flow = scope.assistant ?? null
+        const personaBlock = [...(markdown.querySelectorAll?.('.md-code-block') ?? [])]
+          .find((node) => /persona/i.test(node.textContent ?? '') || /"version"\s*:/.test(node.textContent ?? ''))
+        if (personaBlock?.parentNode) personaBlock.remove()
+        mountPersonaHead(flow, personaModeState)
+        return renderPersonaContent(markdown, content, personaModeState, sourceText)
+      }
+      const blocks = [...(markdown.querySelectorAll?.('.md-code-block') ?? [])]
+      const personaBlock = blocks.find((node) => /persona/i.test(node.textContent ?? '') || /"version"\s*:/.test(node.textContent ?? '')) ?? blocks[0]
+      const fragment = []
+      if (salvaged) {
+        const paragraph = (value) => {
+          if (!value) return
+          const node = makePersonaElement(doc, 'p')
+          node.textContent = value
+          fragment.push(node)
+        }
+        if (salvaged.shortText) paragraph(salvaged.shortText)
+        if (salvaged.lead) {
+          const node = makePersonaElement(doc, 'p')
+          const strong = makePersonaElement(doc, 'strong')
+          strong.textContent = salvaged.lead
+          node.appendChild(strong)
+          fragment.push(node)
+        }
+        if (salvaged.body) paragraph(salvaged.body)
+        if (salvaged.suggestions.length) {
+          const list = makePersonaElement(doc, 'ul')
+          for (const item of salvaged.suggestions) {
+            const li = makePersonaElement(doc, 'li')
+            li.textContent = item
+            list.appendChild(li)
+          }
+          fragment.push(list)
+        }
+        if (salvaged.risk) paragraph('风险：' + salvaged.risk)
+      } else {
+        const note = makePersonaElement(doc, 'p')
+        note.textContent = '（本条回复的格式未按合同，已按原文展开）'
+        fragment.push(note)
+      }
+      if (personaBlock?.parentNode) {
+        for (const node of fragment) personaBlock.parentNode.insertBefore(node, personaBlock)
+        personaBlock.remove()
+      } else {
+        for (const node of fragment) markdown.appendChild(node)
+      }
       markdown.removeAttribute?.(PERSONA_ERROR_ATTR)
       markdown.removeAttribute?.(PERSONA_FALLBACK_ATTR)
       markdown.removeAttribute?.(PERSONA_PENDING_ATTR)
@@ -1627,7 +1759,7 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
         decorateStructured(markdown)
         return 'legacy'
       }
-      if (!envelope.ok) return renderPersonaError(markdown, envelope.error)
+      if (!envelope.ok) return renderPersonaError(markdown, envelope.error, envelope.text, false)
       let parsed
       const rawText = envelope.text
       try {
@@ -1674,11 +1806,11 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
           console.warn('[dsh-structured] persona JSON 已修正畸形括号后渲染：' + message)
           parsed = repaired
         } else {
-          return schedulePersonaError(markdown, 'persona JSON 解析失败：' + message, rawText)
+          return schedulePersonaError(markdown, 'persona JSON 解析失败：' + message, rawText, true)
         }
       }
       const validated = validatePersonaContent(parsed)
-      if (!validated.ok) return schedulePersonaError(markdown, validated.error, envelope.text)
+      if (!validated.ok) return schedulePersonaError(markdown, validated.error, envelope.text, false)
       mountPersonaHead(flow, config)
       return renderPersonaContent(markdown, validated.content, config, envelope.text)
     }

@@ -866,7 +866,8 @@ test('PersonaMode：不可见字符不判死、错误卡保留原文', () => {
   harness.flushPersonaErrors()
   assert.equal(broken.markdown.getAttribute('data-dsh-persona-kind'), 'legacy')
   assert.doesNotMatch(broken.markdown.textContent, /内容合同错误/)
-  assert.match(broken.markdown.textContent, /version/, 'original content must survive')
+  assert.doesNotMatch(broken.markdown.textContent, /"version"/, 'raw JSON must not be shown')
+  assert.match(broken.markdown.textContent, /未按合同|格式/, 'quiet notice must appear instead of raw JSON')
   assert.equal(broken.markdown.querySelectorAll('[data-dsh-structured-card-type]').length, 0, 'legacy must not fabricate cards')
 })
 
@@ -943,7 +944,8 @@ test('PersonaMode：块外正文保留、其它代码块不误报、不可见字
   harness.flushPersonaErrors()
   assert.equal(broken.markdown.getAttribute('data-dsh-persona-kind'), 'legacy')
   assert.doesNotMatch(broken.markdown.textContent, /内容合同错误/)
-  assert.match(broken.markdown.textContent, /version/, 'original content must survive')
+  assert.doesNotMatch(broken.markdown.textContent, /"version"/, 'raw JSON must not be shown')
+  assert.match(broken.markdown.textContent, /未按合同|格式/, 'quiet notice must appear instead of raw JSON')
 })
 
 test('PersonaMode：尾部多余 } 不判死、按正常信封渲染', () => {
@@ -982,7 +984,8 @@ test('PersonaMode：尾部多余 } 不判死、按正常信封渲染', () => {
   harness.flushPersonaErrors()
   assert.equal(stillBroken.markdown.getAttribute('data-dsh-persona-kind'), 'legacy', 'semantically invalid JSON must degrade to legacy after repair')
   assert.doesNotMatch(stillBroken.markdown.textContent, /内容合同错误/)
-  assert.match(stillBroken.markdown.textContent, /version/, 'original content must survive')
+  assert.doesNotMatch(stillBroken.markdown.textContent, /"version"/, 'raw JSON must not be shown')
+  assert.match(stillBroken.markdown.textContent, /未按合同|格式/, 'quiet notice must appear instead of raw JSON')
   assert.equal(stillBroken.markdown.querySelectorAll('[data-dsh-structured-card-type]').length, 0, 'legacy must not fabricate cards')
   // 中途闭合（实机 session-f78c turn 196/200）：conclusion 提前闭合、body 落到根上，
   // body 后面那个 } 把根对象提前关掉，table / suggestions / risk 变成尾随内容。
@@ -997,6 +1000,19 @@ test('PersonaMode：尾部多余 } 不判死、按正常信封渲染', () => {
   const repairedNormal = flowFor(`<div class="md-code-block"><div class="bannerWrap"><div data-code-block-banner><span class="_heading_persona">persona</span></div></div><div data-code-block-content><pre>${midCloseNormal}</pre></div></div>`)
   assert.equal(repairedNormal.markdown.getAttribute('data-dsh-persona-kind'), 'normal', 'mid-close brace must be repaired for normal kind')
   assert.equal(repairedNormal.markdown.getAttribute('data-dsh-persona-error'), null, 'no error card for mid-close normal')
+  // 实机 video session（session-412b）：suggestions 数组提前闭合，后续项目写成 "删除：…"，
+  // 解析报 Expected ':' after property name。修复不成立时必须降级成普通段落，不能露出原始 JSON。
+  const brokenSuggestions = '{"version":1,"kind":"normal","conclusion":{"lead":"Boss，清完了"},"body":"删的都是过程产物","suggestions":["保留：成片"],"删除：帧目录","risk":"帧目录已全删"}'
+  const salvaged = flowFor(`<div class="md-code-block"><div class="bannerWrap"><div data-code-block-banner><span class="_heading_persona">persona</span></div></div><div data-code-block-content><pre>${brokenSuggestions}</pre></div></div>`)
+  harness.flushPersonaErrors()
+  assert.equal(salvaged.markdown.getAttribute('data-dsh-persona-kind'), 'normal', 'broken suggestions must still render readable cards')
+  assert.equal(salvaged.markdown.querySelectorAll('.md-code-block').length, 0, 'raw JSON block must be removed')
+  assert.doesNotMatch(salvaged.markdown.textContent, /"version"/, 'raw JSON must not be shown')
+  assert.match(salvaged.markdown.textContent, /Boss，清完了/, 'lead must be salvaged')
+  assert.match(salvaged.markdown.textContent, /删的都是过程产物/, 'body must be salvaged')
+  assert.match(salvaged.markdown.textContent, /保留：成片/, 'suggestions must be salvaged')
+  assert.equal(salvaged.markdown.querySelectorAll('[data-dsh-structured-card-type]').length, 3, 'salvaged content must render three cards')
+  assert.match(salvaged.markdown.textContent, /帧目录已全删/, 'risk must be salvaged')
 })
 
 test('v5 emptyTone 兜底只写语言风格，不写结构要求', () => {
