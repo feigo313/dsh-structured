@@ -1,6 +1,8 @@
-# dsh-structured 1.0.6 验收
+# dsh-structured 1.0.7 验收
 
-[1.0.6 · 代码/构建] `npm test` 101/101；`npm run build` 完成；`desktop-check` 全 PASS；`theme-contrast` 60；`theme-hue-distance` 12；`lib` 由 src 构建并注入鲸鱼娘 JSON；pack 58 文件 / 2383966 B / unpacked 3047749 B（1.0.3 起 7 张截图全部为本地部署实机高清图，体积较旧版明显上升属预期；代码与文档部分与 1.0.2 相当）。仓库新增 `.gitattributes` 统一 LF，`scripts/build.mjs` 构建时把 CRLF 折成 LF，保证 `lib/` 与 `src/` 字节一致、pack 体积不随检出状态漂移；本地实机截图产物统一 `*-local.png` 命名并被 `.gitignore` + package.json `files` 双重排除，不进 git 也不进包。pack 数字为**本地 Windows 基线**；`test/pack.test.mjs` 对 size/unpackedSize 按 ±4 KB 容差校验（tar 条目元数据随平台差异 ~137 B，Linux CI 与本地内容相同、字节数不同），文件数与必含/排除清单仍为精确断言。
+[1.0.7 · 代码/构建] `npm test` 101/101；`npm run build` 完成；`desktop-check` 全 PASS；`theme-contrast` 60；`theme-hue-distance` 12；`lib` 由 src 构建并注入鲸鱼娘 JSON；pack 58 文件 / 2385960 B / unpacked 3057134 B（1.0.3 起 7 张截图全部为本地部署实机高清图，体积较旧版明显上升属预期；代码与文档部分与 1.0.2 相当）。仓库新增 `.gitattributes` 统一 LF，`scripts/build.mjs` 构建时把 CRLF 折成 LF，保证 `lib/` 与 `src/` 字节一致、pack 体积不随检出状态漂移；本地实机截图产物统一 `*-local.png` 命名并被 `.gitignore` + package.json `files` 双重排除，不进 git 也不进包。pack 数字为**本地 Windows 基线**；`test/pack.test.mjs` 对 size/unpackedSize 按 ±4 KB 容差校验（tar 条目元数据随平台差异 ~137 B，Linux CI 与本地内容相同、字节数不同），文件数与必含/排除清单仍为精确断言。
+
+[1.0.7 · 畸形 JSON 修复 + 设置页宽度] 1) 模型把 `conclusion` 提前闭合、`body` 落到根上时，多余 `}` 会提前关掉根对象，`table`/`suggestions`/`risk` 变成尾随内容（`Unexpected non-whitespace character after JSON at position N`）。解析失败后在该位置附近删一个错位 `}` 重试，并把根级 `body` 挪回 `conclusion.body`，过内容校验才渲染，否则仍走错误卡并保留原文。2) 语气风格页根节点继承 `.dss-config` 的 `max-width:760px`，比结构化输出窄一截；上限改为 `100%`。回归：中途闭合 table/normal 两种 kind、尾部多余 `}`、不可见字符、语义非法保持 error。**style-gate 本轮未跑**：ego-browser 要求先完成 onboarding（弹了 setup 窗口），环境限制；本次改动只涉及配置页宽度与解析容错，不触碰回复皮肤，用 `npm test` + jsdom 用例替代验证。
 
 [1.0.6 · 非会话界面隔离] 插件设置页 / 市场详情页 / 文档预览里的 markdown 不属于模型回复：`findFlowScope` 对不在任何会话容器内的节点返回 `external`，渲染器只走视觉层，不套内容合同、不挂身份头、不显示「内容合同错误」。此前打开第三方插件设置页会在插件描述上方弹出「未找到 assistant 消息容器（PersonaMode 无法定位回复）」。会话内定位不到 assistant 容器时改为 fail-open 走 legacy 排版，不再向用户暴露内部诊断。
 

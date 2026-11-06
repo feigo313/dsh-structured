@@ -984,6 +984,19 @@ test('PersonaMode：尾部多余 } 不判死、按正常信封渲染', () => {
   assert.match(stillBroken.markdown.textContent, /内容合同错误/)
   assert.match(stillBroken.markdown.textContent, /version/, 'original content must survive the error card')
   assert.equal(stillBroken.markdown.querySelectorAll('[data-dsh-structured-card-type]').length, 0, 'error must not fabricate cards')
+  // 中途闭合（实机 session-f78c turn 196/200）：conclusion 提前闭合、body 落到根上，
+  // body 后面那个 } 把根对象提前关掉，table / suggestions / risk 变成尾随内容。
+  // 修复要同时做两件事：删掉错位的 } + 把根级 body 挪回 conclusion.body。
+  const midCloseTable = '{"version":1,"kind":"table","conclusion":{"lead":"结论"},"body":"正文"},"table":{"head":["项","值"],"rows":[["a","b"]]},"suggestions":["建议"],"risk":"风险"}'
+  const repairedTable = flowFor(`<div class="md-code-block"><div class="bannerWrap"><div data-code-block-banner><span class="_heading_persona">persona</span></div></div><div data-code-block-content><pre>${midCloseTable}</pre></div></div>`)
+  assert.equal(repairedTable.markdown.getAttribute('data-dsh-persona-kind'), 'table', 'mid-close brace must be repaired')
+  assert.equal(repairedTable.markdown.getAttribute('data-dsh-persona-error'), null, 'no error card for mid-close brace')
+  assert.equal(repairedTable.markdown.querySelectorAll('[data-dsh-structured-card-type]').length, 3, 'cards must render after mid-close repair')
+  assert.match(repairedTable.markdown.textContent, /正文/, 'root-level body must be moved into conclusion')
+  const midCloseNormal = '{"version":1,"kind":"normal","conclusion":{"lead":"结论"},"body":"正文"},"suggestions":["建议"],"risk":"风险"}'
+  const repairedNormal = flowFor(`<div class="md-code-block"><div class="bannerWrap"><div data-code-block-banner><span class="_heading_persona">persona</span></div></div><div data-code-block-content><pre>${midCloseNormal}</pre></div></div>`)
+  assert.equal(repairedNormal.markdown.getAttribute('data-dsh-persona-kind'), 'normal', 'mid-close brace must be repaired for normal kind')
+  assert.equal(repairedNormal.markdown.getAttribute('data-dsh-persona-error'), null, 'no error card for mid-close normal')
 })
 
 test('v5 emptyTone 兜底只写语言风格，不写结构要求', () => {

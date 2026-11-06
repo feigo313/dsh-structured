@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.7 — 2026-11-06
+
+- 修复 persona JSON「中途闭合」被判死：模型把 `conclusion` 提前闭合、`body` 落到根上，body 后面多出的 `}` 提前关掉根对象，后续 `table` / `suggestions` / `risk` 变成尾随内容（`Unexpected non-whitespace character after JSON at position N`）。现在解析失败时会在该位置附近尝试删掉一个错位 `}`，并把根级 `body` 挪回 `conclusion.body`，通过内容校验即正常渲染；否则仍走错误卡并保留原文。
+- 修复设置页两个 tab 宽度不一致：语气风格页根节点继承了 `.dss-config` 的 `max-width:760px`，比结构化输出窄一截；上限改为 100%，与宿主表单同宽。
+- 回归：中途闭合（table / normal 两种 kind）用例；既有尾部多余 `}`、不可见字符、语义非法仍走 error 的用例全部保持。
+
 ## 1.0.6 — 2026-11-06
 
 - 修复非会话界面被内容合同误判：打开第三方插件的设置页/详情页时，市场页会把项目 README 渲染成 markdown，插件此前把这段 README 当成 assistant 回复，于是在插件描述上方弹出一张「内容合同错误 / 未找到 assistant 消息容器」卡。现在不在任何会话容器内的 markdown 一律按外部界面处理——只走视觉层，不套内容合同、不挂身份头、不显示错误卡，原文完整保留。

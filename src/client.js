@@ -1408,6 +1408,19 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
     // 只剥离不影响语义的一类，其余字符保持原样以免掩盖真实问题。
     // JSON 只认空格 / tab / LF / CR；模型输出里混入的任何其它不可见字符都会让整段解析失败。
     // 这里按码点过滤掉不可见字符，不动可见内容，避免一个 ZWSP 把整条回复判死。
+    // 模型偶尔把 body 写在根上（conclusion 里只放 lead），形如
+    // {"conclusion":{"lead":"…"},"body":"…"}：JSON 语法本身没问题，只违反内容合同。
+    // 在「修复解析失败」的路径上把根级 body 挪回 conclusion.body，避免整条回复被判死。
+    const normalizePersonaObject = (value) => {
+      if (!personaObject(value)) return value
+      const conclusion = value.conclusion
+      if (!personaObject(conclusion)) return value
+      if (typeof value.body !== 'string' || conclusion.body !== undefined) return value
+      const rest = { ...value }
+      delete rest.body
+      return { ...rest, conclusion: { ...conclusion, body: value.body } }
+    }
+
     const stripInvisibleJsonChars = (text) => {
       let out = ''
       for (const ch of String(text ?? '')) {
@@ -1650,16 +1663,24 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
             const trimmedEnd = base.replace(/\s+$/, '')
             if (trimmedEnd.endsWith('}')) candidates.push(trimmedEnd.slice(0, -drop))
           }
+          // 中途闭合类：模型把根对象提前关掉（body 后面多一个 }），后续 table / suggestions / risk
+          // 变成尾随内容。解析在 position 处停下时，尝试删掉该位置附近的一个 } 再解析。
+          for (const at of [pos - 1, pos, pos - 2]) {
+            if (at < 0 || at >= base.length) continue
+            if (base[at] !== '}') continue
+            candidates.push(base.slice(0, at) + base.slice(at + 1))
+          }
         }
         let repaired = null
         for (const candidate of candidates) {
           try {
-            const candidateParsed = JSON.parse(candidate)
-            if (validatePersonaContent(candidateParsed).ok) { repaired = candidateParsed; break }
+            const candidateParsed = normalizePersonaObject(JSON.parse(candidate))
+            const candidateValidation = validatePersonaContent(candidateParsed)
+            if (candidateValidation.ok) { repaired = candidateParsed; break }
           } catch {}
         }
         if (repaired) {
-          console.warn('[dsh-structured] persona JSON 已修正尾部多余字符后渲染：' + message)
+          console.warn('[dsh-structured] persona JSON 已修正畸形括号后渲染：' + message)
           parsed = repaired
         } else {
           return schedulePersonaError(markdown, 'persona JSON 解析失败：' + message, rawText)
