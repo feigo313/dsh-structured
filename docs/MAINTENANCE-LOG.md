@@ -299,3 +299,12 @@
 - **推送方式**：github.com:443 不可达，临时用 repo SSH deploy key 推送，推完即删（keys=0）。
 - **致谢**：README 新增「致谢」，@cvopisso（#1 人格模式提议）、@ayyyyyyyya（#2 渲染反馈）；issue #1 已回复 Release 链接（commit `ca6551f`）。
 - **仍未验证**：P01–P10 基线跑批、beta/default-on 真人 gate；已在 Release 说明中如实披露。
+
+## 2026-11-06 · 第 17 轮
+
+- **issue 水位**：0 open / 2 closed；本仓库 PR 仅 #3（已合并）。
+- **市场**：PR #12161 已于 2026-11-05T17:09Z **merged**；市场页现显示 1.0.5，tarball 指向 v1.0.5 Release。
+- **npm / Release**：latest 1.0.5；Release v1.0.5 资产在校验范围内未变。
+- **CI 红灯（重点）**：最近三次 push（d1037a4 / d4e012d / fca7993）全部失败，`npm test` 100/101；唯一失败是 `test/pack.test.mjs` 的字节数断言：Linux runner 打包 2,382,672 vs 本地 2,382,809（差 137 B）。根因是 tar 条目权限/元数据随平台变化，不是内容差异；本地 Windows 全绿。
+- **待办**：把 pack 断言改成平台无关（文件数 + 必需文件 + 体积容差），修复后更新 ACCEPTANCE；该修复不涉及产物，可随下次补丁发。
+- **本轮动作**：只读复核 + 记录，未改代码、未 push。
