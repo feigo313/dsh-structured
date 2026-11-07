@@ -1022,6 +1022,34 @@ test('PersonaMode：值内花括号 / 裸换行 / 抢救路径都不吞内容', 
   assert.match(salvage.textContent, /别误判成突然变脏/)
 })
 
+test('PersonaMode：保留原文的提示幂等，多次 decorate 只留一句', () => {
+  const harness = makeHarness(baseState, async () => true)
+  const tone = JSON.stringify({ schema: 'dsh-structured/tone@1', prefix: 'Boss，', style: '搞怪', suffix: '——完', skipIn: ['code', 'diff', 'error', 'short', 'table'] })
+  harness.plugin.__test.setPersonaModeConfig({ personaEnabled: true, persona: tone, personaName: 'N', personaSignature: 'S', personaAvatar: '' })
+  const flow = harness.document.createElement('div')
+  flow.setAttribute('data-chat-flow-kind', 'assistant-step')
+  flow.setAttribute('data-chat-node-key', 'idem-1')
+  const slot = harness.document.createElement('div')
+  slot.setAttribute('data-slot', 'conversation.chat.node')
+  const markdown = harness.document.createElement('div')
+  markdown.className = '_markdown_preview'
+  // 实机 session：kind=table 但 table 里混入非合同字段，解析/校验都过不去，只能保留原文。
+  const raw = '{"version":1,"kind":"table","conclusion":{"lead":"L"},"body":"B","suggestions":["s1","s2"],"risk":"R","table":{"head":["项","实测"],"状态":["tag","v1.0.10"]}}'
+  markdown.innerHTML = `<div class="md-code-block"><div class="bannerWrap"><div data-code-block-banner><span class="_heading_persona">persona</span></div></div><div data-code-block-content><pre>${raw}</pre></div></div>`
+  slot.appendChild(markdown)
+  flow.appendChild(slot)
+  harness.document.body.appendChild(flow)
+  for (let i = 0; i < 10; i += 1) {
+    harness.plugin.__test.decorate(flow)
+    harness.plugin.__test.flushPersonaErrors()
+  }
+  const notice = '（本条回复的 persona 块没通过解析，已保留原文以免丢内容）'
+  const notices = [...markdown.querySelectorAll('p')].filter((p) => (p.textContent ?? '') === notice)
+  assert.equal(notices.length, 1, 'notice must stay single across re-renders')
+  assert.equal(markdown.querySelectorAll('.md-code-block').length, 1, 'original block must be kept')
+  assert.match(markdown.textContent, /"version":1/, 'original JSON stays readable')
+})
+
 test('PersonaMode：内层引号后紧跟 ASCII 标点、超量建议、冲突块都不丢内容', () => {
   const harness = makeHarness(baseState, async () => true)
   const tone = JSON.stringify({ schema: 'dsh-structured/tone@1', prefix: 'Boss，', style: '搞怪', suffix: '——完', skipIn: ['code', 'diff', 'error', 'short', 'table'] })
