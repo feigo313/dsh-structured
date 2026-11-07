@@ -1441,32 +1441,59 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
     )
 
     // 模型在中文里直接写 ASCII 双引号（"这份"低"不是系统的功劳"），JSON 就断在第一个内层引号上。
-    // 这里按结构判断：字符串内遇到的引号，若其后第一个非空白字符不是 , } ] : 就不是收尾引号，
-    // 按内容引号转义掉。只处理字符串内部，结构化引号原样保留。
+    // 这里按结构判断：维护对象/数组栈并区分「键字符串」与「值字符串」，
+    // 值字符串里只有其后紧跟 , } ] 或结尾的引号才是收尾引号，其余按内容引号转义；
+    // 键字符串的收尾引号判据是其后紧跟 :。避免把 "a":1 这类值内片段误当成键。
     const repairInnerQuotes = (text) => {
       const source = String(text ?? '')
+      const stack = []
       let out = ''
       let inString = false
+      let stringIsKey = false
       let escaped = false
       for (let i = 0; i < source.length; i += 1) {
         const ch = source[i]
-        if (!inString) {
-          out += ch
-          if (ch === '"') inString = true
+        if (inString) {
+          if (escaped) { out += ch; escaped = false; continue }
+          if (ch === '\\') { out += ch; escaped = true; continue }
+          // JSON 不允许字符串里有裸控制字符；模型常把换行 / 制表符直接写进去，先转义再判引号。
+          if (ch === '\n') { out += '\\n'; continue }
+          if (ch === '\r') { out += '\\r'; continue }
+          if (ch === '\t') { out += '\\t'; continue }
+          if (ch < ' ') { out += '\\u' + ch.charCodeAt(0).toString(16).padStart(4, '0'); continue }
+          if (ch !== '"') { out += ch; continue }
+          let lookahead = i + 1
+          while (lookahead < source.length && /\s/.test(source[lookahead])) lookahead += 1
+          const next = source[lookahead]
+          const closes = stringIsKey
+            ? (next === ':' || next === undefined)
+            : (next === undefined || next === ',' || next === '}' || next === ']')
+          if (closes) { out += ch; inString = false } else { out += '\\"' }
           continue
         }
-        if (escaped) { out += ch; escaped = false; continue }
-        if (ch === '\\') { out += ch; escaped = true; continue }
-        if (ch !== '"') { out += ch; continue }
-        let lookahead = i + 1
-        while (lookahead < source.length && /[\s]/.test(source[lookahead])) lookahead += 1
-        const next = source[lookahead]
-        if (next === undefined || next === ',' || next === '}' || next === ']' || next === ':') {
+        if (ch === '"') {
+          const top = stack[stack.length - 1]
+          stringIsKey = Boolean(top && top.type === 'object' && top.expectKey)
+          inString = true
           out += ch
-          inString = false
-        } else {
-          out += '\\"'
+          continue
         }
+        if (ch === '{') { stack.push({ type: 'object', expectKey: true }); out += ch; continue }
+        if (ch === '[') { stack.push({ type: 'array', expectKey: false }); out += ch; continue }
+        if (ch === '}' || ch === ']') { stack.pop(); out += ch; continue }
+        if (ch === ',') {
+          const top = stack[stack.length - 1]
+          if (top && top.type === 'object') top.expectKey = true
+          out += ch
+          continue
+        }
+        if (ch === ':') {
+          const top = stack[stack.length - 1]
+          if (top && top.type === 'object') top.expectKey = false
+          out += ch
+          continue
+        }
+        out += ch
       }
       return out
     }
@@ -1641,7 +1668,8 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
       // 先尝试把可读字段抽出来，能凑齐合同就用正常卡片渲染；凑不齐才降级成普通段落。
       console.warn('[dsh-structured] persona 内容未按合同渲染，已按可用字段降级：' + message)
       const doc = markdown.ownerDocument ?? document
-      const salvaged = salvagePersonaText(sourceText)
+      // 抢救前先修内层裸引号：否则正则会在第一个裸引号处截断，抢救出来的还是半句话。
+      const salvaged = salvagePersonaText(repairInnerQuotes(String(sourceText ?? '')))
       const usable = syntaxError && salvaged
         && salvaged.lead
         && salvaged.suggestions.length > 0

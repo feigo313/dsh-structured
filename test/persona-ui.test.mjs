@@ -980,6 +980,48 @@ test('PersonaMode：字段内裸写 ASCII 双引号不截断、按完整信封�
   assert.doesNotMatch(text, /"version"/, 'raw JSON must never leak into the reply')
 })
 
+test('PersonaMode：值内花括号 / 裸换行 / 抢救路径都不吞内容', () => {
+  const harness = makeHarness(baseState, async () => true)
+  const tone = JSON.stringify({ schema: 'dsh-structured/tone@1', prefix: 'Boss，', style: '搞怪', suffix: '——完', skipIn: ['code', 'diff', 'error', 'short', 'table'] })
+  harness.plugin.__test.setPersonaModeConfig({ personaEnabled: true, persona: tone, personaName: 'N', personaSignature: 'S', personaAvatar: '' })
+  const flowFor = (raw) => {
+    const flow = harness.document.createElement('div')
+    flow.setAttribute('data-chat-flow-kind', 'assistant-step')
+    flow.setAttribute('data-chat-node-key', 'edge-' + Math.random())
+    const slot = harness.document.createElement('div')
+    slot.setAttribute('data-slot', 'conversation.chat.node')
+    const markdown = harness.document.createElement('div')
+    markdown.className = '_markdown_preview'
+    markdown.innerHTML = `<div class="md-code-block"><div class="bannerWrap"><div data-code-block-banner><span class="_heading_persona">persona</span></div></div><div data-code-block-content><pre>${raw}</pre></div></div>`
+    slot.appendChild(markdown)
+    flow.appendChild(slot)
+    harness.document.body.appendChild(flow)
+    harness.plugin.__test.decorate(flow)
+    harness.plugin.__test.flushPersonaErrors()
+    return markdown
+  }
+
+  // A. 值里出现 {"a":1} 这种片段：内层引号后面跟着冒号，不能被误判成键的收尾引号。
+  const braceRaw = '{"version":1,"kind":"normal","conclusion":{"lead":"写 {"a":1} 这种片段"},"suggestions":["s"],"risk":"r"}'
+  const brace = flowFor(braceRaw)
+  assert.equal(brace.getAttribute('data-dsh-persona-kind'), 'normal')
+  assert.match(brace.textContent, /写 \{"a":1\} 这种片段/, 'value containing braces must render whole')
+
+  // B. 字符串里裸写换行（模型的 table 单元格常见）：转义后 table 必须完整渲染两行。
+  const tableRaw = '{"version":1,"kind":"table","conclusion":{"lead":"L"},"suggestions":["s"],"risk":"r","table":{"head":["A","B"],"rows":[["第一行\n第二行","x"]]}}'
+  const table = flowFor(tableRaw)
+  assert.equal(table.getAttribute('data-dsh-persona-kind'), 'table')
+  assert.equal(table.querySelectorAll('table').length, 1)
+  assert.match(table.textContent, /第一行/)
+  assert.match(table.textContent, /第二行/)
+
+  // C. 落难（抢救）路径同样不能被裸引号截断：version 非法走降级，字段仍要完整。
+  const salvageRaw = '{"version":"1","kind":"normal","conclusion":{"lead":"结论"},"suggestions":["等写入量上来再看"],"risk":"这段时间记忆在"进得少、出得多"，别误判成突然变脏。"}'
+  const salvage = flowFor(salvageRaw)
+  assert.match(salvage.textContent, /进得少、出得多/)
+  assert.match(salvage.textContent, /别误判成突然变脏/)
+})
+
 test('PersonaMode：尾部多余 } 不判死、按正常信封渲染', () => {
   const harness = makeHarness(baseState, async () => true)
   const tone = JSON.stringify({ schema: 'dsh-structured/tone@1', prefix: 'Boss，', style: '搞怪', suffix: '——完', skipIn: ['code', 'diff', 'error', 'short', 'table'] })
