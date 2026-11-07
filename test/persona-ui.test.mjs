@@ -1050,6 +1050,52 @@ test('PersonaMode：保留原文的提示幂等，多次 decorate 只留一句',
   assert.match(markdown.textContent, /"version":1/, 'original JSON stays readable')
 })
 
+test('PersonaMode：所有降级路径重复渲染后 DOM 必须稳定（幂等门禁）', () => {
+  const harness = makeHarness(baseState, async () => true)
+  const tone = JSON.stringify({ schema: 'dsh-structured/tone@1', prefix: 'Boss，', style: '搞怪', suffix: '——完', skipIn: ['code', 'diff', 'error', 'short', 'table'] })
+  harness.plugin.__test.setPersonaModeConfig({ personaEnabled: true, persona: tone, personaName: 'N', personaSignature: 'S', personaAvatar: '' })
+  const build = (html) => {
+    const flow = harness.document.createElement('div')
+    flow.setAttribute('data-chat-flow-kind', 'assistant-step')
+    flow.setAttribute('data-chat-node-key', 'idem-' + Math.random())
+    const slot = harness.document.createElement('div')
+    slot.setAttribute('data-slot', 'conversation.chat.node')
+    const markdown = harness.document.createElement('div')
+    markdown.className = '_markdown_preview'
+    markdown.innerHTML = html
+    slot.appendChild(markdown)
+    flow.appendChild(slot)
+    harness.document.body.appendChild(flow)
+    return { flow, markdown }
+  }
+  const block = (raw) => `<div class="md-code-block"><div class="bannerWrap"><div data-code-block-banner><span class="_heading_persona">persona</span></div></div><div data-code-block-content><pre>${raw}</pre></div></div>`
+  const normal = '{"version":1,"kind":"normal","conclusion":{"lead":"结论"},"suggestions":["s"],"risk":"r"}'
+  const tableBroken = '{"version":1,"kind":"table","conclusion":{"lead":"L"},"suggestions":["s"],"risk":"R","table":{"head":["项","实测"],"状态":["tag","x"]}}'
+  const cases = [
+    ['normal', block(normal)],
+    ['合同字段非法但含 table', block(tableBroken)],
+    ['两个 persona 块', block(normal) + block(normal)],
+    ['一块两个对象', block(normal + '\n' + normal)],
+    ['截断', block('{"version":1,"kind":"normal","conclusion":{"lead":"半句')],
+    ['裸引号', block('{"version":1,"kind":"normal","conclusion":{"lead":"他说"好",然后走了"},"suggestions":["s"],"risk":"r"}')],
+    ['块外正文 + 代码块', '<p>说明</p>' + block(normal)],
+  ]
+  for (const [name, html] of cases) {
+    const { flow, markdown } = build(html)
+    // 渲染器在实机上会跑多遍（流式 + MutationObserver）：任意多遍后的 DOM 必须与第一遍一致。
+    harness.plugin.__test.decorate(flow)
+    harness.plugin.__test.flushPersonaErrors()
+    const first = markdown.innerHTML
+    for (let i = 0; i < 3; i += 1) {
+      harness.plugin.__test.decorate(flow)
+      harness.plugin.__test.flushPersonaErrors()
+    }
+    const later = markdown.innerHTML
+    assert.equal(later.length, first.length, `重复渲染后 DOM 长度必须稳定：${name}`)
+    assert.equal(later, first, `重复渲染必须幂等：${name}`)
+  }
+})
+
 test('PersonaMode：内层引号后紧跟 ASCII 标点、超量建议、冲突块都不丢内容', () => {
   const harness = makeHarness(baseState, async () => true)
   const tone = JSON.stringify({ schema: 'dsh-structured/tone@1', prefix: 'Boss，', style: '搞怪', suffix: '——完', skipIn: ['code', 'diff', 'error', 'short', 'table'] })
