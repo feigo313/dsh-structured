@@ -1,8 +1,10 @@
-# dsh-structured 1.0.11 验收
+# dsh-structured 1.0.12 验收（未发布）
 
-[1.0.11 · 代码/构建] `npm test` 105/105；`npm run build` 完成；`desktop-check` 全 PASS；`theme-contrast` 60；`theme-hue-distance` 12；`lib` 由 src 构建并注入鲸鱼娘 JSON；pack 58 文件 / 2401115 B / unpacked 3116677 B（1.0.3 起 7 张截图全部为本地部署实机高清图，体积较旧版明显上升属预期；代码与文档部分与 1.0.2 相当）。仓库新增 `.gitattributes` 统一 LF，`scripts/build.mjs` 构建时把 CRLF 折成 LF，保证 `lib/` 与 `src/` 字节一致、pack 体积不随检出状态漂移；本地实机截图产物统一 `*-local.png` 命名并被 `.gitignore` + package.json `files` 双重排除，不进 git 也不进包。pack 数字为**本地 Windows 基线**；`test/pack.test.mjs` 对 size/unpackedSize 按 ±16 KB 容差校验（tar 条目元数据随平台差异 ~137 B，Linux CI 与本地内容相同、字节数不同），文件数与必含/排除清单仍为精确断言。
+[1.0.12 · 代码/构建] `npm test` 106/106；`npm run build` 完成；`desktop-check` 全 PASS；`theme-contrast` 60；`theme-hue-distance` 12；`lib` 由 src 构建并注入鲸鱼娘 JSON；pack 58 文件 / 2404551 B / unpacked 3129054 B（1.0.3 起 7 张截图全部为本地部署实机高清图，体积较旧版明显上升属预期；代码与文档部分与 1.0.2 相当）。仓库新增 `.gitattributes` 统一 LF，`scripts/build.mjs` 构建时把 CRLF 折成 LF，保证 `lib/` 与 `src/` 字节一致、pack 体积不随检出状态漂移；本地实机截图产物统一 `*-local.png` 命名并被 `.gitignore` + package.json `files` 双重排除，不进 git 也不进包。pack 数字为**本地 Windows 基线**；`test/pack.test.mjs` 对 size/unpackedSize 按 ±16 KB 容差校验（tar 条目元数据随平台差异 ~137 B，Linux CI 与本地内容相同、字节数不同），文件数与必含/排除清单仍为精确断言。
 
 [1.0.10 · 字段内裸引号修复] 模型在中文里直接写 ASCII 双引号（“这份“低”不是系统的功劳”）时，JSON 断在第一个内层引号上；1.0.9 的字段抢救只能抢救到引号之前的半句话，卡片看起来像回复被截断。现在解析失败分支先做 repairInnerQuotes：按结构判断字符串内的引号，若其后第一个非空白字符不是逗号、右花括号、右方括号或冒号，就按内容引号转义，整段 JSON 恢复正常解析、字段完整渲染。回归用例直接用实机原文（lead / body / risk 各含未转义引号）。
+
+[1.0.12 · 降级不再摊 JSON] 字段不合合同（table 里写成 `状态`、多一个 `extra`、建议超 5 条、表格超 20 行）时，旧逻辑整条降级并保留原始 JSON，卡片全丢。现在走宽松还原：能读到 lead/body/suggestions/risk 就出三卡，table 的 rows 从同层数组还原（含一维摊平按表头宽度切行），实在不行只加一句「表格未能渲染」，原始 JSON 不再展示。超量建议与行数全部保留。
 
 [1.0.11 · 降级提示去重] persona 块解析失败且原文含 `table` 时，渲染器保留原始块并加一句提示；提示此前每轮重渲染都会插入一次（实机一条回复出现 10 条），且提示句本身不带判重。现在按 `data-dsh-plugin-generated` 去重，同一消息恒为 1 条提示，原始内容不删。
 

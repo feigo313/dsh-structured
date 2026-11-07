@@ -542,8 +542,13 @@ test('PersonaMode：缺块 legacy、非法块 error，不补卡、不回落；co
 
   const unknown = flowFor(personaEnvelope({ version: 1, kind: 'normal', conclusion: { lead: 'L' }, suggestions: ['S'], risk: 'R', extra: 1 }))
   harness.flushPersonaErrors()
-  assert.equal(unknown.markdown.getAttribute('data-dsh-persona-kind'), 'legacy')
-  assert.equal(unknown.markdown.querySelectorAll('[data-dsh-structured-card-type]').length, 0)
+  // 多一个未定义字段不再整条降级：内容完整就照常出卡，且不得把原始 JSON 摊给用户。
+  assert.equal(unknown.markdown.getAttribute('data-dsh-persona-kind'), 'normal')
+  assert.equal(unknown.markdown.querySelectorAll('[data-dsh-structured-card-type]').length, 3)
+  assert.match(unknown.markdown.textContent, /L/)
+  assert.match(unknown.markdown.textContent, /S/)
+  assert.match(unknown.markdown.textContent, /R/)
+  assert.doesNotMatch(unknown.markdown.textContent, /"version"/)
 
   const code = flowFor('<div class="md-code-block"><div class="bannerWrap"><div data-code-block-banner><span class="_heading_persona">js</span></div></div><div data-code-block-content><pre>const x = 1</pre></div></div>')
   assert.equal(code.markdown.getAttribute('data-dsh-persona-kind'), 'code')
@@ -704,11 +709,14 @@ test('PersonaMode：幂等、旧历史、流式、no-flow、diff、关闭文本'
   const six = flowFor(personaEnvelope({ ...normalContent, suggestions: ['1', '2', '3', '4', '5', '6'] }))
   assert.equal(six.markdown.getAttribute('data-dsh-persona-error'), null, '6 suggestions enter the grace window first')
   harness.flushPersonaErrors()
-  assert.equal(six.markdown.getAttribute('data-dsh-persona-kind'), 'legacy', '6 suggestions degrade to legacy')
+  // 超合同上限的建议不再整条降级：全部保留展示，不能丢第 6 条。
+  assert.equal(six.markdown.getAttribute('data-dsh-persona-kind'), 'normal', '6 suggestions still render cards')
+  assert.match(six.markdown.textContent, /6/, 'the 6th suggestion must survive')
   const rows = Array.from({ length: 21 }, (_, i) => [String(i), 'x'])
   const tooMany = flowFor(personaEnvelope({ version: 1, kind: 'table', conclusion: { lead: 'L' }, suggestions: ['S'], risk: 'R', table: { head: ['A', 'B'], rows } }))
   harness.flushPersonaErrors()
-  assert.equal(tooMany.markdown.getAttribute('data-dsh-persona-kind'), 'legacy', '21 table rows degrade to legacy')
+  assert.equal(tooMany.markdown.getAttribute('data-dsh-persona-kind'), 'table', '21 table rows still render a table')
+  assert.match(tooMany.markdown.textContent, /20/, 'the last row must survive')
 
   const close = flowFor(personaEnvelope(normalContent))
   assert.match(close.markdown.textContent, /Boss，/)
@@ -1022,7 +1030,7 @@ test('PersonaMode：值内花括号 / 裸换行 / 抢救路径都不吞内容', 
   assert.match(salvage.textContent, /别误判成突然变脏/)
 })
 
-test('PersonaMode：保留原文的提示幂等，多次 decorate 只留一句', () => {
+test('PersonaMode：table 字段不合合同也出卡出表，不再摊原始 JSON', () => {
   const harness = makeHarness(baseState, async () => true)
   const tone = JSON.stringify({ schema: 'dsh-structured/tone@1', prefix: 'Boss，', style: '搞怪', suffix: '——完', skipIn: ['code', 'diff', 'error', 'short', 'table'] })
   harness.plugin.__test.setPersonaModeConfig({ personaEnabled: true, persona: tone, personaName: 'N', personaSignature: 'S', personaAvatar: '' })
@@ -1033,21 +1041,28 @@ test('PersonaMode：保留原文的提示幂等，多次 decorate 只留一句',
   slot.setAttribute('data-slot', 'conversation.chat.node')
   const markdown = harness.document.createElement('div')
   markdown.className = '_markdown_preview'
-  // 实机 session：kind=table 但 table 里混入非合同字段，解析/校验都过不去，只能保留原文。
-  const raw = '{"version":1,"kind":"table","conclusion":{"lead":"L"},"body":"B","suggestions":["s1","s2"],"risk":"R","table":{"head":["项","实测"],"状态":["tag","v1.0.10"]}}'
+  // 实机 session：kind=table，但模型把 rows 写成了 "状态" 且摊平成一维数组。
+  const raw = '{"version":1,"kind":"table","conclusion":{"lead":"1.0.11 已发布"},"body":"门禁前全绿","suggestions":["重启一次 Desktop"],"risk":"仅提示去重","table":{"head":["项","实测"],"状态":["tag","v1.0.11","✅","npm","latest 1.0.11","✅"]}}'
   markdown.innerHTML = `<div class="md-code-block"><div class="bannerWrap"><div data-code-block-banner><span class="_heading_persona">persona</span></div></div><div data-code-block-content><pre>${raw}</pre></div></div>`
   slot.appendChild(markdown)
   flow.appendChild(slot)
   harness.document.body.appendChild(flow)
-  for (let i = 0; i < 10; i += 1) {
+  const firstHtml = (() => {
+    harness.plugin.__test.decorate(flow)
+    harness.plugin.__test.flushPersonaErrors()
+    return markdown.innerHTML
+  })()
+  const kind = markdown.getAttribute('data-dsh-persona-kind')
+  assert.equal(kind, 'table', '不合合同的 table 字段也要尽量还原成表格')
+  assert.equal(markdown.querySelectorAll('[data-dsh-structured-card-type]').length, 3, '三卡必须出现')
+  assert.equal(markdown.querySelectorAll('table').length, 1, '摊平的数组要还原成表格')
+  assert.match(markdown.textContent, /v1\.0\.11/, '表格数据不能丢')
+  assert.doesNotMatch(markdown.textContent, /"version":1/, '原始 JSON 不许摊给用户')
+  for (let i = 0; i < 9; i += 1) {
     harness.plugin.__test.decorate(flow)
     harness.plugin.__test.flushPersonaErrors()
   }
-  const notice = '（本条回复的 persona 块没通过解析，已保留原文以免丢内容）'
-  const notices = [...markdown.querySelectorAll('p')].filter((p) => (p.textContent ?? '') === notice)
-  assert.equal(notices.length, 1, 'notice must stay single across re-renders')
-  assert.equal(markdown.querySelectorAll('.md-code-block').length, 1, 'original block must be kept')
-  assert.match(markdown.textContent, /"version":1/, 'original JSON stays readable')
+  assert.equal(markdown.innerHTML, firstHtml, '重复渲染后 DOM 必须稳定')
 })
 
 test('PersonaMode：所有降级路径重复渲染后 DOM 必须稳定（幂等门禁）', () => {
