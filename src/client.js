@@ -1197,7 +1197,7 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
           return
         }
         if (current === null && String(sourceText ?? '').trim() === '') return
-        renderPersonaError(markdown, message, current ?? sourceText, syntaxError)
+        renderPersonaError(markdown, message, current ?? sourceText)
       }
       let timer = null
       try {
@@ -1703,15 +1703,16 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
       const blocks = [...(markdown.querySelectorAll?.('.md-code-block') ?? [])]
       const personaBlocks = blocks.filter((code) => bannerLanguage(code) === 'persona' || looksLikePersonaEnvelope(code.querySelector?.('pre')?.textContent ?? ''))
       if (personaBlocks.length === 0) return { kind: 'none' }
+      const texts = personaBlocks.map((code) => code.querySelector('pre')?.textContent ?? '')
       // 多个 persona 块才是冲突；其它代码块是模型的正常内容，不算冲突。
-      if (personaBlocks.length > 1) return { ok: false, error: 'persona 内容块必须唯一', conflict: true }
+      if (personaBlocks.length > 1) return { ok: false, error: 'persona 内容块必须唯一', conflict: true, texts }
       const code = personaBlocks[0]
       // 块外内容不再判 error：模型可能自然带一句正文。块存在时优先按信封渲染；
       // 只清掉块外的插件无法渲染的裸内容属于破坏用户回复，改为保留并交给 legacy 结构化。
-      const text = code.querySelector('pre')?.textContent ?? ''
-      if (!text.trim()) return { ok: false, error: 'persona 内容块为空' }
-      // 一个块里塞了两个顶层对象时，只按第一个渲染等于静默丢掉后一个，判冲突保留原文。
-      if (countTopLevelObjects(text) > 1) return { ok: false, error: 'persona 内容块只能有一个 JSON 对象', conflict: true }
+      const text = texts[0]
+      if (!text.trim()) return { ok: false, error: 'persona 内容块为空', texts }
+      // 一个块里塞了两个顶层对象时，只按第一个渲染等于静默丢掉后一个，判冲突。
+      if (countTopLevelObjects(text) > 1) return { ok: false, error: 'persona 内容块只能有一个 JSON 对象', conflict: true, texts: splitTopLevelObjects(text) }
       return { ok: true, text }
     }
 
@@ -1744,6 +1745,40 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
         lastSignificant = ch
       }
       return count
+    }
+
+    // 把「一个块里写了多个顶层对象」的原文切成逐对象文本，降级时每个对象各自还原，
+    // 避免只按第一个渲染而把后面的内容丢掉。
+    const splitTopLevelObjects = (raw) => {
+      const source = String(raw ?? '')
+      const parts = []
+      let depth = 0
+      let inString = false
+      let escaped = false
+      let start = -1
+      for (let i = 0; i < source.length; i += 1) {
+        const ch = source[i]
+        if (inString) {
+          if (escaped) { escaped = false; continue }
+          if (ch === '\\') { escaped = true; continue }
+          if (ch === '"') inString = false
+          continue
+        }
+        if (ch === '"') { inString = true; continue }
+        if (ch === '{' || ch === '[') {
+          if (depth === 0) start = i
+          depth += 1
+          continue
+        }
+        if (ch === '}' || ch === ']') {
+          depth = Math.max(0, depth - 1)
+          if (depth === 0 && start >= 0) {
+            parts.push(source.slice(start, i + 1))
+            start = -1
+          }
+        }
+      }
+      return parts.length > 0 ? parts : [source]
     }
 
     const makePersonaElement = (doc, tag, className, text) => {
@@ -1833,7 +1868,16 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
       const field = (key) => {
         const pattern = new RegExp('"' + key + '"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)"')
         const match = pattern.exec(text)
-        return match ? unescape(match[1]).trim() : ''
+        if (match) return unescape(match[1]).trim()
+        // 回复被截断时字符串没有收尾引号：把该键后面的残文本当作内容保留，
+        // 总比整段丢掉好（这里只取到行尾/段落尾，不跨字段）。
+        const open = new RegExp('"' + key + '"\\s*:\\s*"')
+        const head = open.exec(text)
+        if (!head) return ''
+        const rest = text.slice(head.index + head[0].length)
+        const cut = rest.search(/",?\s*"[a-zA-Z]+"\s*:/)
+        const tail = cut >= 0 ? rest.slice(0, cut) : rest
+        return unescape(tail).replace(/["}\s]+$/, '').trim()
       }
       const lead = field('lead')
       const body = field('body')
@@ -1959,122 +2003,111 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
       }
     }
 
-    const renderPersonaError = (markdown, message, sourceText, syntaxError = false, options = {}) => {
-      // 合同冲突（多个 persona 块 / 一个块里多个对象）：不删任何原始内容，
-      // 只留一句安静提示，避免把模型的后半段回复一起删掉。
-      if (options.keepBlocks === true) {
-        clearPersonaPending(markdown)
-        console.warn('[dsh-structured] persona 内容块冲突，已保留原文：' + message)
-        const doc = markdown.ownerDocument ?? document
-        const hasNote = [...(markdown.querySelectorAll?.(`[${GENERATED_ATTR}]`) ?? [])]
-          .some((node) => (node.textContent ?? '').includes('内容块'))
-        if (!hasNote) {
-          const note = makePersonaElement(doc, 'p')
-          note.textContent = '（本条回复的 persona 内容块有冲突，已按原文展开）'
-          markdown.insertBefore(note, markdown.firstChild)
-        }
-        markdown.removeAttribute?.(PERSONA_ERROR_ATTR)
-        markdown.removeAttribute?.(PERSONA_PENDING_ATTR)
-        markdown.setAttribute(PERSONA_KIND_ATTR, 'legacy')
-        personaRenderCache.delete(markdown)
-        decorateStructured(markdown)
-        return 'legacy'
-      }
-      clearPersonaPending(markdown)
-      // 体验优先：畸形 persona JSON 不替换成内部诊断卡，也不把原始 JSON 摊给用户。
-      // 先尝试把可读字段抽出来，能凑齐合同就用正常卡片渲染；凑不齐才降级成普通段落。
-      console.warn('[dsh-structured] persona 内容未按合同渲染，已按可用字段降级：' + message)
-      const doc = markdown.ownerDocument ?? document
-      // 抢救：优先宽松还原成可读内容，其次才退普通段落；绝不再把原始 JSON 摊给用户。
-      const rawText = String(sourceText ?? '')
-      const lenient = buildLenientPersona(rawText)
-      const salvaged = salvagePersonaText(repairInnerQuotes(rawText))
+    // 唯一的降级出口：先把每个 persona 块宽松还原成可读内容，
+    // 能出卡就出卡，出不了卡就退普通段落；任何情况下都不把原始 JSON 摊给用户。
+    const personaSourceTexts = (markdown) => {
       const blocks = [...(markdown.querySelectorAll?.('.md-code-block') ?? [])]
-      const personaBlock = blocks.find((node) => /persona/i.test(node.textContent ?? '') || /"version"\s*:/.test(node.textContent ?? '')) ?? blocks[0]
-      const content = (() => {
-        // 宽松解析优先，缺的字段再用正则抢救补齐，尽量不让任何一段文字消失。
-        if (lenient?.content) {
+      return blocks
+        .filter((code) => bannerLanguage(code) === 'persona'
+          || looksLikePersonaEnvelope(code.querySelector?.('pre')?.textContent ?? '')
+          || /"version"\s*:/.test(code.textContent ?? ''))
+        .map((code) => code.querySelector('pre')?.textContent ?? '')
+    }
+    const isPersonaCodeBlock = (block) => bannerLanguage(block) === 'persona'
+      || looksLikePersonaEnvelope(block.querySelector?.('pre')?.textContent ?? '')
+      || /"version"\s*:/.test(block.textContent ?? '')
+    const appendPersonaNote = (doc, markdown, text) => {
+      const present = [...(markdown.querySelectorAll?.(`[${GENERATED_ATTR}]`) ?? [])]
+      if (present.some((node) => (node.textContent ?? '') === text)) return
+      markdown.appendChild(makePersonaElement(doc, 'p', 'dss-persona-note', text))
+    }
+    const appendSalvagedParagraphs = (doc, markdown, salvaged) => {
+      const paragraph = (value) => {
+        if (!value) return
+        markdown.appendChild(makePersonaElement(doc, 'p'))
+      }
+      if (salvaged.shortText) {
+        markdown.appendChild(makePersonaElement(doc, 'p', '', salvaged.shortText))
+      }
+      if (salvaged.lead) {
+        const node = makePersonaElement(doc, 'p')
+        node.appendChild(makePersonaElement(doc, 'strong', '', salvaged.lead))
+        markdown.appendChild(node)
+      }
+      if (salvaged.body) markdown.appendChild(makePersonaElement(doc, 'p', '', salvaged.body))
+      if (Array.isArray(salvaged.suggestions) && salvaged.suggestions.length) {
+        const list = makePersonaElement(doc, 'ol')
+        for (const item of salvaged.suggestions) list.appendChild(makePersonaElement(doc, 'li', '', item))
+        markdown.appendChild(list)
+      }
+      if (salvaged.risk) markdown.appendChild(makePersonaElement(doc, 'p', '', '风险：' + salvaged.risk))
+      void paragraph
+    }
+    const renderPersonaError = (markdown, message, sourceText, options = {}) => {
+      clearPersonaPending(markdown)
+      console.warn('[dsh-structured] persona 未按合同渲染，已降级：' + message)
+      const doc = markdown.ownerDocument ?? document
+      const blockTexts = personaSourceTexts(markdown)
+      const raws = (Array.isArray(options.texts) && options.texts.length ? options.texts : blockTexts.length ? blockTexts : [String(sourceText ?? '')])
+        .map((text) => String(text ?? ''))
+        .filter((text) => text.trim().length > 0)
+      const contents = []
+      const partials = []
+      let droppedTable = false
+      for (const raw of raws) {
+        const salvaged = salvagePersonaText(repairInnerQuotes(raw))
+        const lenient = buildLenientPersona(raw)
+        if (lenient && lenient.content && lenient.content.conclusion.lead) {
           const base = lenient.content
+          const placeholder = (value) => typeof value === 'string' && value.startsWith('（本条回复未给出')
           const lead = base.conclusion.lead || salvaged?.lead || ''
-          if (!lead) return null
           const body = base.conclusion.body || salvaged?.body || ''
-          const risk = (base.risk && !base.risk.startsWith('（本条回复未给出')) ? base.risk : (salvaged?.risk || base.risk)
-          const suggestions = base.suggestions.length && !String(base.suggestions[0]).startsWith('（本条回复未给出')
-            ? base.suggestions
-            : (salvaged?.suggestions?.length ? salvaged.suggestions : base.suggestions)
-          return {
+          const risk = placeholder(base.risk) ? (salvaged?.risk || base.risk) : base.risk
+          const suggestions = placeholder(base.suggestions[0])
+            ? (salvaged?.suggestions?.length ? salvaged.suggestions : base.suggestions)
+            : base.suggestions
+          contents.push({
             ...base,
             conclusion: { lead, ...(body ? { body } : {}) },
             suggestions,
             risk,
-          }
+          })
+          if (lenient.droppedTable) droppedTable = true
+          continue
         }
         if (salvaged && salvaged.lead && salvaged.suggestions.length && salvaged.risk) {
-          return {
+          contents.push({
             kind: 'normal',
             conclusion: { lead: salvaged.lead, ...(salvaged.body ? { body: salvaged.body } : {}) },
             suggestions: salvaged.suggestions,
             risk: salvaged.risk,
-          }
+          })
+        } else if (salvaged) {
+          partials.push(salvaged)
         }
-        return null
-      })()
-      if (content) {
-        const scope = findFlowScope(markdown)
-        const flow = scope.assistant ?? null
-        if (personaBlock?.parentNode) personaBlock.remove()
-        mountPersonaHead(flow, personaModeState)
-        const kind = renderPersonaContent(markdown, content, personaModeState, sourceText)
-        if (lenient?.droppedTable) {
-          const noteText = '（表格字段不合合同，未能渲染，已按正文展示）'
-          const present = [...(markdown.querySelectorAll?.(`[${GENERATED_ATTR}]`) ?? [])]
-            .some((node) => (node.textContent ?? '') === noteText)
-          if (!present) {
-            const note = makePersonaElement(doc, 'p', 'dss-persona-note')
-            note.textContent = noteText
-            markdown.appendChild(note)
-          }
+      }
+      for (const block of [...(markdown.querySelectorAll?.('.md-code-block') ?? [])]) {
+        if (isPersonaCodeBlock(block)) block.remove()
+      }
+      const flow = findFlowScope(markdown).assistant ?? null
+      mountPersonaHead(flow, personaModeState)
+      if (contents.length > 0) {
+        const kind = renderPersonaContent(markdown, contents[0], personaModeState, raws[0] ?? null)
+        for (const extra of contents.slice(1)) {
+          appendSalvagedParagraphs(doc, markdown, {
+            lead: extra.conclusion.lead,
+            body: extra.conclusion.body ?? '',
+            suggestions: extra.suggestions ?? [],
+            risk: extra.risk ?? '',
+          })
         }
+        for (const partial of partials) appendSalvagedParagraphs(doc, markdown, partial)
+        if (contents.length > 1) appendPersonaNote(doc, markdown, '（本条回复写了多个 persona 内容块，已按第一个出卡，其余按正文展开）')
+        if (droppedTable) appendPersonaNote(doc, markdown, '（表格字段不合合同，未能渲染，已按正文展示）')
         return kind
       }
-      const fragment = []
-      if (salvaged) {
-        const paragraph = (value) => {
-          if (!value) return
-          const node = makePersonaElement(doc, 'p')
-          node.textContent = value
-          fragment.push(node)
-        }
-        if (salvaged.shortText) paragraph(salvaged.shortText)
-        if (salvaged.lead) {
-          const node = makePersonaElement(doc, 'p')
-          const strong = makePersonaElement(doc, 'strong')
-          strong.textContent = salvaged.lead
-          node.appendChild(strong)
-          fragment.push(node)
-        }
-        if (salvaged.body) paragraph(salvaged.body)
-        if (salvaged.suggestions.length) {
-          const list = makePersonaElement(doc, 'ul')
-          for (const item of salvaged.suggestions) {
-            const li = makePersonaElement(doc, 'li')
-            li.textContent = item
-            list.appendChild(li)
-          }
-          fragment.push(list)
-        }
-        if (salvaged.risk) paragraph('风险：' + salvaged.risk)
-      } else {
-        const note = makePersonaElement(doc, 'p')
-        note.textContent = '（本条回复的格式未按合同，已按原文展开）'
-        fragment.push(note)
-      }
-      if (personaBlock?.parentNode) {
-        for (const node of fragment) personaBlock.parentNode.insertBefore(node, personaBlock)
-        personaBlock.remove()
-      } else {
-        for (const node of fragment) markdown.appendChild(node)
-      }
+      for (const partial of partials) appendSalvagedParagraphs(doc, markdown, partial)
+      if (partials.length === 0) appendPersonaNote(doc, markdown, '（本条回复的格式未按合同，已按原文展开）')
       markdown.removeAttribute?.(PERSONA_ERROR_ATTR)
       markdown.removeAttribute?.(PERSONA_FALLBACK_ATTR)
       markdown.removeAttribute?.(PERSONA_PENDING_ATTR)
@@ -2164,7 +2197,7 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
         decorateStructured(markdown)
         return 'legacy'
       }
-      if (!envelope.ok) return renderPersonaError(markdown, envelope.error, envelope.text, false, { keepBlocks: envelope.conflict === true })
+      if (!envelope.ok) return renderPersonaError(markdown, envelope.error, envelope.text, { texts: envelope.texts })
       let parsed
       const rawText = envelope.text
       try {

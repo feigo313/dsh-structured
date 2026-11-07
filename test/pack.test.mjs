@@ -23,8 +23,8 @@ test('pack：鲸鱼娘 JSON/许可/署名随包，1.0 草稿不随包', () => {
   // 体积断言带 16 KB 容差：tar 条目的平台元数据（权限位等）让同一内容在
   // Linux CI 与本地 Windows 上相差 ~137 B，精确字节断言跨平台不稳定。
   // 本地基线见 ACCEPTANCE-1.0.0.md；CI 以容差校验。
-  const PINNED_SIZE = 2404551
-  const PINNED_UNPACKED = 3129054
+  const PINNED_SIZE = 2406174
+  const PINNED_UNPACKED = 3134415
   const TOLERANCE = 16384
   assert.ok(
     Math.abs(parsed[0].size - PINNED_SIZE) <= TOLERANCE,

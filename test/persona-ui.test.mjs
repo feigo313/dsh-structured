@@ -1148,12 +1148,13 @@ test('PersonaMode：内层引号后紧跟 ASCII 标点、超量建议、冲突�
     assert.match(many.textContent, new RegExp(item), 'suggestion ' + item + ' must survive')
   }
 
-  // D. 逗号分隔的两个顶层对象 = 合同冲突：保留原文，不删任何一块，也不假装成一张卡。
+  // D. 逗号分隔的两个顶层对象 = 合同冲突：第一个出卡，第二个按正文展开，不展示原始 JSON、不丢内容。
   const twoObjects = flowFor('{"version":1,"kind":"normal","conclusion":{"lead":"第一"},"suggestions":["a"],"risk":"r"},{"version":1,"kind":"normal","conclusion":{"lead":"第二"},"suggestions":["b"],"risk":"r"}')
-  assert.equal(twoObjects.getAttribute('data-dsh-persona-kind'), 'legacy')
+  assert.equal(twoObjects.getAttribute('data-dsh-persona-kind'), 'normal', 'first object must render as cards')
   assert.match(twoObjects.textContent, /第一/, 'first object must survive')
   assert.match(twoObjects.textContent, /第二/, 'second object must survive')
-  assert.equal(twoObjects.querySelectorAll('.md-code-block').length, 1, 'original block must be kept')
+  assert.equal(twoObjects.querySelectorAll('.md-code-block').length, 0, 'raw JSON must never be shown')
+  assert.match(twoObjects.textContent, /多个 persona 内容块/, 'conflict must be explained in one short note')
 })
 
 test('PersonaMode：尾部多余 } 不判死、按正常信封渲染', () => {
