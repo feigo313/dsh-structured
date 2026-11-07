@@ -1507,13 +1507,46 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
       const personaBlocks = blocks.filter((code) => bannerLanguage(code) === 'persona' || looksLikePersonaEnvelope(code.querySelector?.('pre')?.textContent ?? ''))
       if (personaBlocks.length === 0) return { kind: 'none' }
       // 多个 persona 块才是冲突；其它代码块是模型的正常内容，不算冲突。
-      if (personaBlocks.length > 1) return { ok: false, error: 'persona 内容块必须唯一' }
+      if (personaBlocks.length > 1) return { ok: false, error: 'persona 内容块必须唯一', conflict: true }
       const code = personaBlocks[0]
       // 块外内容不再判 error：模型可能自然带一句正文。块存在时优先按信封渲染；
       // 只清掉块外的插件无法渲染的裸内容属于破坏用户回复，改为保留并交给 legacy 结构化。
       const text = code.querySelector('pre')?.textContent ?? ''
       if (!text.trim()) return { ok: false, error: 'persona 内容块为空' }
+      // 一个块里塞了两个顶层对象时，只按第一个渲染等于静默丢掉后一个，判冲突保留原文。
+      if (countTopLevelObjects(text) > 1) return { ok: false, error: 'persona 内容块只能有一个 JSON 对象', conflict: true }
       return { ok: true, text }
+    }
+
+    // 数顶层 JSON 对象个数：只有出现在深度 0、且紧接在上一个对象结束（或文本开头）的 `{`
+    // 才算一份新文档；中途错误闭合后尾随的 `"table":{...}` 不算。忽略字符串里的花括号。
+    const countTopLevelObjects = (raw) => {
+      const source = String(raw ?? '')
+      let depth = 0
+      let inString = false
+      let escaped = false
+      let count = 0
+      let lastSignificant = ''
+      for (let i = 0; i < source.length; i += 1) {
+        const ch = source[i]
+        if (inString) {
+          if (escaped) { escaped = false; continue }
+          if (ch === '\\') { escaped = true; continue }
+          if (ch === '"') inString = false
+          continue
+        }
+        if (/\s/.test(ch)) continue
+        if (ch === '"') { inString = true; lastSignificant = ch; continue }
+        if (ch === '{') {
+          if (depth === 0 && (lastSignificant === '' || lastSignificant === '}')) count += 1
+          depth += 1
+          lastSignificant = ch
+          continue
+        }
+        if (ch === '}') { depth = Math.max(0, depth - 1); lastSignificant = ch; continue }
+        lastSignificant = ch
+      }
+      return count
     }
 
     const makePersonaElement = (doc, tag, className, text) => {
@@ -1662,7 +1695,27 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
       return { lead, body, risk, shortText, suggestions }
     }
 
-    const renderPersonaError = (markdown, message, sourceText, syntaxError = false) => {
+    const renderPersonaError = (markdown, message, sourceText, syntaxError = false, options = {}) => {
+      // 合同冲突（多个 persona 块 / 一个块里多个对象）：不删任何原始内容，
+      // 只留一句安静提示，避免把模型的后半段回复一起删掉。
+      if (options.keepBlocks === true) {
+        clearPersonaPending(markdown)
+        console.warn('[dsh-structured] persona 内容块冲突，已保留原文：' + message)
+        const doc = markdown.ownerDocument ?? document
+        const hasNote = [...(markdown.querySelectorAll?.(`[${GENERATED_ATTR}]`) ?? [])]
+          .some((node) => (node.textContent ?? '').includes('内容块'))
+        if (!hasNote) {
+          const note = makePersonaElement(doc, 'p')
+          note.textContent = '（本条回复的 persona 内容块有冲突，已按原文展开）'
+          markdown.insertBefore(note, markdown.firstChild)
+        }
+        markdown.removeAttribute?.(PERSONA_ERROR_ATTR)
+        markdown.removeAttribute?.(PERSONA_PENDING_ATTR)
+        markdown.setAttribute(PERSONA_KIND_ATTR, 'legacy')
+        personaRenderCache.delete(markdown)
+        decorateStructured(markdown)
+        return 'legacy'
+      }
       clearPersonaPending(markdown)
       // 体验优先：畸形 persona JSON 不替换成内部诊断卡，也不把原始 JSON 摊给用户。
       // 先尝试把可读字段抽出来，能凑齐合同就用正常卡片渲染；凑不齐才降级成普通段落。
@@ -1818,7 +1871,7 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
         decorateStructured(markdown)
         return 'legacy'
       }
-      if (!envelope.ok) return renderPersonaError(markdown, envelope.error, envelope.text, false)
+      if (!envelope.ok) return renderPersonaError(markdown, envelope.error, envelope.text, false, { keepBlocks: envelope.conflict === true })
       let parsed
       const rawText = envelope.text
       try {
