@@ -1444,7 +1444,8 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
     // 这里按结构判断：维护对象/数组栈并区分「键字符串」与「值字符串」，
     // 值字符串里只有其后紧跟 , } ] 或结尾的引号才是收尾引号，其余按内容引号转义；
     // 键字符串的收尾引号判据是其后紧跟 :。避免把 "a":1 这类值内片段误当成键。
-    const repairInnerQuotes = (text) => {
+    // forceContent：判定为「收尾」但实际是内容的引号位置集合（由候选回退搜索提供）。
+    const repairInnerQuotes = (text, forceContent) => {
       const source = String(text ?? '')
       const stack = []
       let out = ''
@@ -1468,7 +1469,7 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
           const closes = stringIsKey
             ? (next === ':' || next === undefined)
             : (next === undefined || next === ',' || next === '}' || next === ']')
-          if (closes) { out += ch; inString = false } else { out += '\\"' }
+          if (closes && !(forceContent && forceContent.has(i))) { out += ch; inString = false } else { out += '\\"' }
           continue
         }
         if (ch === '"') {
@@ -1496,6 +1497,202 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
         out += ch
       }
       return out
+    }
+
+    // 收集「被判定为收尾、但可能其实是内容」的引号位置，供候选回退搜索使用。
+    // 判据与 repairInnerQuotes 一致：值字符串里其后紧跟 , } ] 或结尾的引号。
+    const ambiguousQuotePositions = (text) => {
+      const source = String(text ?? '')
+      const stack = []
+      const positions = []
+      let inString = false
+      let stringIsKey = false
+      let escaped = false
+      for (let i = 0; i < source.length; i += 1) {
+        const ch = source[i]
+        if (inString) {
+          if (escaped) { escaped = false; continue }
+          if (ch === '\\') { escaped = true; continue }
+          if (ch !== '"') continue
+          let lookahead = i + 1
+          while (lookahead < source.length && /\s/.test(source[lookahead])) lookahead += 1
+          const next = source[lookahead]
+          const closes = stringIsKey
+            ? (next === ':' || next === undefined)
+            : (next === undefined || next === ',' || next === '}' || next === ']')
+          if (closes && !stringIsKey) positions.push(i)
+          if (closes) inString = false
+          continue
+        }
+        if (ch === '"') {
+          const top = stack[stack.length - 1]
+          stringIsKey = Boolean(top && top.type === 'object' && top.expectKey)
+          inString = true
+          continue
+        }
+        if (ch === '{') { stack.push({ type: 'object', expectKey: true }); continue }
+        if (ch === '[') { stack.push({ type: 'array', expectKey: false }); continue }
+        if (ch === '}' || ch === ']') { stack.pop(); continue }
+        if (ch === ',') {
+          const top = stack[stack.length - 1]
+          if (top && top.type === 'object') top.expectKey = true
+          continue
+        }
+        if (ch === ':') {
+          const top = stack[stack.length - 1]
+          if (top && top.type === 'object') top.expectKey = false
+        }
+      }
+      return positions
+    }
+
+    // 顶层 JSON 对象结束的位置：字符串感知地找到深度归零的下标，用于判断是否还有尾随内容。
+    const topLevelJsonEnd = (text) => {
+      const source = String(text ?? '')
+      let depth = 0
+      let inString = false
+      let escaped = false
+      for (let i = 0; i < source.length; i += 1) {
+        const ch = source[i]
+        if (inString) {
+          if (escaped) { escaped = false; continue }
+          if (ch === '\\') { escaped = true; continue }
+          if (ch === '"') inString = false
+          continue
+        }
+        if (ch === '"') { inString = true; continue }
+        if (ch === '{' || ch === '[') { depth += 1; continue }
+        if (ch === '}' || ch === ']') {
+          depth -= 1
+          if (depth === 0) return i + 1
+          continue
+        }
+      }
+      return -1
+    }
+
+    // 引号修复的候选搜索：先用默认判定；解析不成时，回溯把「被判成收尾」的引号
+    // 逐个改成内容引号再试（深度 ≤3、总尝试 ≤80），解决 `"他说"好",然后走了"`、
+    // `见 ["A","B"] 列表`、table 单元格 `[["X","Y"]]` 这类内层引号后紧邻 ASCII 标点。
+    const quoteRepairCandidates = (text) => {
+      const base = String(text ?? '')
+      const results = []
+      let attempts = 0
+      const scan = (forced) => {
+        const source = base
+        const stack = []
+        let out = ''
+        let inString = false
+        let stringIsKey = false
+        let escaped = false
+        const closings = []
+        for (let i = 0; i < source.length; i += 1) {
+          const ch = source[i]
+          if (inString) {
+            if (escaped) { out += ch; escaped = false; continue }
+            if (ch === '\\') { out += ch; escaped = true; continue }
+            if (ch === '\n') { out += '\\n'; continue }
+            if (ch === '\r') { out += '\\r'; continue }
+            if (ch === '\t') { out += '\\t'; continue }
+            if (ch < ' ') { out += '\\u' + ch.charCodeAt(0).toString(16).padStart(4, '0'); continue }
+            if (ch !== '"') { out += ch; continue }
+            let lookahead = i + 1
+            while (lookahead < source.length && /\s/.test(source[lookahead])) lookahead += 1
+            const next = source[lookahead]
+            const closes = stringIsKey
+              ? (next === ':' || next === undefined)
+              : (next === undefined || next === ',' || next === '}' || next === ']')
+            if (closes && !(forced && forced.has(i))) {
+              out += ch
+              inString = false
+              if (!stringIsKey) closings.push(i)
+            } else {
+              out += '\\"'
+            }
+            continue
+          }
+          if (ch === '"') {
+            const top = stack[stack.length - 1]
+            stringIsKey = Boolean(top && top.type === 'object' && top.expectKey)
+            inString = true
+            out += ch
+            continue
+          }
+          if (ch === '{') { stack.push({ type: 'object', expectKey: true }); out += ch; continue }
+          if (ch === '[') { stack.push({ type: 'array', expectKey: false }); out += ch; continue }
+          if (ch === '}' || ch === ']') { stack.pop(); out += ch; continue }
+          if (ch === ',') {
+            const top = stack[stack.length - 1]
+            if (top && top.type === 'object') top.expectKey = true
+            out += ch
+            continue
+          }
+          if (ch === ':') {
+            const top = stack[stack.length - 1]
+            if (top && top.type === 'object') top.expectKey = false
+            out += ch
+            continue
+          }
+          out += ch
+        }
+        return { candidate: out, closings }
+      }
+      const tryParse = (candidate) => {
+        let parsed
+        try { parsed = JSON.parse(candidate) } catch { return null }
+        const end = topLevelJsonEnd(candidate)
+        if (end <= 0) return null
+        if (candidate.slice(end).replace(/\s+/g, '').length > 0) return null
+        return parsed
+      }
+      const search = (forced, depth) => {
+        if (attempts >= 120 || results.length >= 8) return
+        attempts += 1
+        const { candidate, closings } = scan(forced)
+        if (candidate === base) return
+        const parsed = tryParse(candidate)
+        // 语法能过不代表语义对（table 行多一列也能 parse），所以把所有能 parse 的候选都收下，
+        // 交给外层的 validatePersonaContent 逐个挑。
+        if (parsed) results.push({ candidate, parsed, forced: forced ? forced.size : 0 })
+        if (depth >= 3 || results.length >= 8) return
+        const pending = closings.filter((position) => !(forced && forced.has(position)))
+        for (let i = pending.length - 1; i >= 0; i -= 1) {
+          const next = new Set(forced ?? [])
+          next.add(pending[i])
+          if (results.length >= 8 || attempts >= 120) return
+          search(next, depth + 1)
+        }
+      }
+      search(undefined, 0)
+      // 打分：多转义可能把结构引号也吞进字符串（table 表头变成带引号的 "A"），
+      // 所以先罚「首尾都带引号的字符串」，再优先少转义，最后按搜索顺序。
+      const edgeQuoted = (value) => {
+        if (typeof value === 'string') return value.length > 1 && value.startsWith('"') && value.endsWith('"') ? 1 : 0
+        if (Array.isArray(value)) return value.reduce((sum, item) => sum + edgeQuoted(item), 0)
+        if (value && typeof value === 'object') return Object.values(value).reduce((sum, item) => sum + edgeQuoted(item), 0)
+        return 0
+      }
+      // 文本里的引号通常成对；某个字符串里引号个数是奇数，说明边界被切错了。
+      const oddQuoted = (value) => {
+        if (typeof value === 'string') {
+          let count = 0
+          for (const ch of value) if (ch === '"') count += 1
+          return count % 2
+        }
+        if (Array.isArray(value)) return value.reduce((sum, item) => sum + oddQuoted(item), 0)
+        if (value && typeof value === 'object') return Object.values(value).reduce((sum, item) => sum + oddQuoted(item), 0)
+        return 0
+      }
+      for (const result of results) {
+        result.penalty = edgeQuoted(result.parsed)
+        result.unbalanced = oddQuoted(result.parsed)
+      }
+      // 依次惩罚：首尾带引号的字符串 → 引号奇数个的字符串 → 转义数奇偶 → 转义数量。
+      results.sort((a, b) => (a.penalty - b.penalty)
+        || (a.unbalanced - b.unbalanced)
+        || ((a.forced % 2) - (b.forced % 2))
+        || (a.forced - b.forced))
+      return results
     }
 
     function looksLikePersonaEnvelope(text) {
@@ -1538,7 +1735,7 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
         if (/\s/.test(ch)) continue
         if (ch === '"') { inString = true; lastSignificant = ch; continue }
         if (ch === '{') {
-          if (depth === 0 && (lastSignificant === '' || lastSignificant === '}')) count += 1
+          if (depth === 0 && (lastSignificant === '' || lastSignificant === '}' || lastSignificant === ',')) count += 1
           depth += 1
           lastSignificant = ch
           continue
@@ -1651,7 +1848,7 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
           let inString = false
           let escaped = false
           let itemStart = -1
-          for (let i = open + 1; i < text.length && suggestions.length < 5; i += 1) {
+          for (let i = open + 1; i < text.length && suggestions.length < 20; i += 1) {
             const ch = text[i]
             if (inString) {
               if (escaped) escaped = false
@@ -1673,7 +1870,7 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
           let rest = text.indexOf(']', open)
           const riskIndex = text.indexOf('"risk"', open)
           const limit = riskIndex > 0 ? riskIndex : text.length
-          while (rest > 0 && rest < limit && suggestions.length < 5) {
+          while (rest > 0 && rest < limit && suggestions.length < 20) {
             const quote = text.indexOf('"', rest + 1)
             if (quote < 0 || quote > limit) break
             let endQuote = quote + 1
@@ -1723,7 +1920,10 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
       const doc = markdown.ownerDocument ?? document
       // 抢救前先修内层裸引号：否则正则会在第一个裸引号处截断，抢救出来的还是半句话。
       const salvaged = salvagePersonaText(repairInnerQuotes(String(sourceText ?? '')))
-      const usable = syntaxError && salvaged
+      // 原文里有 table 但抢救结果拿不到 table 时不能走卡片：那会把整张表静默丢掉。
+      // 这种情况保留原文（宁可丑，不可丢）。
+      const losesTable = /"table"\s*:/.test(String(sourceText ?? ''))
+      const usable = syntaxError && salvaged && !losesTable
         && salvaged.lead
         && salvaged.suggestions.length > 0
         && salvaged.risk
@@ -1776,7 +1976,12 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
         note.textContent = '（本条回复的格式未按合同，已按原文展开）'
         fragment.push(note)
       }
-      if (personaBlock?.parentNode) {
+      if (losesTable) {
+        // 抢救会丢整张表：保留原始块，只在前面加一句提示，绝不删除正文。
+        const note = makePersonaElement(doc, 'p')
+        note.textContent = '（本条回复的 persona 块没通过解析，已保留原文以免丢内容）'
+        markdown.insertBefore(note, markdown.firstChild)
+      } else if (personaBlock?.parentNode) {
         for (const node of fragment) personaBlock.parentNode.insertBefore(node, personaBlock)
         personaBlock.remove()
       } else {
@@ -1884,9 +2089,10 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
         if (cleaned !== rawText) candidates.push(cleaned)
         // 中文里直接写 ASCII 双引号（"这份"低"不是系统的功劳"）会让 JSON 断在第一个内层引号上，
         // 解析失败后抢救出的字段都只剩半句。这里按结构判断内层引号并转义，优先于截断类修复。
+        // 内层引号后面紧邻 ASCII , ] } 时单次判定会误当收尾（`"他说"好",然后走了"`），
+        // 所以走候选搜索：默认判定不成时再逐步把可疑引号改成内容引号。
         const quoteBase = (cleaned !== rawText ? cleaned : rawText)
-        const quoteRepaired = repairInnerQuotes(quoteBase)
-        if (quoteRepaired !== quoteBase) candidates.push(quoteRepaired)
+        for (const variant of quoteRepairCandidates(quoteBase)) candidates.push(variant.candidate)
         // 位置截断类失败（Unexpected non-whitespace character after JSON at position N）：
         // 常见根因是模型把闭合括号多写了一遍（session-839e98db：len=834、前 833 字符为合法 JSON）。
         // 对这类「JSON 合法 + 结尾多余字符」做截断与去尾 } 的候选尝试，命中即按正常信封渲染。

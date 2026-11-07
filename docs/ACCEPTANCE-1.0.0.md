@@ -1,8 +1,10 @@
 # dsh-structured 1.0.10 验收
 
-[1.0.10 · 代码/构建] `npm test` 103/103；`npm run build` 完成；`desktop-check` 全 PASS；`theme-contrast` 60；`theme-hue-distance` 12；`lib` 由 src 构建并注入鲸鱼娘 JSON；pack 58 文件 / 2394757 B / unpacked 3090115 B（1.0.3 起 7 张截图全部为本地部署实机高清图，体积较旧版明显上升属预期；代码与文档部分与 1.0.2 相当）。仓库新增 `.gitattributes` 统一 LF，`scripts/build.mjs` 构建时把 CRLF 折成 LF，保证 `lib/` 与 `src/` 字节一致、pack 体积不随检出状态漂移；本地实机截图产物统一 `*-local.png` 命名并被 `.gitignore` + package.json `files` 双重排除，不进 git 也不进包。pack 数字为**本地 Windows 基线**；`test/pack.test.mjs` 对 size/unpackedSize 按 ±4 KB 容差校验（tar 条目元数据随平台差异 ~137 B，Linux CI 与本地内容相同、字节数不同），文件数与必含/排除清单仍为精确断言。
+[1.0.10 · 代码/构建] `npm test` 104/104；`npm run build` 完成；`desktop-check` 全 PASS；`theme-contrast` 60；`theme-hue-distance` 12；`lib` 由 src 构建并注入鲸鱼娘 JSON；pack 58 文件 / 2400246 B / unpacked 3113125 B（1.0.3 起 7 张截图全部为本地部署实机高清图，体积较旧版明显上升属预期；代码与文档部分与 1.0.2 相当）。仓库新增 `.gitattributes` 统一 LF，`scripts/build.mjs` 构建时把 CRLF 折成 LF，保证 `lib/` 与 `src/` 字节一致、pack 体积不随检出状态漂移；本地实机截图产物统一 `*-local.png` 命名并被 `.gitignore` + package.json `files` 双重排除，不进 git 也不进包。pack 数字为**本地 Windows 基线**；`test/pack.test.mjs` 对 size/unpackedSize 按 ±16 KB 容差校验（tar 条目元数据随平台差异 ~137 B，Linux CI 与本地内容相同、字节数不同），文件数与必含/排除清单仍为精确断言。
 
 [1.0.10 · 字段内裸引号修复] 模型在中文里直接写 ASCII 双引号（“这份“低”不是系统的功劳”）时，JSON 断在第一个内层引号上；1.0.9 的字段抢救只能抢救到引号之前的半句话，卡片看起来像回复被截断。现在解析失败分支先做 repairInnerQuotes：按结构判断字符串内的引号，若其后第一个非空白字符不是逗号、右花括号、右方括号或冒号，就按内容引号转义，整段 JSON 恢复正常解析、字段完整渲染。回归用例直接用实机原文（lead / body / risk 各含未转义引号）。
+
+[1.0.10 · 引号回溯与不丢内容] 内层引号后紧跟 ASCII 标点（`"他说"好",然后走了"`、table 单元格 `["X","Y"]`）时，单次结构判定仍会截断；解析失败分支改为回溯候选搜索（深度 ≤3、总尝试 ≤120），把可疑收尾引号改判为内容引号，并按「首尾带引号字符串 → 引号奇数个 → 转义数」排序选最合理结果。抢救结果缺 `table` 时改为保留原始块并加提示，禁止静默丢整张表；抢救建议上限从 5 放宽到 20；逗号分隔的双顶层对象也判冲突。回归：内层引号后紧邻逗号、table 单元格方括号引号、8 条建议、逗号分隔双对象四组用例。
 
 [1.0.10 · 同族修复] 除裸引号外，另修两类同源的内容损失：① 值里含 `{"a":1}` 片段时引号后跟冒号，不再被误判成键的收尾引号（lead 不会被砍到 `{`）；② 字符串内裸换行 / 制表符等控制字符先转义，table 单元格含换行不再丢整张表；③ 字段抢救路径先修引号再抢救，降级时正文也不截断。探针矩阵 22 种畸形变体 + 5 组边界（超长正文、suggestions 超限、emoji、table 换行、多块）全部无内容损失、无原始 JSON 泄漏。
 

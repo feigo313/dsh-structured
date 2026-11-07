@@ -1022,6 +1022,51 @@ test('PersonaMode：值内花括号 / 裸换行 / 抢救路径都不吞内容', 
   assert.match(salvage.textContent, /别误判成突然变脏/)
 })
 
+test('PersonaMode：内层引号后紧跟 ASCII 标点、超量建议、冲突块都不丢内容', () => {
+  const harness = makeHarness(baseState, async () => true)
+  const tone = JSON.stringify({ schema: 'dsh-structured/tone@1', prefix: 'Boss，', style: '搞怪', suffix: '——完', skipIn: ['code', 'diff', 'error', 'short', 'table'] })
+  harness.plugin.__test.setPersonaModeConfig({ personaEnabled: true, persona: tone, personaName: 'N', personaSignature: 'S', personaAvatar: '' })
+  const flowFor = (raw) => {
+    const flow = harness.document.createElement('div')
+    flow.setAttribute('data-chat-flow-kind', 'assistant-step')
+    flow.setAttribute('data-chat-node-key', 'edge2-' + Math.random())
+    const slot = harness.document.createElement('div')
+    slot.setAttribute('data-slot', 'conversation.chat.node')
+    const markdown = harness.document.createElement('div')
+    markdown.className = '_markdown_preview'
+    markdown.innerHTML = `<div class="md-code-block"><div class="bannerWrap"><div data-code-block-banner><span class="_heading_persona">persona</span></div></div><div data-code-block-content><pre>${raw}</pre></div></div>`
+    slot.appendChild(markdown)
+    flow.appendChild(slot)
+    harness.document.body.appendChild(flow)
+    harness.plugin.__test.decorate(flow)
+    harness.plugin.__test.flushPersonaErrors()
+    return markdown
+  }
+
+  // A. 值里引号后紧跟 ASCII 逗号（1.0.10 第一版会在这里截断成「他说"好」）。
+  const prose = flowFor('{"version":1,"kind":"normal","conclusion":{"lead":"他说"好",然后走了"},"suggestions":["s1"],"risk":"r"}')
+  assert.match(prose.textContent, /他说"好",然后走了/, 'quote followed by comma must stay content')
+
+  // B. table 单元格里的 ["X","Y"] 不能被拆成两个格子，也不能把整张表丢掉。
+  const bracketTable = flowFor('{"version":1,"kind":"table","conclusion":{"lead":"L"},"suggestions":["s"],"risk":"r","table":{"head":["A","B"],"rows":[["见 ["X","Y"] 列表","y"]]}}')
+  assert.equal(bracketTable.getAttribute('data-dsh-persona-kind'), 'table', 'table must still render')
+  const cells = [...bracketTable.querySelectorAll('td')].map((cell) => cell.textContent)
+  assert.deepEqual(cells, ['见 ["X","Y"] 列表', 'y'], 'cell content must stay intact')
+
+  // C. suggestions 超过合同上限 5 条时降级展示，但一条都不许丢。
+  const many = flowFor('{"version":1,"kind":"normal","conclusion":{"lead":"L"},"suggestions":["s1","s2","s3","s4","s5","s6","s7","s8"],"risk":"r"}')
+  for (const item of ['s1', 's5', 's6', 's8']) {
+    assert.match(many.textContent, new RegExp(item), 'suggestion ' + item + ' must survive')
+  }
+
+  // D. 逗号分隔的两个顶层对象 = 合同冲突：保留原文，不删任何一块，也不假装成一张卡。
+  const twoObjects = flowFor('{"version":1,"kind":"normal","conclusion":{"lead":"第一"},"suggestions":["a"],"risk":"r"},{"version":1,"kind":"normal","conclusion":{"lead":"第二"},"suggestions":["b"],"risk":"r"}')
+  assert.equal(twoObjects.getAttribute('data-dsh-persona-kind'), 'legacy')
+  assert.match(twoObjects.textContent, /第一/, 'first object must survive')
+  assert.match(twoObjects.textContent, /第二/, 'second object must survive')
+  assert.equal(twoObjects.querySelectorAll('.md-code-block').length, 1, 'original block must be kept')
+})
+
 test('PersonaMode：尾部多余 } 不判死、按正常信封渲染', () => {
   const harness = makeHarness(baseState, async () => true)
   const tone = JSON.stringify({ schema: 'dsh-structured/tone@1', prefix: 'Boss，', style: '搞怪', suffix: '——完', skipIn: ['code', 'diff', 'error', 'short', 'table'] })
