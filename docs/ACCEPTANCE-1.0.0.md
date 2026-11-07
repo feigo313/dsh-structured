@@ -1,6 +1,8 @@
-# dsh-structured 1.0.9 验收
+# dsh-structured 1.0.10 验收
 
-[1.0.9 · 代码/构建] `npm test` 101/101；`npm run build` 完成；`desktop-check` 全 PASS；`theme-contrast` 60；`theme-hue-distance` 12；`lib` 由 src 构建并注入鲸鱼娘 JSON；pack 58 文件 / 2389253 B / unpacked 3071379 B（1.0.3 起 7 张截图全部为本地部署实机高清图，体积较旧版明显上升属预期；代码与文档部分与 1.0.2 相当）。仓库新增 `.gitattributes` 统一 LF，`scripts/build.mjs` 构建时把 CRLF 折成 LF，保证 `lib/` 与 `src/` 字节一致、pack 体积不随检出状态漂移；本地实机截图产物统一 `*-local.png` 命名并被 `.gitignore` + package.json `files` 双重排除，不进 git 也不进包。pack 数字为**本地 Windows 基线**；`test/pack.test.mjs` 对 size/unpackedSize 按 ±4 KB 容差校验（tar 条目元数据随平台差异 ~137 B，Linux CI 与本地内容相同、字节数不同），文件数与必含/排除清单仍为精确断言。
+[1.0.10 · 代码/构建] `npm test` 102/102；`npm run build` 完成；`desktop-check` 全 PASS；`theme-contrast` 60；`theme-hue-distance` 12；`lib` 由 src 构建并注入鲸鱼娘 JSON；pack 58 文件 / 2390983 B / unpacked 3077291 B（1.0.3 起 7 张截图全部为本地部署实机高清图，体积较旧版明显上升属预期；代码与文档部分与 1.0.2 相当）。仓库新增 `.gitattributes` 统一 LF，`scripts/build.mjs` 构建时把 CRLF 折成 LF，保证 `lib/` 与 `src/` 字节一致、pack 体积不随检出状态漂移；本地实机截图产物统一 `*-local.png` 命名并被 `.gitignore` + package.json `files` 双重排除，不进 git 也不进包。pack 数字为**本地 Windows 基线**；`test/pack.test.mjs` 对 size/unpackedSize 按 ±4 KB 容差校验（tar 条目元数据随平台差异 ~137 B，Linux CI 与本地内容相同、字节数不同），文件数与必含/排除清单仍为精确断言。
+
+[1.0.10 · 字段内裸引号修复] 模型在中文里直接写 ASCII 双引号（“这份“低”不是系统的功劳”）时，JSON 断在第一个内层引号上；1.0.9 的字段抢救只能抢救到引号之前的半句话，卡片看起来像回复被截断。现在解析失败分支先做 repairInnerQuotes：按结构判断字符串内的引号，若其后第一个非空白字符不是逗号、右花括号、右方括号或冒号，就按内容引号转义，整段 JSON 恢复正常解析、字段完整渲染。回归用例直接用实机原文（lead / body / risk 各含未转义引号）。
 
 [1.0.9 · 可读降级] 1.0.8 的 fail-open 会把原始 JSON 留在页面上；本版改为「先抢救字段，再决定形态」：语法类畸形抽出 `lead`/`body`/`suggestions`/`risk`（含数组提前闭合后掉在外面的裸字符串），凑齐即按正常三卡渲染，凑不齐才降级普通段落，原始 JSON 代码块一律移除。校验类失败（多字段/超限/version 不符）仍降级普通排版，不硬套卡片。回归：video session 原样畸形块断言「正常三卡 + 零代码块 + 零原始 JSON」。
 

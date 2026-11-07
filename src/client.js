@@ -1440,6 +1440,37 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
       code === 0x000b || code === 0x000c
     )
 
+    // 模型在中文里直接写 ASCII 双引号（"这份"低"不是系统的功劳"），JSON 就断在第一个内层引号上。
+    // 这里按结构判断：字符串内遇到的引号，若其后第一个非空白字符不是 , } ] : 就不是收尾引号，
+    // 按内容引号转义掉。只处理字符串内部，结构化引号原样保留。
+    const repairInnerQuotes = (text) => {
+      const source = String(text ?? '')
+      let out = ''
+      let inString = false
+      let escaped = false
+      for (let i = 0; i < source.length; i += 1) {
+        const ch = source[i]
+        if (!inString) {
+          out += ch
+          if (ch === '"') inString = true
+          continue
+        }
+        if (escaped) { out += ch; escaped = false; continue }
+        if (ch === '\\') { out += ch; escaped = true; continue }
+        if (ch !== '"') { out += ch; continue }
+        let lookahead = i + 1
+        while (lookahead < source.length && /[\s]/.test(source[lookahead])) lookahead += 1
+        const next = source[lookahead]
+        if (next === undefined || next === ',' || next === '}' || next === ']' || next === ':') {
+          out += ch
+          inString = false
+        } else {
+          out += '\\"'
+        }
+      }
+      return out
+    }
+
     function looksLikePersonaEnvelope(text) {
       return /^\s*\{/.test(text) && /"version"\s*:\s*1/.test(text) && /"kind"\s*:\s*"(?:normal|short|table)"/.test(text)
     }
@@ -1770,6 +1801,11 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
         const cleaned = stripInvisibleJsonChars(rawText)
         const candidates = []
         if (cleaned !== rawText) candidates.push(cleaned)
+        // 中文里直接写 ASCII 双引号（"这份"低"不是系统的功劳"）会让 JSON 断在第一个内层引号上，
+        // 解析失败后抢救出的字段都只剩半句。这里按结构判断内层引号并转义，优先于截断类修复。
+        const quoteBase = (cleaned !== rawText ? cleaned : rawText)
+        const quoteRepaired = repairInnerQuotes(quoteBase)
+        if (quoteRepaired !== quoteBase) candidates.push(quoteRepaired)
         // 位置截断类失败（Unexpected non-whitespace character after JSON at position N）：
         // 常见根因是模型把闭合括号多写了一遍（session-839e98db：len=834、前 833 字符为合法 JSON）。
         // 对这类「JSON 合法 + 结尾多余字符」做截断与去尾 } 的候选尝试，命中即按正常信封渲染。

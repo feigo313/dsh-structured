@@ -948,6 +948,38 @@ test('PersonaMode：块外正文保留、其它代码块不误报、不可见字
   assert.match(broken.markdown.textContent, /未按合同|格式/, 'quiet notice must appear instead of raw JSON')
 })
 
+test('PersonaMode：字段内裸写 ASCII 双引号不截断、按完整信封渲染', () => {
+  const harness = makeHarness(baseState, async () => true)
+  const tone = JSON.stringify({ schema: 'dsh-structured/tone@1', prefix: 'Boss，', style: '搞怪', suffix: '——完', skipIn: ['code', 'diff', 'error', 'short', 'table'] })
+  harness.plugin.__test.setPersonaModeConfig({ personaEnabled: true, persona: tone, personaName: 'N', personaSignature: 'S', personaAvatar: '' })
+  const flowFor = (html) => {
+    const flow = harness.document.createElement('div')
+    flow.setAttribute('data-chat-flow-kind', 'assistant-step')
+    flow.setAttribute('data-chat-node-key', 'quote-' + Math.random())
+    const slot = harness.document.createElement('div')
+    slot.setAttribute('data-slot', 'conversation.chat.node')
+    const markdown = harness.document.createElement('div')
+    markdown.className = '_markdown_preview'
+    markdown.innerHTML = html
+    slot.appendChild(markdown)
+    flow.appendChild(slot)
+    harness.document.body.appendChild(flow)
+    harness.plugin.__test.decorate(flow)
+    return { flow, markdown }
+  }
+  // 实机原样：模型在中文里直接写 ASCII 双引号，JSON 断在内层引号上，旧版抢救出半句话。
+  const raw = '{"version":1,"kind":"normal","conclusion":{"lead":"是好事，但这份"低"不是系统的功劳——是样本太小的结果。","body":"三周只新增 80 条，重复本来就长不出来。"},"suggestions":["等写入量上来再看","把体检写成脚本"],"risk":"这段时间记忆在"进得少、出得多"，别误判成突然变脏。"}'
+  const item = flowFor(`<div class="md-code-block"><div class="bannerWrap"><div data-code-block-banner><span class="_heading_persona">persona</span></div></div><div data-code-block-content><pre>${raw}</pre></div></div>`)
+  assert.equal(item.markdown.getAttribute('data-dsh-persona-kind'), 'normal')
+  assert.equal(item.markdown.getAttribute('data-dsh-persona-error'), null)
+  assert.equal(item.markdown.querySelectorAll('[data-dsh-structured-card-type]').length, 3)
+  const text = item.markdown.textContent
+  assert.match(text, /不是系统的功劳——是样本太小的结果。/, 'lead must be complete, not cut at the inner quote')
+  assert.match(text, /三周只新增 80 条/, 'body must be complete')
+  assert.match(text, /进得少、出得多/, 'risk must be complete')
+  assert.doesNotMatch(text, /"version"/, 'raw JSON must never leak into the reply')
+})
+
 test('PersonaMode：尾部多余 } 不判死、按正常信封渲染', () => {
   const harness = makeHarness(baseState, async () => true)
   const tone = JSON.stringify({ schema: 'dsh-structured/tone@1', prefix: 'Boss，', style: '搞怪', suffix: '——完', skipIn: ['code', 'diff', 'error', 'short', 'table'] })
