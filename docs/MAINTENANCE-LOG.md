@@ -318,3 +318,13 @@
 - **CI**：最近两次 main push（e97ef5e、23d2da0）均 success。
 - **漂移（未处理）**：工作树多出未跟踪目录 `.agents/skills/promo-video-pipeline/`（SKILL.md + references，11-06 23:55 写入）。这是项目级技能被装进了仓库根，属未跟踪漂移；要么纳入版本管理、要么加 .gitignore，需要 Boss 定归属。
 - **本轮动作**：只读复核 + 记录；未改代码、未 push（日志提交在本地）。
+
+## 2026-11-08 · 第 19 轮
+
+- **issue 水位**：0 open / 2 closed；本仓库 PR 仅 #3（已合并）。
+- **CI**：最近两次 push（73fa368、6b71b27）均 success；本地 HEAD 03d77c6 尚未 push，因此无对应 CI。
+- **npm / Release**：latest=1.0.11；Release v1.0.11 在校验范围内未变。
+- **市场异常（需跟进）**：PR #13075 被维护者 fkysly 关闭，评论称“已直接把 main 上的 tarball 行升到 v1.0.11”。实测 main 上的 `data/plugins/feigo313__dsh-structured.yml` 仍是 `v1.0.10/dsh-structured-1.0.10.tgz`，市场页也仍指 1.0.10——与评论不符。下次发布时开一个 PR 从 1.0.10 直更到最新版，并在 PR 里说明这段差异。
+- **待发布**：1.0.12（commit 03d77c6 区间，含 persona 降级重写 + roadmap）已就绪，等 Boss 明确同意后按门禁发布。
+- **今日待办**：1.1「公共模板资产 vs 用户本地头像」方案推进。
+- **本轮动作**：只读复核 + 记录；未改代码、未 push。
