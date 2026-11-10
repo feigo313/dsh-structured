@@ -1,6 +1,8 @@
-# dsh-structured 1.0.13 验收（未发布）
+# dsh-structured 1.0.14 验收（未发布）
 
-[1.0.13 · 代码/构建] `npm test` 106/106；`npm run build` 完成；`desktop-check` 全 PASS；`theme-contrast` 60；`theme-hue-distance` 12；`lib` 由 src 构建并注入鲸鱼娘 JSON；pack 58 文件 / 2406174 B / unpacked 3134415 B（1.0.3 起 7 张截图全部为本地部署实机高清图，体积较旧版明显上升属预期；代码与文档部分与 1.0.2 相当）。仓库新增 `.gitattributes` 统一 LF，`scripts/build.mjs` 构建时把 CRLF 折成 LF，保证 `lib/` 与 `src/` 字节一致、pack 体积不随检出状态漂移；本地实机截图产物统一 `*-local.png` 命名并被 `.gitignore` + package.json `files` 双重排除，不进 git 也不进包。pack 数字为**本地 Windows 基线**；`test/pack.test.mjs` 对 size/unpackedSize 按 ±16 KB 容差校验（tar 条目元数据随平台差异 ~137 B，Linux CI 与本地内容相同、字节数不同），文件数与必含/排除清单仍为精确断言。
+[1.0.14 · 字体跟随] 卡片 / 正文 / 标题 / 表格 / 代码字号改用宿主 ui-theme 变量（--dsh-content-font-size / --dsh-code-font-size），字体栈改用 --dsh-font-family-text / --dsh-font-family-code；未设置时逐像素等价（style-gate ok:true）。设置页字体族跟随、字号不变。
+
+[1.0.14 · 代码/构建] `npm test` 106/106；`npm run build` 完成；`desktop-check` 全 PASS；`theme-contrast` 60；`theme-hue-distance` 12；`lib` 由 src 构建并注入鲸鱼娘 JSON；pack 58 文件 / 2409439 B / unpacked 3147306 B（1.0.3 起 7 张截图全部为本地部署实机高清图，体积较旧版明显上升属预期；代码与文档部分与 1.0.2 相当）。仓库新增 `.gitattributes` 统一 LF，`scripts/build.mjs` 构建时把 CRLF 折成 LF，保证 `lib/` 与 `src/` 字节一致、pack 体积不随检出状态漂移；本地实机截图产物统一 `*-local.png` 命名并被 `.gitignore` + package.json `files` 双重排除，不进 git 也不进包。pack 数字为**本地 Windows 基线**；`test/pack.test.mjs` 对 size/unpackedSize 按 ±16 KB 容差校验（tar 条目元数据随平台差异 ~137 B，Linux CI 与本地内容相同、字节数不同），文件数与必含/排除清单仍为精确断言。
 
 [1.0.10 · 字段内裸引号修复] 模型在中文里直接写 ASCII 双引号（“这份“低”不是系统的功劳”）时，JSON 断在第一个内层引号上；1.0.9 的字段抢救只能抢救到引号之前的半句话，卡片看起来像回复被截断。现在解析失败分支先做 repairInnerQuotes：按结构判断字符串内的引号，若其后第一个非空白字符不是逗号、右花括号、右方括号或冒号，就按内容引号转义，整段 JSON 恢复正常解析、字段完整渲染。回归用例直接用实机原文（lead / body / risk 各含未转义引号）。
 

@@ -357,3 +357,21 @@ test('client：标题图标使用悬挂缩进，换行行不顶回左边', () =>
   assert.match(css, /h3\[data-dsh-structured-icon\]\{padding-left:30px;text-indent:-30px\}/)
   assert.match(css, /h2\[data-dsh-structured-icon\]::before,[^{]*\{[^}]*text-indent:0/)
 })
+
+test('client：卡片字体与字号跟随宿主 ui-theme 变量', () => {
+  const dom = makeDom()
+  loadClient(dom).apply(makeContext(null))
+  const css = dom.styles.get('dsh-structured-skin-style')?.textContent ?? ''
+  assert.ok(css, 'skin style should be injected')
+  // 字体栈跟随宿主 text / code 字体
+  assert.match(css, /--dss-sans:var\(--dsh-font-family-text,/)
+  assert.match(css, /--dss-mono:var\(--dsh-font-family-code,/)
+  // 字号跟随宿主会话内容字号 / 代码字号，并保留现有值作回退
+  assert.match(css, /--dss-text-size:var\(--dsh-content-font-size,13\.5px\)/)
+  assert.match(css, /--dss-code-size:var\(--dsh-code-font-size,12\.5px\)/)
+  assert.match(css, /font-size:var\(--dss-text-size\)/)
+  assert.match(css, /font:var\(--dss-code-size\)\/1\.7 var\(--dss-mono\)/)
+  // 组件皮肤里不再写死 px 字号（回退值在自定义属性里，不是 font-size 声明）
+  assert.doesNotMatch(css, /font-size:\d+(\.\d+)?px/)
+  assert.doesNotMatch(css, /font:[^;}]*\d+(\.\d+)?px\//)
+})
