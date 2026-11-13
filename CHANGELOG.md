@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.15 — 2026-11-13
+
+- 兼容性声明：`dsh.compatibility.dshReleases` 新增 DSH `0.2.2-rc.1` / `0.2.2-rc.2`（advisory；engines 区间 `>=0.1.7-rc.2 <0.4.0-0` 本就覆盖）。rc.2 已实测：隔离临时 DSH_HOME 下 `plugin add dsh-structured@1.0.14` PASS、`--dump-config` 装配块零差异；宿主依赖树内 `dsh-client-ui-theme@0.2.2-rc.2` 字体契约（--dsh-content-font-size / --dsh-font-family-text / --dsh-font-family-code / --dsh-code-font-size）未变，1.0.14 的跟随逻辑直接兼容。
+- 无代码改动；`engines` 区间不变。
+
 ## 1.0.14 — 2026-11-10
 
 - 卡片与正文排版跟随宿主 ui-theme 的字体与字号设置：字体栈改用 `--dsh-font-family-text` / `--dsh-font-family-code`，会话内容字号改用 `--dsh-content-font-size`，代码字号改用 `--dsh-code-font-size`；标题 / 标签 / 表格等按原比例用 `calc()` 派生，未设置时与改动前逐像素一致。
