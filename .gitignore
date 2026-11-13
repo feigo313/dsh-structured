@@ -16,3 +16,4 @@ assets/screenshots/*-local.png
 .tools/ego/
 .tools/audit-pkg/
 .tools/audit-installed-client.mjs
+.agents/
