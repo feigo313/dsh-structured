@@ -1,4 +1,6 @@
-# dsh-structured 1.0.15 验收（未发布）
+# dsh-structured 1.0.16 验收（未发布）
+
+[1.0.16 · 代码/构建] `npm test` 109/109；`npm run build` 完成；pack 58 文件 / 2411026 B / unpacked 3153240 B（较 1.0.15 基线 +1587 B，来自 fenceSeat 修复与 seated fixture）。rc.2 起 `.fenceSeat` 包裹层的「没包裹住」已修：块外正文过滤改为排除子树含 persona 块的节点，错误降级路径清空 seat；回归 fixture 按 rc.2 真实 DOM（fenceSeat + Rp banner「代码块」+ pre>code>span.line）构造，断言出卡 3 张 / 零 `.md-code-block` / 零空 seat / 块外正文存活。rc.3 兼容性实测：渲染契约哈希类名与 rc.2 逐项相同、`systemPrompt.section` / `getSectionOrder` 签名不变、隔离 DSH_HOME 下 `plugin add dsh-structured@1.0.15` PASS、`--dump-config` exit 0。
 
 [1.0.14 · 字体跟随] 卡片 / 正文 / 标题 / 表格 / 代码字号改用宿主 ui-theme 变量（--dsh-content-font-size / --dsh-code-font-size），字体栈改用 --dsh-font-family-text / --dsh-font-family-code；未设置时逐像素等价（style-gate ok:true）。设置页字体族跟随、字号不变。
 

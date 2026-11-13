@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.16 — 2026-11-13
+
+- 修复 DSH 0.2.2-rc.2 起 `MarkdownDelegate` 给带语言的 fence 新增 `.fenceSeat` 包裹层导致的「没包裹住」：persona 块从 markdown 直接子级变成 seat 子级，旧过滤把整个 seat 当「块外正文」保留，卡片正常出但下方残留原始 JSON。现在 `renderPersonaContent` 的块外正文过滤改为排除「子树含 persona 块」的节点，错误降级路径同步清掉空 `_fenceSeat` 容器。
+- 兼容性声明：`dsh.compatibility.dshReleases` 新增 DSH `0.2.2-rc.3`（advisory；engines 区间 `>=0.1.7-rc.2 <0.4.0-0` 本就覆盖）。rc.3 已实测：渲染契约（`md-code-block` / `data-code-block-banner` / `data-code-block-content` / `_fenceSeat_13jw0_146` / `_markdown_13jw0_5` 等哈希类名）与 rc.2 逐项相同，`systemPrompt.section` / `getSectionOrder` 签名不变，隔离 DSH_HOME 下 `plugin add dsh-structured@1.0.15` PASS、`--dump-config` exit 0。
+- 测试：新增 rc.2 真实形状的 seated fixture 回归（出卡 3 张 / 零 `.md-code-block` 残留 / 零空 seat / 块外正文存活）。
+
 ## 1.0.15 — 2026-11-13
 
 - 兼容性声明：`dsh.compatibility.dshReleases` 新增 DSH `0.2.2-rc.1` / `0.2.2-rc.2`（advisory；engines 区间 `>=0.1.7-rc.2 <0.4.0-0` 本就覆盖）。rc.2 已实测：隔离临时 DSH_HOME 下 `plugin add dsh-structured@1.0.14` PASS、`--dump-config` 装配块零差异；宿主依赖树内 `dsh-client-ui-theme@0.2.2-rc.2` 字体契约（--dsh-content-font-size / --dsh-font-family-text / --dsh-font-family-code / --dsh-code-font-size）未变，1.0.14 的跟随逻辑直接兼容。
