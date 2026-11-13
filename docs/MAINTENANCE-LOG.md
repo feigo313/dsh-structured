@@ -400,3 +400,18 @@
 - **npm registry 坑（新增，已踩）**：本机 `~/.npmrc` 全局 `registry=https://registry.npmmirror.com`（只有 `@dsh-ops` scope 走官方）。第一次 `npm publish` 走镜像但仍输出 `+ dsh-structured@1.0.16`，本地 `npm view` 查镜像永远看不到；第二次显式 `--registry https://registry.npmjs.org` 报 `409 Cannot publish over previously staged version "1.0.16"`，`npm stage list` 又为空。**实际首次已发成功**：官方单版本端点 `/dsh-structured/1.0.16` 返回 200、shasum 与本地 tgz 完全一致、带 cache-buster 的元数据 `dist-tags.latest=1.0.16`、versions 含 1.0.16。教训：publish 后不要用本地 `npm view`（走镜像）判断成败，直接查 `https://registry.npmjs.org/<pkg>/<version>` 与 `?ts=` 破缓存；tarball CDN 传播仍有数分钟 404 延迟（1.0.13 同样）。
 - **副作用与清理**：为跑 rc.3 CLI 实测，`npm install @deepseek-ai/dsh@0.2.2-rc.3` 在 `.tmp/rc3` 下执行时被 npm 向上找到工作区根，把 667 个包装进 `G:\dsh-structured\node_modules` 并改写 `package.json`（+dependencies）。已 `git checkout -- package.json`、删 `package-lock.json`、清 `node_modules` 后重装回 2 个 devDependency；`npm test` 109/109 复核通过；`.tmp/` 与临时探针脚本已删。
 - **待办（非阻塞优化）**：`getSectionOrder('STRUCTURED_OUTPUT')` 在 rc.3（与 rc.2）SECTION_ORDERS 里都不存在，恒走 fallback 9900 —— 死调用可清；`._fenceSeat_13jw0_146{margin:16px 0}` 与我们 `.dss-code{margin:14px 0}` 父子 margin 折叠后实际 16px；banner `position:sticky` 未覆盖，长代码块滚动时 header 会吸附；无语言 fence 的宿主标签显示「代码块」，与我们的「代码 · 」前缀重复成「代码 · 代码块」。
+
+## 2026-11-13 · 第 28 轮（三条视觉修正 + 1.0.17 发布）
+
+- **触发**：Boss 要求把上一轮列出的优化点一起修完、审查后直接发（"发现问题不过夜"）。
+- **口径更正**：上一轮我把 `getSectionOrder('STRUCTURED_OUTPUT')` 判成死调用 —— **错了**。宿主 `@deepseek-ai/dsh-subagent/structured` 自己就注册了这个 section 名（`systemPrompt.section({ name: 'tool:structured_output', order: getSectionOrder('STRUCTURED_OUTPUT') })`），我们跟随它是正确的。已从优化清单划掉。
+- **实际修复（3 条，src/client.js 三套主题各一处，共 6 行 + 6 行新增）**：
+  1. **banner 不吸顶**：宿主 `._bannerWrap_kjs70_24{position:sticky;top:0;z-index:6;background-color:var(--dsw-alias-bg-base)}` 是刻意做的"冻结标题"，不透明底色用来遮住滚过的代码；我们为卡片化设了 `background:none`，长代码块（超一屏）滚动时代码会从标题后穿过、叠字。改为 `position:static;z-index:auto`，卡片整体化、不再依赖底色。
+  2. **标签不重复**：宿主 banner 语言位是 `Cb(lang) ? lang : codeLabel`（不认识/无语言 → 「代码块」），我们固定加「代码 · 」→ 无语言块显示「代码 · 代码块」。改为 `content:none` + `[data-dsh-structured-lang] …::before{content:"代码 · "}`，前缀只在 `bannerLanguage()` 取到真实语言（LANG_ATTR 存在）时出现。
+  3. **fenceSeat 不再吞卡片间距**：宿主 `._fenceSeat_13jw0_146{margin:16px 0}` 与 `.dss-code{margin:14px 0}` 父子折叠取 16px。改为 `[class*="_fenceSeat"]:has(> .dss-code){margin:0}` —— 只对含我们卡片的 seat 归零，宿主 genui/diff 块保持 16px；`:has()` 不支持时该规则整条被忽略，自然退回 16px（无害降级）。
+- **回归**：`test/client-visual.test.mjs` 新增 CSS 契约断言（banner 必须 `position:static`、seated 卡片间距归零、前缀条件规则存在）；全套 **110/110**（109 → 110）；build 后 `lib/client.js` 195193 B。
+- **1.0.17 发布**：version bump、CHANGELOG/ACCEPTANCE 记录、pack 基线 2411503 → 实测 2412018（Release tgz 实际字节；差 515 B 来自 CHANGELOG/ACCEPTANCE 在测尺寸后又有改动，仍在 ±16 KB 容差内）；提交 `9e645ac`、tag `v1.0.17` 已推；CI 待查；GitHub Release https://github.com/feigo313/dsh-structured/releases/tag/v1.0.17（tgz sha1 `726a6435…`）；npm publish **显式 `--registry https://registry.npmjs.org`** 成功（`+ dsh-structured@1.0.17`），官方 tarball 元数据仍在 CDN 传播中（与 1.0.16 同样的数分钟延迟）；市场 PR 沿用 #1，分支已推进到 v1.0.17 tarball（commit `e55f489`），标题/正文同步更新。
+- **新增教训**：
+  - `npm publish` 必须显式带 `--registry https://registry.npmjs.org`：本机全局 registry 是 npmmirror，镜像会回 `+ pkg@ver` 假成功，本地 `npm view` 永远看不到新版本。**判定发版成败只认官方单版本端点 + `?ts=` 破缓存。**
+  - `gh pr edit` 需要 `read:project` scope（当前 token 没有），改用 `gh api -X PATCH repos/<owner>/<repo>/pulls/<n>` 改标题/正文，无需额外 scope。
+- **副作用与清理**：`.tools/apply-1017-css.mjs`、`market-1017.mjs` 为一次性脚本，保留在 .tools；无临时 profile / 后台作业残留。
