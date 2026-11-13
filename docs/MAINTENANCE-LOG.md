@@ -387,3 +387,16 @@
 - **验证**：persona-ui 32/32、全套 109/109 PASS；lib 重建后与 src 逐行一致；本轮修了测试初跑暴露的「测试跑的是旧 lib」问题（先 build 再 test，pretest 脚本本就如此）。
 - **本地清理**：.tools/dbg-seat*.mjs 两个临时探针已删。
 - **本轮动作**：改动未提交，等 Boss 决定是否进 1.0.16（rc.2 用户当前可用 workaround：无，需发版）。
+
+## 2026-11-13 · 第 27 轮（DSH 0.2.2-rc.3 兼容检查 + 1.0.16 发布）
+
+- **触发**：Boss 报告 DSH 发布了 rc.3，要求检查插件兼容性并优化。
+- **版本事实**：npm `@deepseek-ai/dsh` 的 `next` = 0.2.2-rc.3（2026-11-13T08:05:45Z）；本机 `D:/DeepSeek Harness/resources/app.asar` 内 `@deepseek-ai/dsh` 已是 0.2.2-rc.3（664 处版本串）。rc.2→rc.3 依赖差异：官方子包统一升版本 + 新增 `@deepseek-ai/dsh-deepseek-chat-import`（与插件无关）。
+- **渲染契约对拍（rc.3 vs rc.2 记录值，逐项相同）**：`md-code-block` 7、`data-code-block-banner` 5、`data-code-block-content` 7、`bannerWrap` 5；哈希类名 `_markdown_13jw0_5` / `_markdown_1wejo_28` / `_fenceSeat_13jw0_146` / `_bannerWrap_kjs70_24` / `_heading_1mqf1_23` / `_language_1mqf1_30` 一字不差；`renderCode` 插槽、`MarkdownDelegateProvider`、`conversation.chat.markdown.fence` 都在；4 个主题变量（--dsh-content-font-size / --dsh-code-font-size / --dsh-font-family-text / --dsh-font-family-code）全在。渲染器源码结构同样一致：markdown root `pe(Lt.markdown,…)`、fence `renderCode ? fenceSeat : …`、code block `pe($t.block,"md-code-block",…)`。
+- **宿主 API**：`systemPrompt.section()` / `getSectionOrder()` / `commands.register` 签名不变；我们的 section 名全部带 `dsh-structured:` 前缀（style / reminder / tone / tone-anchor），不与 rc.3 保留名 `deployment:persona-prefix` / `deployment:persona-suffix` 冲突。
+- **实测**：隔离 `DSH_HOME` + rc.3 CLI（`node_modules/@deepseek-ai/dsh/lib/bin.js`）→ `plugin add dsh-structured@1.0.15` PASS（6.9s）；`--dump-config` exit 0 且装配块在。
+- **结论**：无破坏性兼容问题；真正的坑是 npm 上 1.0.15 不含 fenceSeat 修复，rc.3 用户装了照样漏 JSON。
+- **1.0.16 发布**：version 1.0.15→1.0.16；`dshReleases` 新增 `0.2.2-rc.3`；pack 基线更新 2411026 / 3153240（+1587 / +5934，在 16 KB 容差内）；CHANGELOG + ACCEPTANCE 记录；`npm test` 109/109；提交 2e55dc5、tag v1.0.16 已推；CI success（43443827240）；GitHub Release `v1.0.16` + tgz（shasum 293c50c5…）；市场 PR https://github.com/feigo313/awesome-dsh-plugin/pull/1。
+- **npm registry 坑（新增，已踩）**：本机 `~/.npmrc` 全局 `registry=https://registry.npmmirror.com`（只有 `@dsh-ops` scope 走官方）。第一次 `npm publish` 走镜像但仍输出 `+ dsh-structured@1.0.16`，本地 `npm view` 查镜像永远看不到；第二次显式 `--registry https://registry.npmjs.org` 报 `409 Cannot publish over previously staged version "1.0.16"`，`npm stage list` 又为空。**实际首次已发成功**：官方单版本端点 `/dsh-structured/1.0.16` 返回 200、shasum 与本地 tgz 完全一致、带 cache-buster 的元数据 `dist-tags.latest=1.0.16`、versions 含 1.0.16。教训：publish 后不要用本地 `npm view`（走镜像）判断成败，直接查 `https://registry.npmjs.org/<pkg>/<version>` 与 `?ts=` 破缓存；tarball CDN 传播仍有数分钟 404 延迟（1.0.13 同样）。
+- **副作用与清理**：为跑 rc.3 CLI 实测，`npm install @deepseek-ai/dsh@0.2.2-rc.3` 在 `.tmp/rc3` 下执行时被 npm 向上找到工作区根，把 667 个包装进 `G:\dsh-structured\node_modules` 并改写 `package.json`（+dependencies）。已 `git checkout -- package.json`、删 `package-lock.json`、清 `node_modules` 后重装回 2 个 devDependency；`npm test` 109/109 复核通过；`.tmp/` 与临时探针脚本已删。
+- **待办（非阻塞优化）**：`getSectionOrder('STRUCTURED_OUTPUT')` 在 rc.3（与 rc.2）SECTION_ORDERS 里都不存在，恒走 fallback 9900 —— 死调用可清；`._fenceSeat_13jw0_146{margin:16px 0}` 与我们 `.dss-code{margin:14px 0}` 父子 margin 折叠后实际 16px；banner `position:sticky` 未覆盖，长代码块滚动时 header 会吸附；无语言 fence 的宿主标签显示「代码块」，与我们的「代码 · 」前缀重复成「代码 · 代码块」。
