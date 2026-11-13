@@ -167,8 +167,10 @@ const baseState = { status: 'ready', writable: true, revision: 0, value: { perso
 
 const personaEnvelope = (payload) => `<div class="md-code-block"><div class="bannerWrap"><div data-code-block-banner><span class="_heading_persona">persona</span><div class="_actions_persona"></div></div></div><div data-code-block-content><pre>${JSON.stringify(payload)}</pre></div></div>`
 const personaEnvelopePlain = (payload) => `<div class="md-code-block"><div class="bannerWrap"><div data-code-block-banner><span class="_heading_plain">代码块</span></div></div><div data-code-block-content><pre>${JSON.stringify(payload)}</pre></div></div>`
-// 0.2.2-rc.2 起 host 给带语言的 fence 包一层 .fenceSeat（MarkdownDelegate renderCode），persona 块不再是 markdown 直接子级
-const personaEnvelopeSeated = (payload) => `<div class="_fenceSeat_13jw0_146">${personaEnvelope(payload)}</div><p>块外正文</p>`
+// 0.2.2-rc.2 起 host 给带语言的 fence 包一层 .fenceSeat（MarkdownDelegate renderCode），persona 块不再是 markdown 直接子级。
+// banner 形状也按 rc.2 真实 DOM：Rp header（_heading_ 容器 + _language_ span，persona 不是 shiki 语言 → 显示 codeLabel「代码块」），
+// 内容在 pre>code>span.line 里 —— 检测必须靠内容（looksLikePersonaEnvelope），不能靠 banner 语言词。
+const personaEnvelopeSeated = (payload) => `<div class="_fenceSeat_13jw0_146"><div class="md-code-block"><div class="_bannerWrap_kjs70_24"><div class="_header_1mqf1_10" data-code-block-banner><div class="_heading_1mqf1_23"><span class="_language_1mqf1_30">代码块</span></div><div class="_actions_1mqf1_43"></div></div></div><div class="_content_kjs70_74" data-code-block-content><pre class="_plain_kjs70_103"><code><span class="line">${JSON.stringify(payload)}</span></code></pre></div></div></div><p>块外正文</p>`
 
 test('v5 语气设置：档案行 + 三字段 + 规则行 + 样式预览，不再有基础/进阶/JSON', () => {
   const harness = makeHarness(baseState, async () => true)
