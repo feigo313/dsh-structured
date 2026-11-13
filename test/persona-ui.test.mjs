@@ -167,6 +167,8 @@ const baseState = { status: 'ready', writable: true, revision: 0, value: { perso
 
 const personaEnvelope = (payload) => `<div class="md-code-block"><div class="bannerWrap"><div data-code-block-banner><span class="_heading_persona">persona</span><div class="_actions_persona"></div></div></div><div data-code-block-content><pre>${JSON.stringify(payload)}</pre></div></div>`
 const personaEnvelopePlain = (payload) => `<div class="md-code-block"><div class="bannerWrap"><div data-code-block-banner><span class="_heading_plain">代码块</span></div></div><div data-code-block-content><pre>${JSON.stringify(payload)}</pre></div></div>`
+// 0.2.2-rc.2 起 host 给带语言的 fence 包一层 .fenceSeat（MarkdownDelegate renderCode），persona 块不再是 markdown 直接子级
+const personaEnvelopeSeated = (payload) => `<div class="_fenceSeat_13jw0_146">${personaEnvelope(payload)}</div><p>块外正文</p>`
 
 test('v5 语气设置：档案行 + 三字段 + 规则行 + 样式预览，不再有基础/进阶/JSON', () => {
   const harness = makeHarness(baseState, async () => true)
@@ -498,6 +500,31 @@ test('PersonaMode：normal/table/short 由内容块固定渲染；无 Persona Ma
   assert.equal(short.markdown.querySelector('[data-dsh-structured-card-type]').getAttribute('data-dsh-structured-card-type'), 'short')
   assert.ok(short.markdown.querySelector('.dss-persona-prefix'))
   assert.equal(short.markdown.querySelector('.dss-persona-suffix'), null, 'short has no suffix')
+})
+
+test('PersonaMode：rc.2 fenceSeat 包裹的 persona 块照样出卡，不残留原始 JSON', () => {
+  const harness = makeHarness(baseState, async () => true)
+  const tone = JSON.stringify({ schema: 'dsh-structured/tone@1', prefix: 'Boss，', style: '搞怪', suffix: '——完', skipIn: ['code', 'diff', 'error', 'short', 'table'] })
+  harness.plugin.__test.setPersonaModeConfig({ personaEnabled: true, persona: tone, personaName: 'N', personaSignature: 'S', personaAvatar: '' })
+  const flow = harness.document.createElement('div')
+  flow.setAttribute('data-chat-flow-kind', 'assistant-step')
+  flow.setAttribute('data-chat-node-key', 'seated-' + Math.random())
+  const slot = harness.document.createElement('div')
+  slot.setAttribute('data-slot', 'conversation.chat.node')
+  const markdown = harness.document.createElement('div')
+  markdown.className = '_markdown_preview'
+  markdown.innerHTML = personaEnvelopeSeated({ version: 1, kind: 'normal', conclusion: { lead: '包裹层修复', body: '' }, suggestions: ['重启验证'], risk: '无' })
+  slot.appendChild(markdown)
+  flow.appendChild(slot)
+  harness.document.body.appendChild(flow)
+  harness.plugin.__test.decorate(flow)
+  assert.equal(markdown.getAttribute('data-dsh-persona-kind'), 'normal', 'seated envelope must render as cards')
+  assert.equal(markdown.querySelectorAll('[data-dsh-structured-card-type]').length, 3, 'three cards must render')
+  assert.equal(markdown.querySelectorAll('.md-code-block').length, 0, 'seated envelope must be consumed')
+  assert.equal(markdown.querySelectorAll('[class*="_fenceSeat"]').length, 0, 'empty fence seat must not remain')
+  assert.doesNotMatch(markdown.textContent, /"version":1/, 'raw JSON must not be shown')
+  assert.match(markdown.textContent, /包裹层修复/, 'lead must render')
+  assert.match(markdown.textContent, /块外正文/, 'outside prose must survive')
 })
 
 test('PersonaMode：裸 JSON 信封（不包围栏）按合同还原为卡片', () => {

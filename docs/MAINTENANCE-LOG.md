@@ -375,3 +375,15 @@
 - **实测（0.2.2-rc.2，隔离临时 DSH_HOME）**：`plugin add dsh-structured@1.0.14` PASS；`--dump-config` 装配块与 rc.1 时代零差异；宿主依赖树内 `@deepseek-ai/dsh-client-ui-theme@0.2.2-rc.2` 字体契约未变（--dsh-content-font-size / --dsh-font-family-text / --dsh-font-family-code / --dsh-code-font-size 全部在册，1.0.14 的跟随逻辑无需改动）。desktop 的 ui-theme 是宿主应用自带（非 npm standalone），rc.1→rc.2 均随 app 分发。
 - **改动**：package.json `dsh.compatibility.dshReleases` 新增 0.2.2-rc.1 / 0.2.2-rc.2 两条 advisory 声明（实测通过）；engines 区间 `>=0.1.7-rc.2 <0.4.0-0` 本就覆盖 rc.2，无需改。中途一次手工编辑把 package.json 括号改坏（ERR_INVALID_PACKAGE_CONFIG），已 `git checkout` 回退后用 JSON API 重放，最终 diff 仅 2 行。
 - **本轮动作**：兼容性实测 + 声明提交 `3fbe01f` 已推 main，CI success；临时 DSH_HOME 与 0.2.2-rc.2 安装目录已清理。
+
+## 2026-11-13 · 第 26 轮（rc.2 fenceSeat 回归修复）
+
+- **触发**：Boss 截图报告 rc.2 上 persona 回复卡片下方的原始 JSON 代码块没有被吞掉（「没包裹住」），卡片与裸块同屏出现。
+- **根因**（host asar latin1 反查）：0.2.2-rc.2 的 MarkdownDelegate 给**每个带语言的 fence** 新增了 renderCode 插槽，fence 外面多包一层 `.fenceSeat`（`_fenceSeat_13jw0_146`）；persona 块从 markdown 直接子级变成 seat 的子级。`renderPersonaContent` 的 outsideNodes 过滤只排除直接子级里的 `.md-code-block`，seat 整个被当成「块外正文」保留 → 原始 JSON 残留。检测/提取（querySelectorAll 全树）不受影响，所以卡片照常出，只是吞不掉块。
+- **修复**（src/client.js 两处，共 +11 行）：
+  1. outsideNodes 过滤改为排除「本身就是 persona 块」或「子树内含 persona 块」的节点（seat 也被吞掉）；
+  2. `renderPersonaError` 的块移除路径把空的 `[class*="_fenceSeat"]` 父层一并删掉，不留空盒子。
+- **回归测试**：test/persona-ui.test.mjs 新增 seated fixture（`personaEnvelopeSeated` = fenceSeat 包裹 + 块外正文），断言出卡 3 张、无 md-code-block 残留、无空 seat、无原始 JSON、块外正文存活。
+- **验证**：persona-ui 32/32、全套 109/109 PASS；lib 重建后与 src 逐行一致；本轮修了测试初跑暴露的「测试跑的是旧 lib」问题（先 build 再 test，pretest 脚本本就如此）。
+- **本地清理**：.tools/dbg-seat*.mjs 两个临时探针已删。
+- **本轮动作**：改动未提交，等 Boss 决定是否进 1.0.16（rc.2 用户当前可用 workaround：无，需发版）。
