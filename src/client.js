@@ -218,7 +218,8 @@ body[data-ds-dark-theme] .dss-scope {
   background:linear-gradient(135deg,#eef4ff,#ffffff 62%);
   box-shadow:var(--dss-shadow);
 }
-.dss-scope .dss-code > [class*="_bannerWrap"]{margin:0;padding:0;border:0;background:none}
+.dss-scope .dss-code > [class*="_bannerWrap"]{margin:0;padding:0;border:0;background:none;position:static;z-index:auto}
+.dss-scope [class*="_fenceSeat"]:has(> .dss-code){margin:0}
 .dss-scope .dss-code [data-code-block-banner]{
   display:flex;align-items:center;justify-content:space-between;gap:10px;
   margin:0 0 10px;padding:2px 0 7px!important;border:0;border-bottom:1px solid var(--dss-line);
@@ -226,7 +227,10 @@ body[data-ds-dark-theme] .dss-scope {
   font:700 calc(var(--dss-text-size) * 12 / 13.5)/1.5 var(--dss-sans)!important;letter-spacing:.04em;text-transform:none;
 }
 .dss-scope .dss-code [data-code-block-banner]::before{
-  content:"代码 · ";flex:none;color:var(--dss-blue-text);
+  content:none;flex:none;color:var(--dss-blue-text);
+}
+.dss-scope .dss-code[data-dsh-structured-lang] [data-code-block-banner]::before{
+  content:"代码 · ";
 }
 .dss-scope .dss-code [data-code-block-banner] > [class*="_heading"]{
   flex:1;min-width:0;justify-content:flex-start;text-align:left;color:inherit;
@@ -424,7 +428,8 @@ body[data-ds-dark-theme] .dss-scope {
   background:linear-gradient(135deg,#eef4ff,#ffffff 62%);
   box-shadow:var(--dss-shadow);
 }
-.dss-scope .dss-code > [class*="_bannerWrap"]{margin:0;padding:0;border:0;background:none}
+.dss-scope .dss-code > [class*="_bannerWrap"]{margin:0;padding:0;border:0;background:none;position:static;z-index:auto}
+.dss-scope [class*="_fenceSeat"]:has(> .dss-code){margin:0}
 .dss-scope .dss-code [data-code-block-banner]{
   display:flex;align-items:center;justify-content:space-between;gap:10px;
   margin:0 0 10px;padding:2px 0 7px!important;border:0;border-bottom:1px solid var(--dss-line);
@@ -432,7 +437,10 @@ body[data-ds-dark-theme] .dss-scope {
   font:700 12px/1.5 var(--dss-sans)!important;letter-spacing:.04em;text-transform:none;
 }
 .dss-scope .dss-code [data-code-block-banner]::before{
-  content:"代码 · ";flex:none;color:var(--dss-blue-text);
+  content:none;flex:none;color:var(--dss-blue-text);
+}
+.dss-scope .dss-code[data-dsh-structured-lang] [data-code-block-banner]::before{
+  content:"代码 · ";
 }
 .dss-scope .dss-code [data-code-block-banner] > [class*="_heading"]{
   flex:1;min-width:0;justify-content:flex-start;text-align:left;color:inherit;
@@ -787,7 +795,8 @@ body[data-ds-dark-theme] .dss-scope {
   background:linear-gradient(135deg,#eef4ff,#ffffff 62%);
   box-shadow:var(--dss-shadow);
 }
-.dss-scope .dss-code > [class*="_bannerWrap"]{margin:0;padding:0;border:0;background:none}
+.dss-scope .dss-code > [class*="_bannerWrap"]{margin:0;padding:0;border:0;background:none;position:static;z-index:auto}
+.dss-scope [class*="_fenceSeat"]:has(> .dss-code){margin:0}
 .dss-scope .dss-code [data-code-block-banner]{
   display:flex;align-items:center;justify-content:space-between;gap:10px;
   margin:0 0 10px;padding:2px 0 7px!important;border:0;border-bottom:1px solid var(--dss-line);
@@ -795,7 +804,10 @@ body[data-ds-dark-theme] .dss-scope {
   font:700 calc(var(--dss-text-size) * 12 / 13.5)/1.5 var(--dss-sans)!important;letter-spacing:.04em;text-transform:none;
 }
 .dss-scope .dss-code [data-code-block-banner]::before{
-  content:"代码 · ";flex:none;color:var(--dss-blue-text);
+  content:none;flex:none;color:var(--dss-blue-text);
+}
+.dss-scope .dss-code[data-dsh-structured-lang] [data-code-block-banner]::before{
+  content:"代码 · ";
 }
 .dss-scope .dss-code [data-code-block-banner] > [class*="_heading"]{
   flex:1;min-width:0;justify-content:flex-start;text-align:left;color:inherit;

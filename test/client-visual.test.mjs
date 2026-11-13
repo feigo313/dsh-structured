@@ -375,3 +375,19 @@ test('client：卡片字体与字号跟随宿主 ui-theme 变量', () => {
   assert.doesNotMatch(css, /font-size:\d+(\.\d+)?px/)
   assert.doesNotMatch(css, /font:[^;}]*\d+(\.\d+)?px\//)
 })
+
+test('client：代码块 banner 不吸顶、标签不重复、fenceSeat 不吞卡片间距', () => {
+  const dom = makeDom()
+  loadClient(dom).apply(makeContext(null))
+  const css = dom.styles.get('dsh-structured-skin-style')?.textContent ?? ''
+  assert.ok(css, 'skin style should be injected')
+  // 宿主 .bannerWrap 是 position:sticky + 不透明底；我们清掉了底色，长代码块滚动时
+  // 代码会从标题后穿过。改成 static，卡片整体化，不依赖底色遮罩。
+  assert.match(css, /\[class\*="_bannerWrap"\]\{[^}]*position:static/)
+  // 只对含我们自己卡片的 fenceSeat 归零间距，宿主的其它块（genui/diff）保持原样。
+  assert.match(css, /\[class\*="_fenceSeat"\]:has\(> \.dss-code\)\{margin:0\}/)
+  // 无语言代码块宿主显示 codeLabel「代码块」，再叠「代码 · 」就成了「代码 · 代码块」；
+  // 前缀只在有真实语言（LANG_ATTR 存在）时出现。
+  assert.match(css, /\[data-code-block-banner\]::before\{[^}]*content:none/)
+  assert.match(css, /\[data-dsh-structured-lang\] \[data-code-block-banner\]::before\{[^}]*content:"代码 · "/)
+})

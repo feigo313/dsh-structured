@@ -1,4 +1,6 @@
-# dsh-structured 1.0.16 验收（未发布）
+# dsh-structured 1.0.17 验收（未发布）
+
+[1.0.17 · 代码/构建] `npm test` 110/110；`npm run build` 完成；pack 58 文件 / 2411503 B / unpacked 3155523 B（较 1.0.16 基线 +477 / +2283）。三处视觉修正：① 代码块 banner 改 `position:static`（宿主 `_bannerWrap` 是 sticky + 不透明底，我们清掉了底色，长代码块滚动时标题会叠字）；② 「代码 · 」前缀改为条件显示（只在 `data-dsh-structured-lang` 存在时输出，避免无语言块显示「代码 · 代码块」）；③ `[class*="_fenceSeat"]:has(> .dss-code){margin:0}` 让卡片 14px 间距不再被宿主的 16px 折叠吞掉，宿主其它块保持原样。回归断言锁住这三条。
 
 [1.0.16 · 代码/构建] `npm test` 109/109；`npm run build` 完成；pack 58 文件 / 2411026 B / unpacked 3153240 B（较 1.0.15 基线 +1587 B，来自 fenceSeat 修复与 seated fixture）。rc.2 起 `.fenceSeat` 包裹层的「没包裹住」已修：块外正文过滤改为排除子树含 persona 块的节点，错误降级路径清空 seat；回归 fixture 按 rc.2 真实 DOM（fenceSeat + Rp banner「代码块」+ pre>code>span.line）构造，断言出卡 3 张 / 零 `.md-code-block` / 零空 seat / 块外正文存活。rc.3 兼容性实测：渲染契约哈希类名与 rc.2 逐项相同、`systemPrompt.section` / `getSectionOrder` 签名不变、隔离 DSH_HOME 下 `plugin add dsh-structured@1.0.15` PASS、`--dump-config` exit 0。
 

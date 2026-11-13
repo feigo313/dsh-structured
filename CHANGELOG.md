@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.17 — 2026-11-13
+
+- 代码块 banner 不再吸顶：宿主 `.bannerWrap` 是 `position:sticky` + 不透明底（用它遮住滚过的代码），我们为了卡片化清掉了底色——长代码块（超过一屏）滚动时，代码文字会从标题条后面穿出来、和标题糊在一起。现在把 banner 改为 `position:static`，卡片整体化，不再依赖底色遮罩。
+- 代码块标签不再重复：宿主 banner 的语言位规则是「认识的语言显示语言，不认识或不写语言退回通用标签『代码块』」，我们又在前面固定加「代码 · 」，于是无语言代码块显示成「代码 · 代码块」。现在前缀只在有真实语言（`data-dsh-structured-lang` 存在）时出现。
+- 卡片间距不再被 fenceSeat 吞掉：宿主给 fence 外层 `_fenceSeat` 设了 `margin:16px 0`，与我们 `.dss-code` 的 `margin:14px 0` 父子折叠后取 16px。现在只对「直接子级是 `.dss-code`」的 seat 归零间距，让卡片的 14px 生效；宿主的其它块（genui / diff）保持原间距。
+- 回归：新增 CSS 契约断言（banner 必须 `position:static`、seated 卡片间距归零、前缀条件规则存在），全套 110/110。
+
 ## 1.0.16 — 2026-11-13
 
 - 修复 DSH 0.2.2-rc.2 起 `MarkdownDelegate` 给带语言的 fence 新增 `.fenceSeat` 包裹层导致的「没包裹住」：persona 块从 markdown 直接子级变成 seat 子级，旧过滤把整个 seat 当「块外正文」保留，卡片正常出但下方残留原始 JSON。现在 `renderPersonaContent` 的块外正文过滤改为排除「子树含 persona 块」的节点，错误降级路径同步清掉空 `_fenceSeat` 容器。
