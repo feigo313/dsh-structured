@@ -368,3 +368,10 @@
 - **下载**：npm 近 7 天 2,757（11-05~11-11，含本机安装/测试流量）。
 - **漂移**：工作树仅 .agents/ 未跟踪；本地比远端多 2 个日志提交（412a484、219ff3f），按闸门**未推**，等 Boss 明确同意或随下次发布一并推。
 - **本轮动作**：只读复核 + 记录；无 issue 可修，未跑测试、未改代码、未 push。
+
+## 2026-11-13 · 第 25 轮（兼容性补充）
+
+- **触发**：Boss 报告 desktop 已升级到 DSH 0.2.2-rc.2。实测宿主 app.asar 内打包的 `@deepseek-ai/dsh` 为 0.2.2-rc.1，npm `next` tag 已有 0.2.2-rc.2。
+- **实测（0.2.2-rc.2，隔离临时 DSH_HOME）**：`plugin add dsh-structured@1.0.14` PASS；`--dump-config` 装配块与 rc.1 时代零差异；宿主依赖树内 `@deepseek-ai/dsh-client-ui-theme@0.2.2-rc.2` 字体契约未变（--dsh-content-font-size / --dsh-font-family-text / --dsh-font-family-code / --dsh-code-font-size 全部在册，1.0.14 的跟随逻辑无需改动）。desktop 的 ui-theme 是宿主应用自带（非 npm standalone），rc.1→rc.2 均随 app 分发。
+- **改动**：package.json `dsh.compatibility.dshReleases` 新增 0.2.2-rc.1 / 0.2.2-rc.2 两条 advisory 声明（实测通过）；engines 区间 `>=0.1.7-rc.2 <0.4.0-0` 本就覆盖 rc.2，无需改。中途一次手工编辑把 package.json 括号改坏（ERR_INVALID_PACKAGE_CONFIG），已 `git checkout` 回退后用 JSON API 重放，最终 diff 仅 2 行。
+- **本轮动作**：兼容性实测 + 声明提交 `3fbe01f` 已推 main，CI success；临时 DSH_HOME 与 0.2.2-rc.2 安装目录已清理。
