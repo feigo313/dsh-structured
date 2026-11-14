@@ -415,3 +415,13 @@
   - `npm publish` 必须显式带 `--registry https://registry.npmjs.org`：本机全局 registry 是 npmmirror，镜像会回 `+ pkg@ver` 假成功，本地 `npm view` 永远看不到新版本。**判定发版成败只认官方单版本端点 + `?ts=` 破缓存。**
   - `gh pr edit` 需要 `read:project` scope（当前 token 没有），改用 `gh api -X PATCH repos/<owner>/<repo>/pulls/<n>` 改标题/正文，无需额外 scope。
 - **副作用与清理**：`.tools/apply-1017-css.mjs`、`market-1017.mjs` 为一次性脚本，保留在 .tools；无临时 profile / 后台作业残留。
+
+## 2026-11-14 · 第 29 轮（日常巡检）
+
+- **issue 水位**：0 open / 1 closed（#2「一些渲染问题…」已关；#3 为 PR，已 MERGED）。`search/issues` total=1，与列表一致。#1 / #4 实体仍 404（仅事件残留，无正文可读）：events 最新一条是 2026-11-13T03:18:12Z 的 `referenced #4` / `referenced #1`（引用事件，不是新 issue 或新评论）→ 维持「证据不足、保持 open 记录」口径，不进入分诊。
+- **市场闭环（第 28 轮等待项）**：上游 PR [awesome-dsh-plugin#14837](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/14837) 状态 **MERGED**；核对上游 `main` 的 `data/plugins/feigo313__dsh-structured.yml`，`tarball` 已指向 `releases/download/v1.0.17/dsh-structured-1.0.17.tgz` → 市场 listing 与 1.0.17 同版本，无 CDN 滞后待跟。
+- **CI**：`212ec36` / `831d507` / `9e645ac` / `912a0bc` 四个 run 全 success（ci，push）。
+- **npm / Release**：npm `latest = 1.0.17`、共 25 个版本；Release `v1.0.17` 资产 `dsh-structured-1.0.17.tgz` 2,412,018 B（2026-11-13T14:56:09Z）。
+- **漂移**：工作树干净（`.agents/` 已入 `.gitignore`），`git fetch` 后本地与 `origin/main` 0/0 对齐，HEAD = 212ec36。
+- **本轮动作**：只读复核 + 记录；**0 个新 issue、0 个新 PR、0 项需修复**，未跑测试、未改代码、未 push（日志提交留本地，随下次发布一并推）。
+- **待办不变**（第 28 轮遗留）：① 1.0.17 三条视觉改动未做 style-gate 实机像素复核；② 死常量 `V5_TOKENS` / `V5_COMPONENTS` 未清；③ issue #4 处置待 Boss 拍板。
