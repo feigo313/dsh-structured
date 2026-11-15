@@ -425,3 +425,17 @@
 - **漂移**：工作树干净（`.agents/` 已入 `.gitignore`），`git fetch` 后本地与 `origin/main` 0/0 对齐，HEAD = 212ec36。
 - **本轮动作**：只读复核 + 记录；**0 个新 issue、0 个新 PR、0 项需修复**，未跑测试、未改代码、未 push（日志提交留本地，随下次发布一并推）。
 - **待办不变**（第 28 轮遗留）：① 1.0.17 三条视觉改动未做 style-gate 实机像素复核；② 死常量 `V5_TOKENS` / `V5_COMPONENTS` 未清；③ issue #4 处置待 Boss 拍板。
+
+## 2026-11-15 · 第 30 轮（issue #5 · P1 渲染崩溃修复）
+
+- **issue 水位**：**1 open / 1 closed** —— 新开 [#5](https://github.com/feigo313/dsh-structured/issues/5)「1.0.17 状态胶囊直接改写 React 管理的表格单元格，导致整条消息渲染崩溃（DOMException）」（2026-11-14T11:28:59Z，作者 ljyzww）；#2 仍 closed；#1/#4 实体 404 仅事件残留。
+- **三态判定：成立（P1）**。证据链：① 报告指向 `src/client.js` 的 `statusFor` → `ensureStatusPill`，我核对源码 1052–1068 行确有 `cell.textContent = ''` + `cell.appendChild(pill)`，清空的是 React 渲染出的文本节点；② 同文件另两处同类写实（`banner.appendChild(button)`、`strong.textContent = label`）；③ 机制与宿主日志吻合：节点被移除 → reconcile 抛 `NotFoundError` → `SlotErrorBoundary` 把 `conversation.chat.node` 换成空 `div[data-slot-error]` → 整条回复空白且刷新依旧空白（每次渲染都复现）。报告无夹带、无安全面（纯 DOM 装饰）、无红线引入，来源为本机自用反馈。
+- **复现**：未在真实会话里制造崩溃（会打断会话），改用 linkedom 真实 DOM 断言复现装饰行为——旧实现在状态单元格上 `textContent` 变为空、子节点被替换，新实现两处身份均保持。
+- **修复（commit 94c6005，本地）**：
+  1. 删除 `ensureStatusPill`（清空 textContent + 插胶囊），改为 `markStatusCell` 只写 `data-dsh-structured-status-cell="success|warn|error"`；视觉由 CSS 属性选择器接管（单元格浅色底 + 左侧 3px 色条，三套主题浅/深各一组，共 18 行），**单元格原文完整保留**（不再把「✅ 完成：已更新」替换成「通过」）。
+  2. 卡片标题 `strong.textContent = label` → 只写 `data-dsh-card-label`，不再替换文本节点。
+  3. `banner.appendChild(button)` 保留（宿主 banner 已有 button 时提前 return，rc.2/rc.3 走不到），并在注释标注风险。
+  4. 顺带删除死常量 `STATUS_LABELS`。
+- **四条验证**：`npm test` **112/112**（110 → 112，新增两条 React 安全回归）；`desktop-check` 全 PASS；`npm pack` 58 文件 / **2,415,139 B** / unpacked 3,168,671 B、无禁入文件；`lib` 由 `src` 重建（197,216 B）。
+- **issue 回复**：已回 [#issuecomment-6887680066](https://github.com/feigo313/dsh-structured/issues/5#issuecomment-6887680066)，写明根因、修法、验证数字、临时规避（状态列别用 ✅ 开头）与「1.0.18 待发版」；**保持 open**，发版后补升级命令再 `--reason completed` 关闭（符合手册第 7 节"修复完成需给升级命令"）。
+- **闸门**：版本已 bump 1.0.18、CHANGELOG/ACCEPTANCE/pack 基线已更新，**仅本地提交**；push / tag / npm publish / Release / 市场 PR 全部等 Boss 明确同意（`npm publish` 需显式 `--registry https://registry.npmjs.org`）。
