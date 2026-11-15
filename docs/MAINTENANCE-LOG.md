@@ -439,3 +439,16 @@
 - **四条验证**：`npm test` **112/112**（110 → 112，新增两条 React 安全回归）；`desktop-check` 全 PASS；`npm pack` 58 文件 / **2,415,139 B** / unpacked 3,168,671 B、无禁入文件；`lib` 由 `src` 重建（197,216 B）。
 - **issue 回复**：已回 [#issuecomment-6887680066](https://github.com/feigo313/dsh-structured/issues/5#issuecomment-6887680066)，写明根因、修法、验证数字、临时规避（状态列别用 ✅ 开头）与「1.0.18 待发版」；**保持 open**，发版后补升级命令再 `--reason completed` 关闭（符合手册第 7 节"修复完成需给升级命令"）。
 - **闸门**：版本已 bump 1.0.18、CHANGELOG/ACCEPTANCE/pack 基线已更新，**仅本地提交**；push / tag / npm publish / Release / 市场 PR 全部等 Boss 明确同意（`npm publish` 需显式 `--registry https://registry.npmjs.org`）。
+
+## 2026-11-15 · 第 31 轮（主题 + 复制修复，版本线切 1.1.x）
+
+- **追加两个用户反馈修复**（同一天下午，Boss 从 B 站评论区转来）：
+  1. **主题切换不生效**（用户「怎奈何彼岸花开」）：`body[data-dsh-structured-theme]` 属性一直在写，但活 CSS 里**没有任何选择器消费它**，三套 `.dss-scope{}` 变量块按顺序层叠 → 永远是最后一套 deepseek。补齐 Codex（中性灰 + OpenAI 绿）/ Anthropic（暖米 + 橙棕）两套浅色及深色变体，共 4 个属性选择器块，主题真正生效。
+  2. **复制带装饰**（用户「只吃猫的鱼_」）：配置页承诺「开场与收尾只在界面展示、复制不带」，代码从未实现。身份头 / 开场 / 收尾统一 `user-select:none`，选中复制只留正文。
+- **审查**：`gh` 之前发现有 3 个非本轮 roadmap 文档提交（`80c2da5`/`6e1c297`/`ead1bfb`，纯 `docs/ROADMAP.md`，记录 v1.1 候选 A/B/C，其中 B = 卡片级复制、含 Boss 2026-11-14 的解读）—— 无代码夹带，随本次一起推。
+- **1.0.18 发布**：tag/Release 已建、npm publish 成功（26 个版本）。
+- **版本线切换（Boss 指令 2026-11-15）**：不再继续堆 1.0.x 补丁号，直接开 1.1.x。`1.1.0` 内容与 1.0.18 完全相同（commit `6f13b5f`），已 tag/push、npm publish 成功（latest=1.1.0，sha1 `02418d96…` 与 Release tgz 一致）、Release `v1.1.0` 已建；**npm 上 1.0.18 已 deprecated** 并指向 1.1.0。desktop profile 已升级到 1.1.0。
+- **验证数字**：`npm test` **113/113**（新增真实 DOM 节点身份断言 ×2 + CSS 契约断言 ×1）；`desktop-check` 全 PASS；pack 58 文件 / 2,418,110 B / unpacked 3,175,816 B；`lib` 由 `src` 重建（200,859 B）。
+- **issue #5 已关闭**：回复升级命令（`dsh plugin --profile <profile> add dsh-structured@1.1.0`）+ 根因/修法/验证，`--reason completed`。
+- **市场 PR 待补**：`gh` 核心 API 限流已耗尽（remaining=0，约 1 小时后恢复），1.1.0 的 listing 更新脚本 `market-110.mjs` 已就绪但未跑通 —— 恢复后补一个 `feat/dsh-structured-1.1.0` PR。
+- **待办**：v1.1 规划里的「卡片级复制」（五档粒度、净内容、幂等门禁、触屏可达）尚未实现；本次只有 `user-select:none` 的净内容修复，不等同于卡片复制按钮。下一次功能版（1.1.1）按 `docs/ROADMAP.md` B 项做。
