@@ -1357,3 +1357,67 @@ test('React 安全：卡片标题 strong 不被替换文本，只写属性（iss
   assert.equal(strong.firstChild, firstText, 'strong text node identity must be preserved')
   assert.equal(strong.getAttribute('data-dsh-card-label'), '结论')
 })
+
+test('卡片级复制：五档按钮齐备、净内容、连续渲染幂等（v1.1）', () => {
+  const harness = makeHarness(baseState, async () => true)
+  const persona = { prefix: 'Boss，', suffix: '——完' }
+  const tone = JSON.stringify({ schema: 'dsh-structured/tone@1', ...persona, style: '搞怪', skipIn: ['code', 'diff', 'error', 'short', 'table'] })
+  harness.plugin.__test.setPersonaModeConfig({ personaEnabled: true, persona: tone, personaName: 'N', personaSignature: 'S', personaAvatar: '' })
+
+  const flow = harness.document.createElement('div')
+  flow.setAttribute('data-chat-flow-kind', 'assistant-step')
+  flow.setAttribute('data-chat-node-key', 'copy-' + Math.random())
+  const slot = harness.document.createElement('div')
+  slot.setAttribute('data-slot', 'conversation.chat.node')
+  const markdown = harness.document.createElement('div')
+  markdown.className = '_markdown_preview'
+  markdown.innerHTML = personaEnvelope({
+    version: 1,
+    kind: 'table',
+    conclusion: { lead: '能上，先灰度', body: '回滚脚本先验收' },
+    suggestions: ['跑通一条真实链路', '把回滚写进验收'],
+    risk: '自动更新跳过确认',
+    table: { head: ['模块', '状态'], rows: [['注入链路', '✅ 通过'], ['代码皮肤', '❌ 阻断']] },
+  })
+  slot.appendChild(markdown)
+  flow.appendChild(slot)
+  harness.document.body.appendChild(flow)
+  harness.plugin.__test.decorate(flow)
+
+  const cardButtons = [...markdown.querySelectorAll('[data-dsh-card-copy]')]
+  assert.equal(cardButtons.length, 3, '结论 / 建议 / 风险各一个复制按钮')
+  assert.deepEqual(cardButtons.map((b) => b.getAttribute('data-dsh-card-copy')), ['结论', '建议', '风险'])
+  for (const button of cardButtons) {
+    assert.equal(button.getAttribute('aria-label'), '复制' + button.getAttribute('data-dsh-card-copy'))
+    assert.equal(button.tagName, 'BUTTON', '必须是真实 button（键盘可达）')
+  }
+  assert.equal(markdown.querySelectorAll('[data-dsh-table-copy]').length, 1, '表格复制按钮')
+  assert.equal(markdown.querySelectorAll('[data-dsh-reply-copy]').length, 1, '整条回复复制按钮')
+
+  // 幂等：流式 + MutationObserver 会反复进 decorate，按钮数不能涨。
+  for (let i = 0; i < 10; i += 1) harness.plugin.__test.decorate(flow)
+  assert.equal(markdown.querySelectorAll('[data-dsh-card-copy]').length, 3, '连续 decorate 10 次按钮数不变')
+  assert.equal(markdown.querySelectorAll('[data-dsh-table-copy]').length, 1)
+  assert.equal(markdown.querySelectorAll('[data-dsh-reply-copy]').length, 1)
+
+  // 净内容：卡片文本不带标签，也不带开场 / 收尾签名。
+  const api = harness.plugin.__test.cardCopyApi()
+  const cards = [...markdown.querySelectorAll('blockquote')]
+  const conclusionText = api.personaCardPlainText(cards[0])
+  assert.equal(conclusionText, '能上，先灰度\n回滚脚本先验收')
+  const suggestionText = api.personaCardPlainText(cards[1])
+  assert.equal(suggestionText, '1. 跑通一条真实链路\n2. 把回滚写进验收')
+  const riskText = api.personaCardPlainText(cards[2])
+  assert.equal(riskText, '自动更新跳过确认')
+  assert.doesNotMatch(conclusionText + suggestionText + riskText, /结论|建议|风险|Boss，|——完/)
+
+  // 表格：TSV 制表符分列。
+  const table = markdown.querySelector('table')
+  assert.equal(api.personaTableTsv(table), '模块\t状态\n注入链路\t✅ 通过\n代码皮肤\t❌ 阻断')
+
+  // 整条回复：卡片 + 表格，仍不含标签与前后缀。
+  const reply = api.personaReplyPlainText(markdown)
+  assert.match(reply, /能上，先灰度/)
+  assert.match(reply, /模块\t状态/)
+  assert.doesNotMatch(reply, /结论|建议|风险|Boss，|——完/)
+})

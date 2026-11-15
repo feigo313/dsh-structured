@@ -1,4 +1,7 @@
-# dsh-structured 1.1.0 验收（未发布）
+# dsh-structured 1.1.1 验收（未发布）
+
+[1.1.1 · 卡片级复制] 五档按钮（结论 / 建议 / 风险 / 表格 / 整条回复）：内容为净文本（无卡标签、无身份头、无开场收尾），卡片内换行与列表序号保留，表格输出 TSV。按钮 hover/focus-within 显示、触屏常显，aria-label 齐备；连续 decorate 10 次按钮数不变（幂等）。新增回归测试（五档按钮、净文本逐字、TSV 逐字、幂等），全套 114/114；pack 58 文件 / 2425370 B / unpacked 3192444 B。
+
 
 [1.1.0 · 代码/构建] `npm test` 113/113；`npm run build` 完成；`desktop-check` 全 PASS；pack 58 文件 / 2418110 B / unpacked 3175816 B。修复 issue #5 的 P1 渲染崩溃：状态表格单元格改为只写属性（data-dsh-structured-status-cell），不再清空 textContent / 插入胶囊节点，避免 React reconcile 抛 NotFoundError 导致整条回复空白；卡片标题 strong 同样改为只写 data-dsh-card-label，不替换文本节点。新增真实 DOM 回归（单元格文本与子节点身份、strong 文本节点身份）与 CSS 契约断言（三套主题选择器必须存在、装饰文本 user-select:none 不参与复制）。另修主题不生效（Codex/Anthropic 两套配色 + 深色变体落地）与复制带装饰（身份头/开场/收尾 user-select:none）。
 
