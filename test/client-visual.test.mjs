@@ -409,6 +409,36 @@ test('client：三套主题选择器真的被 CSS 消费，装饰文本不参与
   assert.match(css, /\.dss-persona-prefix,\.dss-persona-suffix,\[data-dsh-persona-head\]\{user-select:none/)
 })
 
+test('client：三套主题的卡片配色两两不同，复制按钮常驻可见', () => {
+  const dom = makeDom()
+  loadClient(dom).apply(makeContext(null))
+  const css = dom.styles.get('dsh-structured-skin-style')?.textContent ?? ''
+  assert.ok(css, 'skin style should be injected')
+  const soft = (body, key) => new RegExp('--dss-' + key + '-soft:([^;]+)').exec(body)?.[1]?.trim()
+  const baseAt = css.indexOf('\n.dss-scope {')
+  assert.ok(baseAt >= 0, 'deepseek 基准块必须存在')
+  const deepseek = css.slice(baseAt, css.indexOf('}', baseAt))
+  const themeBlock = (name) => {
+    const at = css.indexOf('body[data-dsh-structured-theme="' + name + '"] .dss-scope')
+    assert.ok(at >= 0, name + ' 主题块必须存在')
+    return css.slice(at, css.indexOf('}', at))
+  }
+  // 只让结论卡（--dss-blue-soft）跟主题走、建议卡（绿）与风险卡（琥珀）仍是同一套值，
+  // 就是 2026-11-15 实机反馈的「切主题只有结论卡变」。三套主题的这两组值必须两两不同。
+  for (const key of ['green', 'amber']) {
+    const base = soft(deepseek, key)
+    const codex = soft(themeBlock('codex'), key)
+    const anthropic = soft(themeBlock('anthropic'), key)
+    assert.ok(base && codex && anthropic, key + '-soft 三套主题都必须有值')
+    assert.notEqual(codex, anthropic, key + '-soft：codex 与 anthropic 必须不同')
+    assert.notEqual(codex, base, key + '-soft：codex 必须不同于 deepseek')
+    assert.notEqual(anthropic, base, key + '-soft：anthropic 必须不同于 deepseek')
+  }
+  // 卡片 / 表格复制按钮常驻可见（Boss 2026-11-15：不要 hover 才出现），hover 只是加深。
+  assert.match(css, /\.dss-card-copy[^}]*opacity:\.6/)
+  assert.doesNotMatch(css, /\.dss-card-copy[^}]{0,200}opacity:0[^.6-9]/)
+})
+
 test('client：卡片 / 表格 / 代码块底色走主题变量，不再硬编码 hex', () => {
   const dom = makeDom()
   loadClient(dom).apply(makeContext(null))

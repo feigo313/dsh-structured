@@ -658,7 +658,7 @@ body[data-ds-dark-theme] [data-dsh-structured-config] button#dsh-structured-them
 .dss-persona-prefix,.dss-persona-suffix,[data-dsh-persona-head]{user-select:none;-webkit-user-select:none}
 /* 卡片级复制：hover / 键盘聚焦才显示，触屏常显（无 hover 媒体查询兜底）。 */
 .dss-scope .dss-card{position:relative}
-.dss-scope .dss-card-copy,.dss-scope .dss-table-copy,.dss-scope .dss-reply-copy-btn{display:inline-grid;place-items:center;width:24px;height:24px;padding:0;border:0;border-radius:5px;background:transparent;color:var(--dss-ink-3);cursor:pointer;opacity:0;transition:opacity .12s}
+.dss-scope .dss-card-copy,.dss-scope .dss-table-copy,.dss-scope .dss-reply-copy-btn{display:inline-grid;place-items:center;width:24px;height:24px;padding:0;border:0;border-radius:5px;background:transparent;color:var(--dss-ink-3);cursor:pointer;opacity:.6;transition:opacity .12s}
 .dss-scope .dss-card-copy{position:absolute;top:6px;right:6px}
 .dss-scope .dss-table-wrap{position:relative;margin:14px 0}
 .dss-scope .dss-table-wrap > table{margin:0}
@@ -669,7 +669,7 @@ body[data-ds-dark-theme] [data-dsh-structured-config] button#dsh-structured-them
 .dss-scope .dss-table-wrap:hover .dss-table-copy,.dss-scope .dss-table-wrap:focus-within .dss-table-copy,
 .dss-scope .dss-reply-copy:hover .dss-reply-copy-btn,.dss-scope .dss-reply-copy:focus-within .dss-reply-copy-btn{opacity:1}
 .dss-scope .dss-card-copy:hover,.dss-scope .dss-table-copy:hover,.dss-scope .dss-reply-copy-btn:hover{background:var(--dss-paper-2);color:var(--dss-ink)}
-@media (hover:none){.dss-scope .dss-card-copy,.dss-scope .dss-table-copy,.dss-scope .dss-reply-copy-btn{opacity:.6}}
+@media (hover:none){.dss-scope .dss-card-copy,.dss-scope .dss-table-copy,.dss-scope .dss-reply-copy-btn{opacity:.85}}
 body[data-ds-dark-theme] .dss-scope {
   --dss-page:#1a1b1e;--dss-paper:#242629;--dss-paper-2:#2b2e33;
   --dss-ink:#e6e9ef;--dss-ink-2:#b7bdc9;--dss-ink-3:#8a92a0;
@@ -688,8 +688,8 @@ body[data-dsh-structured-theme="codex"] .dss-scope {
   --dss-ink:#0d0d0d;--dss-ink-2:#3f3f46;--dss-ink-3:#71717a;
   --dss-line:#e4e4e7;--dss-line-strong:#d4d4d8;
   --dss-blue:#10a37f;--dss-blue-hover:#0d8a6a;--dss-blue-text:#0f7a5f;--dss-th-text:#065f46;--dss-blue-soft:#ecfdf5;
-  --dss-green:#047857;--dss-green-strong:#059669;--dss-green-text:#047857;--dss-green-soft:#f0faf4;
-  --dss-amber:#b45309;--dss-amber-strong:#d97706;--dss-amber-text:#b45309;--dss-amber-soft:#fffbeb;
+  --dss-green:#047857;--dss-green-strong:#059669;--dss-green-text:#047857;--dss-green-soft:#e2f4ea;
+  --dss-amber:#b45309;--dss-amber-strong:#d97706;--dss-amber-text:#b45309;--dss-amber-soft:#fbeed7;
   --dss-red:#b91c1c;--dss-red-soft:#fef2f2;
   --dss-head-bg:linear-gradient(90deg,rgba(16,163,127,.16),rgba(16,163,127,.04));--dss-zebra:rgba(0,0,0,.02);
   --dss-code-bg:#f6f8f8;--dss-code-border:#d7e8e2;--dss-code-text:#27272a;
@@ -700,8 +700,8 @@ body[data-ds-dark-theme][data-dsh-structured-theme="codex"] .dss-scope {
   --dss-ink:#ededf0;--dss-ink-2:#b4b4bb;--dss-ink-3:#8a8a93;
   --dss-line:#2e2e33;--dss-line-strong:#3f3f46;
   --dss-blue:#34d399;--dss-blue-hover:#6ee7b7;--dss-blue-text:#6ee7b7;--dss-th-text:#5eead4;--dss-blue-soft:rgba(52,211,153,.14);
-  --dss-green:#34d399;--dss-green-strong:#10b981;--dss-green-text:#34d399;--dss-green-soft:rgba(16,185,129,.14);
-  --dss-amber:#fbbf24;--dss-amber-strong:#f59e0b;--dss-amber-text:#fbbf24;--dss-amber-soft:rgba(245,158,11,.12);
+  --dss-green:#34d399;--dss-green-strong:#10b981;--dss-green-text:#34d399;--dss-green-soft:rgba(52,211,153,.18);
+  --dss-amber:#fbbf24;--dss-amber-strong:#f59e0b;--dss-amber-text:#fbbf24;--dss-amber-soft:rgba(251,191,36,.16);
   --dss-red:#f87171;--dss-red-soft:rgba(248,113,113,.16);
   --dss-head-bg:linear-gradient(90deg,rgba(52,211,153,.18),rgba(52,211,153,.05));--dss-zebra:rgba(255,255,255,.03);
   --dss-code-bg:rgba(0,0,0,.28);--dss-code-border:rgba(52,211,153,.26);--dss-code-text:#d4d4d8;
@@ -712,8 +712,8 @@ body[data-dsh-structured-theme="anthropic"] .dss-scope {
   --dss-ink:#1f1e1d;--dss-ink-2:#514f4a;--dss-ink-3:#8a857c;
   --dss-line:#e8e2d6;--dss-line-strong:#d8d1c2;
   --dss-blue:#cc785c;--dss-blue-hover:#b8623f;--dss-blue-text:#a14a2e;--dss-th-text:#7c3a20;--dss-blue-soft:#fdf0ea;
-  --dss-green:#3f7d4e;--dss-green-strong:#2f6b3d;--dss-green-text:#3f7d4e;--dss-green-soft:#eef6ef;
-  --dss-amber:#b45309;--dss-amber-strong:#d97706;--dss-amber-text:#b45309;--dss-amber-soft:#fdf6e8;
+  --dss-green:#3f7d4e;--dss-green-strong:#2f6b3d;--dss-green-text:#3f7d4e;--dss-green-soft:#eef2d6;
+  --dss-amber:#b45309;--dss-amber-strong:#d97706;--dss-amber-text:#b45309;--dss-amber-soft:#f9e8cc;
   --dss-red:#b42318;--dss-red-soft:#fdf0ee;
   --dss-head-bg:linear-gradient(90deg,rgba(204,120,92,.18),rgba(204,120,92,.05));--dss-zebra:rgba(204,120,92,.035);
   --dss-code-bg:#f7f4ee;--dss-code-border:#e6ddcc;--dss-code-text:#3b352c;
@@ -724,8 +724,8 @@ body[data-ds-dark-theme][data-dsh-structured-theme="anthropic"] .dss-scope {
   --dss-ink:#ede7dc;--dss-ink-2:#c4bcae;--dss-ink-3:#9a9184;
   --dss-line:#3a3630;--dss-line-strong:#4b463e;
   --dss-blue:#e8a087;--dss-blue-hover:#f0b8a3;--dss-blue-text:#f0b8a3;--dss-th-text:#fbbf24;--dss-blue-soft:rgba(232,160,135,.14);
-  --dss-green:#6ee7b7;--dss-green-strong:#34d399;--dss-green-text:#6ee7b7;--dss-green-soft:rgba(110,231,183,.12);
-  --dss-amber:#fbbf24;--dss-amber-strong:#f59e0b;--dss-amber-text:#fbbf24;--dss-amber-soft:rgba(245,158,11,.12);
+  --dss-green:#6ee7b7;--dss-green-strong:#34d399;--dss-green-text:#6ee7b7;--dss-green-soft:rgba(163,177,102,.18);
+  --dss-amber:#fbbf24;--dss-amber-strong:#f59e0b;--dss-amber-text:#fbbf24;--dss-amber-soft:rgba(232,160,135,.18);
   --dss-red:#f87171;--dss-red-soft:rgba(248,113,113,.16);
   --dss-head-bg:linear-gradient(90deg,rgba(232,160,135,.2),rgba(232,160,135,.06));--dss-zebra:rgba(255,255,255,.03);
   --dss-code-bg:rgba(0,0,0,.28);--dss-code-border:rgba(232,160,135,.24);--dss-code-text:#ddd5c8;
