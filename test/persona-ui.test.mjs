@@ -393,8 +393,9 @@ test('v5 预览：三态走公共装饰管线，不再手写卡片/状态签', a
   let html = harness.previewHtml()
   assert.match(html, /注入链路/)
   assert.match(html, /data-dsh-structured-status-table="1"/)
-  assert.match(html, /data-dsh-structured-status-pill="1"/)
-  assert.match(html, /dss-status-success/)
+  // 状态只写属性、不再往 React 管理的单元格里塞胶囊节点（issue #5 的崩溃源）。
+  assert.match(html, /data-dsh-structured-status-cell="success"/)
+  assert.doesNotMatch(html, /data-dsh-structured-status-pill/, 'status pill node must not be created')
   await harness.click('短答')
   html = harness.previewHtml()
   assert.match(html, /现在三点/)
@@ -1302,4 +1303,57 @@ test('v5 Client/Host parity：同一无害/恶意 JSON 结果一致', () => {
     assert.equal(client.ok, host.ok, 'case ' + index)
     if (!client.ok && !host.ok) assert.equal(client.pointer, host.pointer, 'pointer case ' + index)
   }
+})
+
+test('React 安全：状态表格只写属性，不改宿主受控子树（issue #5）', () => {
+  const harness = makeHarness(baseState, async () => true)
+  const flow = harness.document.createElement('div')
+  flow.setAttribute('data-chat-flow-kind', 'assistant-step')
+  flow.setAttribute('data-chat-node-key', 'react-safe-' + Math.random())
+  const slot = harness.document.createElement('div')
+  slot.setAttribute('data-slot', 'conversation.chat.node')
+  const markdown = harness.document.createElement('div')
+  markdown.className = '_markdown_preview'
+  markdown.innerHTML = '<table><tbody><tr><td>✅ 完成：已更新</td><td>6 条</td></tr><tr><td>⚠ 待做</td><td>2 条</td></tr></tbody></table>'
+  slot.appendChild(markdown)
+  flow.appendChild(slot)
+  harness.document.body.appendChild(flow)
+
+  const cells = [...markdown.querySelectorAll('td')]
+  const before = cells.map((cell) => ({ text: cell.textContent, nodes: cell.childNodes.length }))
+  harness.plugin.__test.decorate(flow)
+
+  // React 用真实节点身份做 reconcile：清空/替换/新增子节点都会让下一次更新抛 NotFoundError。
+  cells.forEach((cell, index) => {
+    assert.equal(cell.textContent, before[index].text, 'cell text must survive (React owns it)')
+    assert.equal(cell.childNodes.length, before[index].nodes, 'no plugin node may be injected into a cell')
+  })
+  assert.equal(cells[0].getAttribute('data-dsh-structured-status-cell'), 'success')
+  assert.equal(cells[0].closest('tr').getAttribute('data-dsh-structured-row'), 'success')
+  assert.equal(markdown.querySelectorAll('[data-dsh-structured-status-pill]').length, 0, 'no pill node')
+  assert.equal(cells[2].getAttribute('data-dsh-structured-status-cell'), 'warn')
+})
+
+test('React 安全：卡片标题 strong 不被替换文本，只写属性（issue #5 同类）', () => {
+  const harness = makeHarness(baseState, async () => true)
+  const flow = harness.document.createElement('div')
+  flow.setAttribute('data-chat-flow-kind', 'assistant-step')
+  flow.setAttribute('data-chat-node-key', 'react-safe-quote-' + Math.random())
+  const slot = harness.document.createElement('div')
+  slot.setAttribute('data-slot', 'conversation.chat.node')
+  const markdown = harness.document.createElement('div')
+  markdown.className = '_markdown_preview'
+  markdown.innerHTML = '<blockquote><p><strong>结论</strong>：能上，先灰度。</p></blockquote>'
+  slot.appendChild(markdown)
+  flow.appendChild(slot)
+  harness.document.body.appendChild(flow)
+
+  const strong = markdown.querySelector('strong')
+  const firstText = strong.firstChild
+  harness.plugin.__test.decorate(flow)
+
+  assert.equal(strong.textContent, '结论', 'strong text must not be rewritten')
+  // 节点身份不变才说明没被 `textContent = ...` 整体替换（React 持有原节点引用）。
+  assert.equal(strong.firstChild, firstText, 'strong text node identity must be preserved')
+  assert.equal(strong.getAttribute('data-dsh-card-label'), '结论')
 })

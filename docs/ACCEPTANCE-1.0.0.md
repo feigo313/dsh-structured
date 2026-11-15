@@ -1,4 +1,7 @@
-# dsh-structured 1.0.17 验收（未发布）
+# dsh-structured 1.0.18 验收（未发布）
+
+[1.0.18 · 代码/构建] `npm test` 112/112；`npm run build` 完成；`desktop-check` 全 PASS；pack 58 文件 / 2415139 B / unpacked 3168671 B。修复 issue #5 的 P1 渲染崩溃：状态表格单元格改为只写属性（data-dsh-structured-status-cell），不再清空 textContent / 插入胶囊节点，避免 React reconcile 抛 NotFoundError 导致整条回复空白；卡片标题 strong 同样改为只写 data-dsh-card-label，不替换文本节点。新增两条真实 DOM 回归（单元格文本与子节点身份、strong 文本节点身份）。
+
 
 [1.0.17 · 代码/构建] `npm test` 110/110；`npm run build` 完成；pack 58 文件 / 2411503 B / unpacked 3155523 B（较 1.0.16 基线 +477 / +2283）。三处视觉修正：① 代码块 banner 改 `position:static`（宿主 `_bannerWrap` 是 sticky + 不透明底，我们清掉了底色，长代码块滚动时标题会叠字）；② 「代码 · 」前缀改为条件显示（只在 `data-dsh-structured-lang` 存在时输出，避免无语言块显示「代码 · 代码块」）；③ `[class*="_fenceSeat"]:has(> .dss-code){margin:0}` 让卡片 14px 间距不再被宿主的 16px 折叠吞掉，宿主其它块保持原样。回归断言锁住这三条。
 

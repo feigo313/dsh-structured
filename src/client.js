@@ -22,6 +22,7 @@ window.__ModuleLoader__.load({
     const STATUS_TABLE_ATTR = 'data-dsh-structured-status-table'
     const STATUS_CELL_ATTR = 'data-dsh-structured-status-cell'
     const STATUS_PILL_ATTR = 'data-dsh-structured-status-pill'
+    const CARD_LABEL_ATTR = 'data-dsh-card-label'
     const COPY_ATTR = 'data-dsh-structured-copy'
     const PERSONA_HEAD_ATTR = 'data-dsh-persona-head'
     const PERSONA_MODE_ATTR = 'data-dsh-persona-mode'
@@ -212,6 +213,9 @@ body[data-ds-dark-theme] .dss-scope {
 .dss-scope .dss-status-success{background:#ecfdf3;color:#067647}
 .dss-scope .dss-status-warn{background:#fffaeb;color:#b54708}
 .dss-scope .dss-status-error{background:#fef3f2;color:#b42318}
+.dss-scope td[data-dsh-structured-status-cell="success"]{background:rgba(236,253,243,.65);box-shadow:inset 3px 0 0 #12b76a}
+.dss-scope td[data-dsh-structured-status-cell="warn"]{background:rgba(255,250,235,.7);box-shadow:inset 3px 0 0 #f79009}
+.dss-scope td[data-dsh-structured-status-cell="error"]{background:rgba(254,243,242,.75);box-shadow:inset 3px 0 0 #f04438}
 .dss-scope .dss-code{
   margin:14px 0;padding:14px 16px;border:1px solid var(--dss-line);
   border-left:3px solid var(--dss-blue);border-radius:12px;
@@ -281,6 +285,9 @@ body[data-ds-dark-theme] .dss-scope .dss-code{
 body[data-ds-dark-theme] .dss-scope .dss-status-success{background:rgba(52,211,153,.16);color:#4ade80}
 body[data-ds-dark-theme] .dss-scope .dss-status-warn{background:rgba(251,191,36,.14);color:#fbbf24}
 body[data-ds-dark-theme] .dss-scope .dss-status-error{background:rgba(248,113,113,.16);color:#f87171}
+body[data-ds-dark-theme] .dss-scope td[data-dsh-structured-status-cell="success"]{background:rgba(52,211,153,.12);box-shadow:inset 3px 0 0 #34d399}
+body[data-ds-dark-theme] .dss-scope td[data-dsh-structured-status-cell="warn"]{background:rgba(251,191,36,.12);box-shadow:inset 3px 0 0 #fbbf24}
+body[data-ds-dark-theme] .dss-scope td[data-dsh-structured-status-cell="error"]{background:rgba(248,113,113,.14);box-shadow:inset 3px 0 0 #f87171}
 body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{color:#34d399}
 .dss-scope .dss-persona-head{padding:0 0 10px}
 .dss-scope .dss-persona-head .dss-chat-head{display:flex;align-items:center;gap:12px;padding:0}
@@ -422,6 +429,9 @@ body[data-ds-dark-theme] .dss-scope {
 .dss-scope .dss-status-success{background:#ecfdf3;color:#067647}
 .dss-scope .dss-status-warn{background:#fffaeb;color:#b54708}
 .dss-scope .dss-status-error{background:#fef3f2;color:#b42318}
+.dss-scope td[data-dsh-structured-status-cell="success"]{background:rgba(236,253,243,.65);box-shadow:inset 3px 0 0 #12b76a}
+.dss-scope td[data-dsh-structured-status-cell="warn"]{background:rgba(255,250,235,.7);box-shadow:inset 3px 0 0 #f79009}
+.dss-scope td[data-dsh-structured-status-cell="error"]{background:rgba(254,243,242,.75);box-shadow:inset 3px 0 0 #f04438}
 .dss-scope .dss-code{
   margin:14px 0;padding:14px 16px;border:1px solid var(--dss-line);
   border-left:3px solid var(--dss-blue);border-radius:12px;
@@ -491,6 +501,9 @@ body[data-ds-dark-theme] .dss-scope .dss-code{
 body[data-ds-dark-theme] .dss-scope .dss-status-success{background:rgba(52,211,153,.16);color:#4ade80}
 body[data-ds-dark-theme] .dss-scope .dss-status-warn{background:rgba(251,191,36,.14);color:#fbbf24}
 body[data-ds-dark-theme] .dss-scope .dss-status-error{background:rgba(248,113,113,.16);color:#f87171}
+body[data-ds-dark-theme] .dss-scope td[data-dsh-structured-status-cell="success"]{background:rgba(52,211,153,.12);box-shadow:inset 3px 0 0 #34d399}
+body[data-ds-dark-theme] .dss-scope td[data-dsh-structured-status-cell="warn"]{background:rgba(251,191,36,.12);box-shadow:inset 3px 0 0 #fbbf24}
+body[data-ds-dark-theme] .dss-scope td[data-dsh-structured-status-cell="error"]{background:rgba(248,113,113,.14);box-shadow:inset 3px 0 0 #f87171}
 body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{color:#34d399}
 .dss-scope .dss-persona-head{padding:0 0 10px}
 .dss-scope .dss-persona-head .dss-chat-head{display:flex;align-items:center;gap:12px;padding:0}
@@ -789,6 +802,9 @@ body[data-ds-dark-theme] .dss-scope {
 .dss-scope .dss-status-success{background:#ecfdf3;color:#067647}
 .dss-scope .dss-status-warn{background:#fffaeb;color:#b54708}
 .dss-scope .dss-status-error{background:#fef3f2;color:#b42318}
+.dss-scope td[data-dsh-structured-status-cell="success"]{background:rgba(236,253,243,.65);box-shadow:inset 3px 0 0 #12b76a}
+.dss-scope td[data-dsh-structured-status-cell="warn"]{background:rgba(255,250,235,.7);box-shadow:inset 3px 0 0 #f79009}
+.dss-scope td[data-dsh-structured-status-cell="error"]{background:rgba(254,243,242,.75);box-shadow:inset 3px 0 0 #f04438}
 .dss-scope .dss-code{
   margin:14px 0;padding:14px 16px;border:1px solid var(--dss-line);
   border-left:3px solid var(--dss-blue);border-radius:12px;
@@ -858,6 +874,9 @@ body[data-ds-dark-theme] .dss-scope .dss-code{
 body[data-ds-dark-theme] .dss-scope .dss-status-success{background:rgba(52,211,153,.16);color:#4ade80}
 body[data-ds-dark-theme] .dss-scope .dss-status-warn{background:rgba(251,191,36,.14);color:#fbbf24}
 body[data-ds-dark-theme] .dss-scope .dss-status-error{background:rgba(248,113,113,.16);color:#f87171}
+body[data-ds-dark-theme] .dss-scope td[data-dsh-structured-status-cell="success"]{background:rgba(52,211,153,.12);box-shadow:inset 3px 0 0 #34d399}
+body[data-ds-dark-theme] .dss-scope td[data-dsh-structured-status-cell="warn"]{background:rgba(251,191,36,.12);box-shadow:inset 3px 0 0 #fbbf24}
+body[data-ds-dark-theme] .dss-scope td[data-dsh-structured-status-cell="error"]{background:rgba(248,113,113,.14);box-shadow:inset 3px 0 0 #f87171}
 body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{color:#34d399}
 .dss-scope .dss-persona-head{padding:0 0 10px}
 .dss-scope .dss-persona-head .dss-chat-head{display:flex;align-items:center;gap:12px;padding:0}
@@ -1047,24 +1066,13 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
       for (const element of scopes) toggleClass(element, 'dss-scope', true)
     }
 
-    const STATUS_LABELS = { success: '通过', warn: '观察', error: '阻断' }
-
-    const ensureStatusPill = (cell, status) => {
-      if (!cell || typeof cell.appendChild !== 'function') return
-      let pill = typeof cell.querySelector === 'function' ? cell.querySelector(`[${STATUS_PILL_ATTR}]`) : null
-      if (!pill) {
-        const doc = cell.ownerDocument ?? (typeof document !== 'undefined' ? document : null)
-        if (!doc || typeof doc.createElement !== 'function') return
-        pill = doc.createElement('span')
-        pill.setAttribute(STATUS_PILL_ATTR, '1')
-        pill.setAttribute(GENERATED_ATTR, '1')
-        cell.textContent = ''
-        cell.appendChild(pill)
-      }
-      const className = 'dss-status dss-status-' + status
-      if (pill.className !== className) pill.className = className
-      const label = STATUS_LABELS[status] ?? status
-      if (pill.textContent !== label) pill.textContent = label
+    // 只写属性、不改 React 受控子树：旧实现在这里 `cell.textContent = ''` 再塞一个胶囊 span，
+    // React 之后对同一单元格 reconcile 时找不到原来的文本节点，抛 NotFoundError（宿主日志里的
+    // DOMException），SlotErrorBoundary 捕获后把整个 conversation.chat.node 换成空 div —— 整条
+    // 回复空白且刷新依旧空白。状态只落到属性上，视觉交给 CSS 属性选择器。
+    const markStatusCell = (cell, status) => {
+      if (!cell || typeof cell.setAttribute !== 'function') return
+      if (cell.getAttribute?.(STATUS_CELL_ATTR) !== status) cell.setAttribute(STATUS_CELL_ATTR, status)
     }
 
     const clearStatusPills = (row) => {
@@ -2364,7 +2372,8 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
         if (type !== 'statement') {
           const label = labelOf(block)
           const strong = firstParagraph(block)?.firstElementChild
-          if (label && strong?.tagName === 'STRONG') strong.textContent = label
+          // 同理不改 React 文本节点：标签只写属性，标题条继续显示模型原文。
+          if (label && strong?.tagName === 'STRONG') strong.setAttribute?.(CARD_LABEL_ATTR, label)
         }
       }
 
@@ -2434,7 +2443,7 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
             const previous = row.getAttribute?.(ROW_ATTR)
             if (previous) {
               status = previous
-              statusCell = cells.find((cell) => cell.getAttribute?.(STATUS_CELL_ATTR) === '1') ?? null
+              statusCell = cells.find((cell) => cell.getAttribute?.(STATUS_CELL_ATTR)) ?? null
             }
           }
           for (const cell of cells) {
@@ -2448,8 +2457,7 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
             statusTable = false
           } else {
             row.setAttribute(ROW_ATTR, status)
-            statusCell?.setAttribute?.(STATUS_CELL_ATTR, '1')
-            ensureStatusPill(statusCell, status)
+            markStatusCell(statusCell, status)
           }
         }
         if (statusTable) table.setAttribute(STATUS_TABLE_ATTR, '1')

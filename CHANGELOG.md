@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.18 — 2026-11-15
+
+- 修复 **P1 渲染崩溃**（issue #5）：带 `✅` / `⚠` / `❌` 开头单元格的状态表格，插件会把该单元格 `textContent` 清空再塞一个自造胶囊节点。React 之后对同一单元格 reconcile 时找不到原文本节点，抛 `NotFoundError`（宿主日志里的 `DOMException`），宿主 `SlotErrorBoundary` 随之把整个 `conversation.chat.node` 换成空 div —— 整条回复空白，刷新依旧空白。现在状态只写属性（`data-dsh-structured-status-cell="success|warn|error"`），视觉交给 CSS 属性选择器（浅色底层色 + 左侧色条），**不改 React 受控子树**，单元格原文完整保留。
+- 同类写法一并收口：卡片标题不再 `strong.textContent = label` 覆盖文本（改为只写 `data-dsh-card-label`），标题条继续显示模型原文。
+- 回归：新增两条真实 DOM 断言（状态表格单元格文本与子节点身份不变、`strong` 文本节点身份不变），全套 **112/112**。
+
 ## 1.0.17 — 2026-11-13
 
 - 代码块 banner 不再吸顶：宿主 `.bannerWrap` 是 `position:sticky` + 不透明底（用它遮住滚过的代码），我们为了卡片化清掉了底色——长代码块（超过一屏）滚动时，代码文字会从标题条后面穿出来、和标题糊在一起。现在把 banner 改为 `position:static`，卡片整体化，不再依赖底色遮罩。

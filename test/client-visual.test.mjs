@@ -234,7 +234,9 @@ test('v5 skin：结论/表格/代码注入 dss class，状态表标状态单元�
   assert.equal(table.classes.has('dss-table'), true)
   assert.equal(table.attrs.get('data-dsh-structured-status-table'), '1')
   assert.equal(row.attrs.get('data-dsh-structured-row'), 'success')
-  assert.equal(statusCell.attrs.get('data-dsh-structured-status-cell'), '1')
+  // 状态只写属性，值是状态名（不再用 '1' 配胶囊节点）——React 受控子树不被改写。
+  assert.equal(statusCell.attrs.get('data-dsh-structured-status-cell'), 'success')
+  assert.equal(statusCell.textContent, '✅ 完成')
 
   const heading = { textContent: 'js' }
   const banner = { querySelector: () => heading }
