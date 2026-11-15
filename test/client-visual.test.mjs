@@ -408,3 +408,16 @@ test('client：三套主题选择器真的被 CSS 消费，装饰文本不参与
   // 开场 / 收尾 / 身份头只是界面装饰：选中复制时跳过（配置页承诺「复制不带」）。
   assert.match(css, /\.dss-persona-prefix,\.dss-persona-suffix,\[data-dsh-persona-head\]\{user-select:none/)
 })
+
+test('client：卡片 / 表格 / 代码块底色走主题变量，不再硬编码 hex', () => {
+  const dom = makeDom()
+  loadClient(dom).apply(makeContext(null))
+  const css = dom.styles.get('dsh-structured-skin-style')?.textContent ?? ''
+  assert.ok(css, 'skin style should be injected')
+  // 主题切换只换 --dss-* 变量；底色若写死 hex，选 Codex / Anthropic 时卡片不会变色。
+  assert.match(css, /\.dss-card-conclusion[^{]*\{[^}]*background:linear-gradient\([^}]*var\(--dss-blue-soft\)/)
+  assert.match(css, /\.dss-card-next\{[^}]*background:linear-gradient\([^}]*var\(--dss-green-soft\)/)
+  assert.match(css, /\.dss-card-risk\{[^}]*background:linear-gradient\([^}]*var\(--dss-amber-soft\)/)
+  assert.match(css, /\.dss-code\{[^}]*background:linear-gradient\([^}]*var\(--dss-blue-soft\)/)
+  assert.doesNotMatch(css, /background:linear-gradient\([^)]*#(eef4ff|f0faf4|fffbf3|f5f3ff|ecfeff)/i)
+})

@@ -16,6 +16,7 @@ import {
   PERSONA_MAX_BYTES,
   PERSONA_MODE_RULES,
   PERSONA_ORDER,
+  PERSONA_REMINDER_TEXT,
   PERSONA_SECTION_NAME,
   PERSONA_WRAPPER_HEAD,
   TAIL_REMINDER_TEXT,
@@ -136,7 +137,8 @@ test('内置规则覆盖首句结论、组件、清晰度三件事', () => {
 test('PersonaMode 合同上限：suggestions 1-5、table.rows 1-20、缺块 legacy', () => {
   assert.match(PERSONA_MODE_RULES, /`suggestions` 为 1-5 条/)
   assert.match(PERSONA_MODE_RULES, /`rows` 1-20 行/)
-  assert.match(PERSONA_MODE_RULES, /缺块走 legacy/)
+  assert.match(PERSONA_MODE_RULES, /缺块会降级成普通排版/)
+  assert.match(PERSONA_MODE_RULES, /任何回复都必须是信封/)
   assert.match(PERSONA_MODE_RULES, /建议/)
   assert.doesNotMatch(PERSONA_MODE_RULES, /下一步/)
   assert.match(TONE_ANCHOR, /缺块走 legacy/)
@@ -258,6 +260,34 @@ test('tone：解析/编译 wrapper，拒绝旧 schema/未知字段/非法 skipIn
   assert.doesNotMatch(TONE_ANCHOR, /【|】/)
 })
 
+test('apply：人格模式下尾部提醒换成只讲信封的专用提醒', () => {
+  const box = isolate()
+  try {
+    // 人格关闭：尾部提醒仍是通用结构化提醒。
+    const off = fakeCtx()
+    apply(off.ctx, { defaultEnabled: true, personaEnabled: false, persona: DEFAULT_PERSONA_JSON })
+    const offReminder = off.sections.find((section) => section.name === REMINDER_NAME)
+    assert.match(offReminder.text(mainContext('session-a')), /加粗标题/)
+    assert.doesNotMatch(offReminder.text(mainContext('session-a')), /persona fenced block/)
+
+    // 人格开启：通用提醒与合同互斥，换成人格专用提醒。
+    const on = fakeCtx()
+    apply(on.ctx, { defaultEnabled: true, personaEnabled: true, persona: DEFAULT_PERSONA_JSON })
+    const onReminder = on.sections.find((section) => section.name === REMINDER_NAME)
+    const text = onReminder.text(mainContext('session-a'))
+    assert.equal(text, PERSONA_REMINDER_TEXT)
+    assert.match(text, /persona fenced block/)
+    assert.match(text, /短回复 \/ 催进度/)
+    assert.doesNotMatch(text, /加粗标题/)
+
+    // 子代理会话不注入人格合同，通用提醒按既有互斥规则继续保持空。
+    const sub = { agent: { id: 'uuid-sub', session: { id: 'uuid-sub', header: { origin: 'subagent' } } } }
+    assert.equal(onReminder.text(sub), '')
+  } finally {
+    box.cleanup()
+  }
+})
+
 test('apply：tone 关闭/开启/invalid 的独立 section', () => {
   const box = isolate()
   try {
@@ -329,7 +359,7 @@ test('tone：顺序 10250、64KB、style.md 覆盖、tail 锚点、wrapper 对�
     assert.match(toneSection.text(mainContext('session-a')), /发送前自检/)
     assert.match(toneSection.text(mainContext('session-a')), /persona 内容块/)
     const reminder = sections.find((section) => section.name === 'dsh-structured:reminder')
-    assert.equal(reminder.text(mainContext('session-a')), '')
+    assert.equal(reminder.text(mainContext('session-a')), PERSONA_REMINDER_TEXT)
     const anchor = sections.find((section) => section.name === TONE_ANCHOR_SECTION_NAME)
     assert.equal(anchor.text(mainContext('session-a')), '')
 
@@ -370,7 +400,8 @@ test('PersonaMode：互斥注入与 /structured 行为', () => {
     const onReminder = on.sections.find((section) => section.name === REMINDER_NAME)
     const onPersona = on.sections.find((section) => section.name === PERSONA_SECTION_NAME)
     assert.equal(onMain.text(mainContext('session-a')), '')
-    assert.equal(onReminder.text(mainContext('session-a')), '')
+    // 通用结构化提醒仍互斥，但人格专用提醒（只讲信封）必须注入，压住长对话漏信封的漂移。
+    assert.equal(onReminder.text(mainContext('session-a')), PERSONA_REMINDER_TEXT)
     assert.match(onPersona.text(mainContext('session-a')), /PersonaMode 内容合同/)
     assert.match(onPersona.text(mainContext('session-a')), /```persona/)
     assert.match(onPersona.text(mainContext('session-a')), /"kind":"normal"/)

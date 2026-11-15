@@ -134,8 +134,18 @@ export const PERSONA_MODE_RULES = [
   '- 卡片标签固定为 结论 / 建议 / 风险，由插件渲染，模型不写。',
   '- 代码 / diff / 报错 / GenUI 不交 persona 内容块，按原格式输出。',
   '- 高风险结论的 risk 保持中性；事实优先，不编造。',
-  '- 缺块走 legacy 普通排版；多个 persona 块显示「内容合同错误」。',
+  '- 任何回复都必须是信封：短答用 short，解释 / 催进度 / 等待 / 报错说明用 short 或 normal，不要因为内容短或没有结论就跳过。',
+  '- 缺块会降级成普通排版（这条回复就没有卡片）；多个 persona 块显示「内容合同错误」。',
   '- 不为了格式加内容；三卡之外不写导语、总结或填充句。',
+].join(String.fromCharCode(10))
+
+/**
+ * PersonaMode 尾部提醒：通用结构化提醒会与人格合同打架（互斥），但长对话里模型最容易
+ * 在「短回复 / 催进度 / 解释」这类回合漏掉信封，导致整条回复降级成普通文字、没有卡片。
+ * 模型对 system prompt 末尾最敏感，所以人格模式下改注入这句只讲信封的提醒。
+ */
+export const PERSONA_REMINDER_TEXT = [
+  '提醒：本轮回复仍然只有一个 ```persona fenced block，块外不写正文、标题或 Markdown 卡片；短回复 / 催进度 / 解释 / 报错说明同样用 short 或 normal，省略信封这条回复就降级成普通文字、没有卡片。',
 ].join(String.fromCharCode(10))
 
 const isRecord = (value) => value !== null && typeof value === 'object' && !Array.isArray(value)
@@ -685,8 +695,16 @@ export function apply(ctx, config = {}) {
             name: REMINDER_NAME,
             order: REMINDER_ORDER,
             interpolate: false,
-            text: (context) =>
-              sectionText(context, () => TAIL_REMINDER_TEXT, '尾部提醒求值失败，已回退为空 section'),
+            text: (context) => {
+              // 人格模式下通用结构化提醒与合同互斥，换成只讲信封的专用提醒：长对话里模型
+              // 最爱在短回复 / 催进度回合漏信封，一旦漏了整条回复就没有卡片。
+              try {
+                if (personaModeCompiledNow(context)) return PERSONA_REMINDER_TEXT
+              } catch (error) {
+                warn('persona 尾部提醒求值失败，已回退为通用提醒', error)
+              }
+              return sectionText(context, () => TAIL_REMINDER_TEXT, '尾部提醒求值失败，已回退为空 section')
+            },
           }),
         'dsh-structured: tail reminder',
       )
