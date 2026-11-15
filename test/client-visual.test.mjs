@@ -393,3 +393,18 @@ test('client：代码块 banner 不吸顶、标签不重复、fenceSeat 不吞�
   assert.match(css, /\[data-code-block-banner\]::before\{[^}]*content:none/)
   assert.match(css, /\[data-dsh-structured-lang\] \[data-code-block-banner\]::before\{[^}]*content:"代码 · "/)
 })
+
+test('client：三套主题选择器真的被 CSS 消费，装饰文本不参与复制', () => {
+  const dom = makeDom()
+  loadClient(dom).apply(makeContext(null))
+  const css = dom.styles.get('dsh-structured-skin-style')?.textContent ?? ''
+  assert.ok(css, 'skin style should be injected')
+  // 设置页有 deepseek / codex / anthropic 三个选项：body 上的主题属性必须有对应规则，
+  // 否则选了也只会看到默认配色（issue #4 反馈的「主题不生效」）。
+  assert.match(css, /body\[data-dsh-structured-theme="codex"\] \.dss-scope\s*\{/)
+  assert.match(css, /body\[data-dsh-structured-theme="anthropic"\] \.dss-scope\s*\{/)
+  assert.match(css, /body\[data-ds-dark-theme\]\[data-dsh-structured-theme="codex"\] \.dss-scope\s*\{/)
+  assert.match(css, /body\[data-ds-dark-theme\]\[data-dsh-structured-theme="anthropic"\] \.dss-scope\s*\{/)
+  // 开场 / 收尾 / 身份头只是界面装饰：选中复制时跳过（配置页承诺「复制不带」）。
+  assert.match(css, /\.dss-persona-prefix,\.dss-persona-suffix,\[data-dsh-persona-head\]\{user-select:none/)
+})

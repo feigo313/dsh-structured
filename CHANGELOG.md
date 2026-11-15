@@ -2,9 +2,11 @@
 
 ## 1.0.18 — 2026-11-15
 
+- 修复 **主题切换不生效**（用户反馈）：设置页有 DeepSeek / Codex / Anthropic 三个选项，但三套配色从未落地——`body[data-dsh-structured-theme]` 属性一直在写，CSS 里却没有任何选择器消费它，三套 `.dss-scope{}` 变量按顺序层叠，结果永远是最后一套（deepseek）。现在补齐 Codex（中性灰 + OpenAI 绿）与 Anthropic（暖米 + 橙棕）两套浅色配色及其深色变体，主题属性真正生效。
+- 修复 **复制会带上装饰**：配置页承诺「开场与收尾只在界面展示、复制不带」，但代码没做——身份头 / 开场 / 收尾都是真实 DOM 节点，选中整段复制会把它们一起带走。现在这些装饰统一 `user-select:none`，选中复制只留正文（用户反馈「想在输出文字里任选内容复制」）。
 - 修复 **P1 渲染崩溃**（issue #5）：带 `✅` / `⚠` / `❌` 开头单元格的状态表格，插件会把该单元格 `textContent` 清空再塞一个自造胶囊节点。React 之后对同一单元格 reconcile 时找不到原文本节点，抛 `NotFoundError`（宿主日志里的 `DOMException`），宿主 `SlotErrorBoundary` 随之把整个 `conversation.chat.node` 换成空 div —— 整条回复空白，刷新依旧空白。现在状态只写属性（`data-dsh-structured-status-cell="success|warn|error"`），视觉交给 CSS 属性选择器（浅色底层色 + 左侧色条），**不改 React 受控子树**，单元格原文完整保留。
 - 同类写法一并收口：卡片标题不再 `strong.textContent = label` 覆盖文本（改为只写 `data-dsh-card-label`），标题条继续显示模型原文。
-- 回归：新增两条真实 DOM 断言（状态表格单元格文本与子节点身份不变、`strong` 文本节点身份不变），全套 **112/112**。
+- 回归：新增真实 DOM 断言（状态表格单元格文本与子节点身份不变、`strong` 文本节点身份不变）+ CSS 契约断言（三套主题选择器必须存在、装饰文本不参与复制），全套 **113/113**。
 
 ## 1.0.17 — 2026-11-13
 
