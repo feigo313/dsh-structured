@@ -463,3 +463,14 @@
 - **验证**：`npm test` **114/114**（新增五档按钮、净文本逐字、TSV 逐字、幂等断言）；`desktop-check` 全 PASS；pack 58 文件 / 2,425,976 B / unpacked 3,193,436 B。
 - **发布（Boss 2026-11-15「确认没有问题则可以 push」授权）**：commit `e5ae26f` + 日志 `defeae1` 已推 main；tag `v1.1.1` 已推；`npm publish --registry https://registry.npmjs.org` 成功（`+ dsh-structured@1.1.1`）；Release `v1.1.1` 已建（tgz sha1 `699fac75…`）。
 - **待办**：① 桌面 profile 升级 1.1.1 被 npm CDN 缓存挡住（1.1.1 刚发布），等 tarball 可见后重试；② 市场 listing PR 被 GitHub 核心 API 限流挡住（remaining=0，重置 22:24:38），脚本 `market-111.mjs` 已就绪。
+
+## 2026-11-15 · 第 33 轮（1.1.2 主题配色与人格提醒）
+
+- **触发**：Boss 实机截图三连——① 切主题后卡片底色不变；② 某个 ops-ptc 会话卡片整段掉光；③ 三套主题卡片配色趋同、色度太高、条和底不搭。
+- **主题底色（src/client.js）**：卡片 / 表格 / 代码块底色原为硬编码 hex，改走 `--dss-*-soft` + `--dss-paper`；补 `--dss-head-bg`（DeepSeek 由 teal 改蓝）、`--dss-th-text`（浅色 `#115e59` → `#1e3a8a`，深色 → `#93c5fd`），表格左边条统一 `var(--dss-blue)`，中途加的 `--dss-table-bar` 已删。
+- **三套配色**：Codex / Anthropic 各自独立一套 soft 值（Codex 结论 `#eef8f5` / 建议 `#eef6ea` / 风险 `#fdf7ea`，Anthropic `#fbf5f1` / `#f4f5e2` / `#fcf3e2`），深色版透明度 `.14–.16`，与 DeepSeek 同彩度、只留色相差异；卡面样式（圆角 / 边框 / 阴影 / 结构）三套统一，中途试过的方角 / 大圆角变体已撤。
+- **复制按钮**：常驻 `opacity:.6`（hover 1、触屏 `.85`），不再 hover 才出现。
+- **人格提醒（src/index.js）**：人格模式与通用尾部提醒互斥后不再补任何提醒，长对话里模型在「短回复 / 催进度 / 解释」回合漏掉 `persona` 信封，整条回复降级成普通文字（`ops-ptc` 会话 turn 11 起实证）。现在人格模式注入 `PERSONA_REMINDER_TEXT`（只讲信封），合同补「任何回复都必须是信封」硬约束，缺块说明改为「降级成普通排版（这条回复就没有卡片）」。
+- **验证**：`npm test` **118/118**（新增 CSS 契约：三套 soft 两两不同、卡面无主题级覆盖、复制按钮常驻；人格提醒三分支 + 合同必备句）；`desktop-check` 全 PASS；pack 58 文件 / 2,426,844 B / unpacked 3,199,466 B；lib 由 src 重建。
+- **预览工具**：`.tools/theme-preview.mjs` 用真实 CSS + 真实 class 渲染六宫格（浅 / 深 × 三主题），复制按钮与身份头结构与插件一致。
+- **本地安装**：desktop profile 备份 `.backup-dsh-structured-1.1.1` 后，用 `npm pack` 产物替换 `node_modules/dsh-structured`（实装 1.1.2；package.json 依赖行仍是 1.1.1，发版后从 registry 装回）。
