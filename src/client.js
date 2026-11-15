@@ -186,7 +186,7 @@ body[data-ds-dark-theme] .dss-scope {
 }
 .dss-scope .dss-card-risk p{color:var(--dss-ink-2)}
 .dss-scope .dss-table{
-  width:100%;margin:14px 0;border:1px solid var(--dss-line);border-left:3px solid #0d9488;
+  width:100%;margin:14px 0;border:1px solid var(--dss-line);border-left:3px solid var(--dss-blue);
   border-radius:12px;border-collapse:separate;border-spacing:0;overflow:hidden;
   background:linear-gradient(135deg,var(--dss-blue-soft),var(--dss-paper) 62%);
   box-shadow:var(--dss-shadow);font-size:calc(var(--dss-text-size) * 13 / 13.5);color:var(--dss-ink-2);
@@ -384,7 +384,7 @@ body[data-ds-dark-theme] .dss-scope {
 }
 .dss-scope .dss-card-risk p{color:var(--dss-ink-2)}
 .dss-scope .dss-table{
-  width:100%;margin:14px 0;border:1px solid var(--dss-line);border-left:3px solid #0d9488;
+  width:100%;margin:14px 0;border:1px solid var(--dss-line);border-left:3px solid var(--dss-blue);
   border-radius:12px;border-collapse:separate;border-spacing:0;overflow:hidden;
   background:linear-gradient(135deg,var(--dss-blue-soft),var(--dss-paper) 62%);
   box-shadow:var(--dss-shadow);font-size:13px;color:var(--dss-ink-2);
@@ -712,7 +712,7 @@ body[data-dsh-structured-theme="anthropic"] .dss-scope {
   --dss-ink:#1f1e1d;--dss-ink-2:#514f4a;--dss-ink-3:#8a857c;
   --dss-line:#e8e2d6;--dss-line-strong:#d8d1c2;
   --dss-blue:#cc785c;--dss-blue-hover:#b8623f;--dss-blue-text:#a14a2e;--dss-th-text:#7c3a20;--dss-blue-soft:#f4cdb8;
-  --dss-green:#3f7d4e;--dss-green-strong:#2f6b3d;--dss-green-text:#3f7d4e;--dss-green-soft:#e8e6b8;
+  --dss-green:#3f7d4e;--dss-green-strong:#6f7d3a;--dss-green-text:#3f7d4e;--dss-green-soft:#e8e6b8;
   --dss-amber:#b45309;--dss-amber-strong:#d97706;--dss-amber-text:#b45309;--dss-amber-soft:#f6dfa8;
   --dss-red:#b42318;--dss-red-soft:#fdf0ee;
   --dss-head-bg:linear-gradient(90deg,rgba(204,120,92,.18),rgba(204,120,92,.05));--dss-zebra:rgba(204,120,92,.035);
@@ -803,7 +803,7 @@ body[data-ds-dark-theme][data-dsh-structured-theme="anthropic"] .dss-scope {
 }
 .dss-scope .dss-card-risk p{color:var(--dss-ink-2)}
 .dss-scope .dss-table{
-  width:100%;margin:14px 0;border:1px solid var(--dss-line);border-left:3px solid #0d9488;
+  width:100%;margin:14px 0;border:1px solid var(--dss-line);border-left:3px solid var(--dss-blue);
   border-radius:12px;border-collapse:separate;border-spacing:0;overflow:hidden;
   background:linear-gradient(135deg,var(--dss-blue-soft),var(--dss-paper) 62%);
   box-shadow:var(--dss-shadow);font-size:calc(var(--dss-text-size) * 13 / 13.5);color:var(--dss-ink-2);
