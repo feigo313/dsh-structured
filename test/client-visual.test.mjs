@@ -439,20 +439,27 @@ test('client：三套主题的卡片配色两两不同，复制按钮常驻可�
   assert.doesNotMatch(css, /\.dss-card-copy[^}]{0,200}opacity:0[^.6-9]/)
 })
 
-test('client：Codex / Anthropic 的卡面样式也与 DeepSeek 不同', () => {
+test('client：卡片样式三套主题统一，只靠配色区分', () => {
   const dom = makeDom()
   loadClient(dom).apply(makeContext(null))
   const css = dom.styles.get('dsh-structured-skin-style')?.textContent ?? ''
   assert.ok(css, 'skin style should be injected')
-  // Codex：方正极简 —— 小圆角、顶部色条、纯色底、无阴影。
-  assert.match(css, /body\[data-dsh-structured-theme="codex"\] \.dss-scope \.dss-card[\s\S]{0,240}?border-radius:6px/)
-  assert.match(css, /body\[data-dsh-structured-theme="codex"\] \.dss-scope \.dss-card[\s\S]{0,240}?box-shadow:none/)
-  assert.match(css, /body\[data-dsh-structured-theme="codex"\] \.dss-scope \.dss-card[\s\S]{0,240}?border-top:2px solid var\(--dss-blue\)/)
-  // Anthropic：温暖圆润 —— 大圆角、无可见边框、暖色柔阴影。
-  assert.match(css, /body\[data-dsh-structured-theme="anthropic"\] \.dss-scope \.dss-card[\s\S]{0,240}?border-radius:20px/)
-  assert.match(css, /body\[data-dsh-structured-theme="anthropic"\] \.dss-scope \.dss-card[\s\S]{0,240}?box-shadow:0 5px 18px rgba\(120,90,60,\.08\)/)
-  // 深色版阴影方向相反（Codex 平面、Anthropic 更深），不能回落到浅色值。
-  assert.match(css, /body\[data-ds-dark-theme\]\[data-dsh-structured-theme="anthropic"\] \.dss-scope \.dss-card\{box-shadow:0 5px 20px rgba\(0,0,0,\.36\)\}/)
+  // 卡面（圆角 / 边框 / 阴影 / 底色结构）必须只有一套：三套主题不各写一份覆盖。
+  // Boss 2026-11-15：Codex / Anthropic 的主题风格已有配色定义，卡片样式不要跟着改。
+  for (const theme of ['codex', 'anthropic']) {
+    assert.doesNotMatch(
+      css,
+      new RegExp('body\\[data-dsh-structured-theme="' + theme + '"\\] \\.dss-scope \\.dss-card[\\s\\S]{0,240}?border-radius:'),
+      theme + ' 不应覆盖卡片圆角',
+    )
+    assert.doesNotMatch(
+      css,
+      new RegExp('body\\[data-dsh-structured-theme="' + theme + '"\\] \\.dss-scope \\.dss-card[\\s\\S]{0,240}?box-shadow:'),
+      theme + ' 不应覆盖卡片阴影',
+    )
+  }
+  // 统一的那一套仍然从主题变量取底色。
+  assert.match(css, /\.dss-scope \.dss-card\s*\{[^}]*background:linear-gradient\([^}]*var\(--dss-blue-soft\)/)
 })
 
 test('client：卡片 / 表格 / 代码块底色走主题变量，不再硬编码 hex', () => {
