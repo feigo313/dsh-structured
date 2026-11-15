@@ -452,3 +452,14 @@
 - **issue #5 已关闭**：回复升级命令（`dsh plugin --profile <profile> add dsh-structured@1.1.0`）+ 根因/修法/验证，`--reason completed`。
 - **市场 PR 待补**：`gh` 核心 API 限流已耗尽（remaining=0，约 1 小时后恢复），1.1.0 的 listing 更新脚本 `market-110.mjs` 已就绪但未跑通 —— 恢复后补一个 `feat/dsh-structured-1.1.0` PR。
 - **待办**：v1.1 规划里的「卡片级复制」（五档粒度、净内容、幂等门禁、触屏可达）尚未实现；本次只有 `user-select:none` 的净内容修复，不等同于卡片复制按钮。下一次功能版（1.1.1）按 `docs/ROADMAP.md` B 项做。
+
+## 2026-11-15 · 第 32 轮（1.1.1 卡片级复制）
+
+- **功能**：实现 `docs/ROADMAP.md` B 项「卡片级复制」五档粒度（结论 / 建议 / 风险 / 表格 / 整条回复）。
+  - 复制内容为净内容：卡片文本剥掉标签行（结论/建议/风险）、不含身份头 / 开场 / 收尾签名；列表按 `1. / 2.` 摊开；表格输出 TSV（制表符分列、单元格内空白折叠）。
+  - 按钮是真实 `<button>` + `aria-label` + `title`；hover / `:focus-within` 显示，`@media (hover:none)` 触屏常显；与代码块复制共用图标与「已复制 ✓」反馈。
+  - **幂等**：连续 `decorate` 10 次按钮数恒为 3（卡片）+1（表格）+1（整条）；流式与 MutationObserver 反复进入不重复插入。
+  - 红线干净：只往插件自建节点（blockquote 卡片 / table-wrap / reply bar）挂按钮，**不碰 React 受控子树**；无 `pre-step`、不 append 消息。
+- **验证**：`npm test` **114/114**（新增五档按钮、净文本逐字、TSV 逐字、幂等断言）；`desktop-check` 全 PASS；pack 58 文件 / 2,425,976 B / unpacked 3,193,436 B。
+- **发布（Boss 2026-11-15「确认没有问题则可以 push」授权）**：commit `e5ae26f` + 日志 `defeae1` 已推 main；tag `v1.1.1` 已推；`npm publish --registry https://registry.npmjs.org` 成功（`+ dsh-structured@1.1.1`）；Release `v1.1.1` 已建（tgz sha1 `699fac75…`）。
+- **待办**：① 桌面 profile 升级 1.1.1 被 npm CDN 缓存挡住（1.1.1 刚发布），等 tarball 可见后重试；② 市场 listing PR 被 GitHub 核心 API 限流挡住（remaining=0，重置 22:24:38），脚本 `market-111.mjs` 已就绪。
