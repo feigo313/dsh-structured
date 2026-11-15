@@ -17,3 +17,4 @@ assets/screenshots/*-local.png
 .tools/audit-pkg/
 .tools/audit-installed-client.mjs
 .agents/
+.tmp/
