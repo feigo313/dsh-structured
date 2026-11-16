@@ -72,7 +72,8 @@ test('v5 client：单一强调色、卡片/表格/代码 class 与深色 scope �
   assert.match(client, /\.dss-scope \.dss-card/)
   assert.match(client, /\.dss-scope \.dss-table/)
   assert.match(client, /\.dss-scope \.dss-code/)
-  assert.match(client, /\.dss-scope \.dss-status-success/)
+  // 状态胶囊 class 已无代码创建（issue #5 起只写属性、由 CSS 属性选择器接管），改断状态单元格
+  assert.match(client, /data-dsh-structured-status-cell/)
   assert.match(client, /data-dsh-structured-theme/)
   assert.doesNotMatch(client, /--ds-code-bg/)
 })

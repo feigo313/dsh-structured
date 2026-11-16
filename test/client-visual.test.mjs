@@ -451,7 +451,11 @@ test('client：三套主题的卡片配色两两不同，复制按钮常驻可�
   assert.match(css, /\.dss-card-copy[^}]*opacity:\.6/)
   assert.doesNotMatch(css, /\.dss-card-copy[^}]{0,200}opacity:0[^.6-9]/)
   // 整条回复按钮不能有更低的常驻透明度覆盖（曾残留 opacity:.4，比卡片按钮更淡）。
-  assert.doesNotMatch(css, /\.dss-reply-copy-btn\{[^}]*opacity:\.4\}/)
+  assert.doesNotMatch(css, /\.dss-reply-copy-btn\{[^}]*opacity:\.4\}/, '整条回复按钮不应有更低透明度的覆盖')
+  // 状态单元格 / 建议卡序号 / 复制成功勾：颜色必须走主题变量（status 胶囊 class 已随死代码删除）。
+  // 这几处曾写死浅色（#dcf3e7 / #ecfdf3 / #12b76a …），切到 Codex / Anthropic 时不跟主题走。
+  assert.ok(css.includes('[data-dsh-structured-status-cell=\"success\"]{background:var(--dss-green-soft);box-shadow:inset 3px 0 0 var(--dss-green)}'), '状态单元格底色与色条都走变量')
+  assert.doesNotMatch(css, /data-dsh-structured-status-cell[^}]*#[0-9a-f]{3,8}/i, '状态单元格不得残留硬编码 hex')
 })
 
 test('client：卡片样式三套主题统一，只靠配色区分', () => {
