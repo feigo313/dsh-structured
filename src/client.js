@@ -973,7 +973,7 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
       if (blocks.length !== 1) return null
       const code = blocks[0]
       const text = code.querySelector?.('pre')?.textContent ?? ''
-      if (!(bannerLanguage(code) === 'persona' || looksLikePersonaEnvelope(text))) return null
+      if (!(bannerLanguage(code) === 'persona' || looksLikePersonaEnvelope(text) || looksLikeBrokenPersonaEnvelope(text))) return null
       return text
     }
 
@@ -1499,6 +1499,26 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
       return /^\s*\{/.test(text) && /"version"\s*:\s*1/.test(text) && /"kind"\s*:\s*"(?:normal|short|table)"/.test(text)
     }
 
+    // 形状像信封但写坏了：version=1 + kind 是任意字符串 + 只含合同字段。
+    // 典型是模型把 kind 写成 "text"，或只写了 kind 就没了内容；严格检测不认，
+    // 结果整条回复以一个「代码块」把 JSON 摊给用户（2026-11-16 实机）。
+    // 条件仍然从严：必须能解析成对象、只含合同键，避免误伤正文里的普通 JSON 示例。
+    const PERSONA_ENVELOPE_KEYS = ['version', 'kind', 'conclusion', 'suggestions', 'risk', 'table', 'text']
+    function looksLikeBrokenPersonaEnvelope(text) {
+      const source = String(text ?? '').trim()
+      if (!source.startsWith('{') || source.length > 8192) return false
+      if (!/"version"\s*:\s*1/.test(source) || !/"kind"\s*:\s*"/.test(source)) return false
+      let parsed
+      try {
+        parsed = JSON.parse(source)
+      } catch {
+        return false
+      }
+      if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) return false
+      if (parsed.version !== 1 || typeof parsed.kind !== 'string') return false
+      return Object.keys(parsed).every((key) => PERSONA_ENVELOPE_KEYS.includes(key))
+    }
+
     // 裸信封识别：模型偶尔不包 ```persona 围栏，把 JSON 直接写在正文里。
     // 条件从严（防误伤正文里贴的 JSON 示例）：
     // 1) 整条 markdown 的可见文本以 { 开头（允许少量前导空白字符）；
@@ -1537,7 +1557,11 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
 
     const extractPersonaEnvelope = (markdown) => {
       const blocks = [...(markdown.querySelectorAll?.('.md-code-block') ?? [])]
-      const personaBlocks = blocks.filter((code) => bannerLanguage(code) === 'persona' || looksLikePersonaEnvelope(code.querySelector?.('pre')?.textContent ?? ''))
+      const personaBlocks = blocks.filter((code) => {
+        if (bannerLanguage(code) === 'persona') return true
+        const raw = code.querySelector?.('pre')?.textContent ?? ''
+        return looksLikePersonaEnvelope(raw) || looksLikeBrokenPersonaEnvelope(raw)
+      })
       if (personaBlocks.length === 0) return { kind: 'none' }
       const texts = personaBlocks.map((code) => code.querySelector('pre')?.textContent ?? '')
       // 多个 persona 块才是冲突；其它代码块是模型的正常内容，不算冲突。
@@ -2100,7 +2124,22 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
         return kind
       }
       for (const partial of partials) appendSalvagedParagraphs(doc, markdown, partial)
-      if (partials.length === 0) appendPersonaNote(doc, markdown, '（本条回复的格式未按合同，已按原文展开）')
+      if (partials.length === 0) {
+        // 什么字段都救不出来（例如只写了 {"version":1,"kind":"text"}）：给一句能看懂的说明，
+        // 但不把原始 JSON 摊给用户（既有验收：原始 JSON 不得出现在界面上）。
+        let reason = ''
+        try {
+          const parsed = JSON.parse(String(raws[0] ?? '').trim())
+          if (parsed && typeof parsed === 'object' && typeof parsed.kind === 'string' && !['normal', 'short', 'table'].includes(parsed.kind)) {
+            reason = 'kind「' + parsed.kind + '」不在合同内'
+          }
+        } catch {
+          // 解析不出就不点具体原因。
+        }
+        appendPersonaNote(doc, markdown, reason
+          ? '（本条回复只给了 persona 头部，' + reason + '，没有可展示的正文）'
+          : '（本条回复的格式未按合同，已按原文展开）')
+      }
       markdown.removeAttribute?.(PERSONA_ERROR_ATTR)
       markdown.removeAttribute?.(PERSONA_FALLBACK_ATTR)
       markdown.removeAttribute?.(PERSONA_PENDING_ATTR)

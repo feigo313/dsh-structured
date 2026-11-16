@@ -1400,6 +1400,48 @@ test('PersonaMode：信封写短了（少一层 }、缺 suggestions/risk）仍�
   assert.match(streaming.markdown.textContent, /写到一半/, '结论内容保留')
 })
 
+test('PersonaMode：写坏的 persona 头部不摊成代码块（kind:text 实机）', () => {
+  const harness = makeHarness(baseState, async () => true)
+  const tone = JSON.stringify({ schema: 'dsh-structured/tone@1', prefix: 'Boss，', style: '搞怪', suffix: '——完', skipIn: ['code', 'diff', 'error', 'short', 'table'] })
+  harness.plugin.__test.setPersonaModeConfig({ personaEnabled: true, persona: tone, personaName: 'N', personaSignature: 'S', personaAvatar: '' })
+  const flowFor = (html) => {
+    const flow = harness.document.createElement('div')
+    flow.setAttribute('data-chat-flow-kind', 'assistant-step')
+    flow.setAttribute('data-chat-node-key', 'broken-' + Math.random())
+    const slot = harness.document.createElement('div')
+    slot.setAttribute('data-slot', 'conversation.chat.node')
+    const markdown = harness.document.createElement('div')
+    markdown.className = '_markdown_preview'
+    markdown.innerHTML = html
+    slot.appendChild(markdown)
+    flow.appendChild(slot)
+    harness.document.body.appendChild(flow)
+    harness.plugin.__test.decorate(flow)
+    return { flow, markdown }
+  }
+  const fence = (lang, body) => `<div class="md-code-block"><div class="bannerWrap"><div data-code-block-banner><span>${lang}</span></div></div><div data-code-block-content><pre>${body}</pre></div></div>`
+
+  // 2026-11-16 实机截图：无语言 fence 里只有 {"version":1,"kind":"text"}。
+  // 严格检测不认 kind，于是整条回复以一个「代码块」把 JSON 摊给用户。
+  const broken = flowFor(fence('代码块', '{"version":1,"kind":"text"}'))
+  harness.flushPersonaErrors()
+  assert.equal(broken.markdown.querySelectorAll('.md-code-block').length, 0, '写坏的头部不能再当成代码块展示')
+  assert.doesNotMatch(broken.markdown.textContent, /"version"/, '原始 JSON 不能摊出来')
+  assert.match(broken.markdown.textContent, /kind「text」不在合同内/, '要给出能看懂的原因')
+  assert.equal(broken.markdown.getAttribute('data-dsh-persona-kind'), 'legacy')
+
+  // 普通 JSON 代码块（带合同外的键）不能被误判成信封。
+  const k8s = flowFor(fence('json', '{"version":1,"kind":"Deployment","spec":{"replicas":2}}'))
+  harness.flushPersonaErrors()
+  assert.equal(k8s.markdown.querySelectorAll('.md-code-block').length, 1, '普通 JSON 代码块必须原样保留')
+  assert.equal(k8s.markdown.getAttribute('data-dsh-persona-kind'), 'code', '走代码通道')
+
+  // 完整信封仍然出三张卡。
+  const full = flowFor(fence('persona', '{"version":1,"kind":"normal","conclusion":{"lead":"结论"},"suggestions":["建议"],"risk":"风险"}'))
+  harness.flushPersonaErrors()
+  assert.equal(full.markdown.querySelectorAll('[data-dsh-structured-card-type]').length, 3, '完整信封三张卡')
+})
+
 test('v5 emptyTone 兜底只写语言风格，不写结构要求', () => {
   const harness = makeHarness(baseState, async () => true)
   const tone = harness.api.emptyTone()
