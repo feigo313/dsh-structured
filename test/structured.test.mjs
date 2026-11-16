@@ -139,6 +139,9 @@ test('PersonaMode 合同上限：suggestions 1-5、table.rows 1-20、缺块 lega
   assert.match(PERSONA_MODE_RULES, /`rows` 1-20 行/)
   assert.match(PERSONA_MODE_RULES, /缺块会降级成普通排版/)
   assert.match(PERSONA_MODE_RULES, /任何回复都必须是信封/)
+  // roadmap C：模型长会话里会拿 dsh-ui 当主卡，合同必须写死「不得替代三卡」。
+  assert.match(PERSONA_MODE_RULES, /dsh-ui 只能旁挂在卡片之外/)
+  assert.match(PERSONA_MODE_RULES, /不得替代结论、建议、风险三卡/)
   assert.match(PERSONA_MODE_RULES, /建议/)
   assert.doesNotMatch(PERSONA_MODE_RULES, /下一步/)
   assert.match(TONE_ANCHOR, /缺块走 legacy/)
