@@ -519,3 +519,14 @@
   2. **1.1.3 段数字滞后**：CHANGELOG 写 121/121、604 条信封，实跑是 124/124、635 条信封（3 条为脚本误抽）。已按实测更新，并重钉 pack 基线 2436483 / 3199868。
 - **观察（非缺陷）**：桌面 profile 的预览会被回滚——依赖行仍是 1.1.2，宿主启动按 package.json 重装后 `node_modules` 回到 1.1.2（本轮审计时实测到过一次）。发版后 `pnpm add dsh-structured@1.1.3` 才是稳定形态。
 - **结论**：审计通过，可发布；等 Boss 明确点头。
+
+## 2026-11-16 · 第 37 轮（1.1.3 发布）
+
+- **授权**：Boss「修一下 检查下没问题 就push」（2026-11-16 21:45 +08）。consent 令牌已按该指令写入并在发布后由 TTL 自然失效。
+- **发布前门禁**：`npm test` **125/125**；`desktop-check` 全 PASS；`theme-contrast` 60/60 PASS；`theme-hue-distance` 12/12 PASS；工作区干净，HEAD `3bc8330`，version 1.1.3。
+- **推送**：`main 4b6ef9b..3bc8330`；annotated tag `v1.1.3`（对象 `3eed0e0`）。
+- **npm**：`npm publish dsh-structured-1.1.3.tgz --registry https://registry.npmjs.org` → `+ dsh-structured@1.1.3`（shasum `4e14bdba…`，58 文件 / 2,438,489 B）。**注意**：发布后官方端点仍在 CDN 传播（单版本端点 404、`dist-tags.latest` 仍为 1.1.2），按历史规律数分钟到十几分钟；判定成败只认 `registry.npmjs.org/dsh-structured/1.1.3` + `?ts=` 破缓存。
+- **GitHub Release**：`v1.1.3` 资产 `dsh-structured-1.1.3.tgz` 2,438,489 B（与本地 tgz 逐字节一致）。
+- **市场**：PR [awesome-dsh-plugin#15946](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/15946)，条目 `tarball` 已从 v1.1.2 指向 v1.1.3（commit `59ecbcf`），状态 OPEN / UNSTABLE（check 在跑）。
+- **本批内容**（17 个提交）：信封写短救卡、写坏的 persona 头部不再摊成代码块、卡片正文与表格单元格行内标记、粗体不再被当大标题、块外正文回到原位置、表格列宽只对三列表 + 窄屏横向滚动、流式闸门按宿主真实属性、状态色/序号圆点/复制勾走主题变量、合同补 GenUI 口径、删 198 行死 CSS + 2 个死函数、README 同步实况、四条常驻机检。
+- **待办**：① npm CDN 传播完成后把桌面 profile 从本地包换回 registry 1.1.3（`pnpm add dsh-structured@1.1.3`，改前备份）；② 市场 PR 等维护者合并后确认 listing；③ 真机像素级复核仍未做（用 headless Edge 六宫格替代）。
