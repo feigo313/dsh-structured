@@ -434,6 +434,32 @@ test('client：活 CSS 用到的每个 --dss-* 变量都必须有定义', () => 
   const defined = new Set([...css.matchAll(/(--dss-[a-z0-9-]+)\s*:/g)].map((m) => m[1]))
   const missing = [...used].filter((name) => !defined.has(name)).sort()
   assert.deepEqual(missing, [], '这些变量被引用却从未定义：' + missing.join(', '))
+
+  // 更严一层：配色类变量必须在 6 个主题块（三主题 × 浅深）里各自定义。
+  // 只在基块里定义、其它块不覆盖，就等于该主题静默继承另一套颜色——
+  // 这正是「切主题只有结论卡变」那个 bug 的成因（2026-11-15 实机反馈两次）。
+  const blocks = {
+    'deepseek-light': /(?:^|\n)\.dss-scope\s*\{([\s\S]*?)\n\}/,
+    'deepseek-dark': /body\[data-ds-dark-theme\]\s*\.dss-scope\s*\{([\s\S]*?)\n\}/,
+    'codex-light': /body\[data-dsh-structured-theme="codex"\]\s*\.dss-scope\s*\{([\s\S]*?)\n\}/,
+    'codex-dark': /body\[data-ds-dark-theme\]\[data-dsh-structured-theme="codex"\]\s*\.dss-scope\s*\{([\s\S]*?)\n\}/,
+    'anthropic-light': /body\[data-dsh-structured-theme="anthropic"\]\s*\.dss-scope\s*\{([\s\S]*?)\n\}/,
+    'anthropic-dark': /body\[data-ds-dark-theme\]\[data-dsh-structured-theme="anthropic"\]\s*\.dss-scope\s*\{([\s\S]*?)\n\}/,
+  }
+  const blockVars = {}
+  for (const [name, pattern] of Object.entries(blocks)) {
+    const match = css.match(pattern)
+    assert.ok(match, name + ' 主题变量块必须存在')
+    blockVars[name] = new Set([...match[1].matchAll(/(--dss-[a-z0-9-]+)\s*:/g)].map((m) => m[1]))
+  }
+  const colorPattern = /(soft|ink|line|blue|green|amber|red|paper|page|code-bg|code-border|code-text|head-bg|zebra|shadow|th-text)/
+  const colorVars = [...new Set(Object.values(blockVars).flatMap((set) => [...set]))].filter((name) => colorPattern.test(name))
+  assert.ok(colorVars.length >= 25, '配色变量数量异常：' + colorVars.length)
+  for (const name of colorVars) {
+    for (const [block, set] of Object.entries(blockVars)) {
+      assert.ok(set.has(name), block + ' 漏定义 ' + name + '（会静默继承其它主题的颜色）')
+    }
+  }
 })
 
 test('client：CSS 里的 dss-* 类必须有代码创建（防空规则）', () => {
