@@ -501,3 +501,21 @@
   11. `5bfa5d6` 删 `.dss-status` 死规则 + 常驻类名机检（CSS 每个 `dss-*` 类必须有代码创建）。
 - **验证（当前 HEAD）**：`npm test` **124/124**；`desktop-check` 全 PASS；`theme-contrast` 60/60 PASS；`theme-hue-distance` 12/12 PASS；pack 58 文件 / 2,436,467 B / unpacked 3,202,103 B；语料回归用最近一周真实会话 **621 条信封**跑当前 lib，618 条出卡（3 条是脚本误抽自己回复里的示例 JSON）。
 - **未发布**：npm / GitHub Release / 市场 listing 仍是 1.1.2；桌面 profile 用 `npm pack` 产物预览 1.1.3（`package.json` 依赖行仍写 1.1.2，发版后 pnpm 换回 registry）。
+
+## 2026-11-16 · 第 36 轮（1.1.3 发布前审计，未发布）
+
+- **审计范围**：`v1.1.2..HEAD` 共 16 个提交 / 15 个文件 / 源码 +154 −331 行；覆盖红线、注入面、元数据、打包、安装一致性、文档真实性、git 状态七个面。
+- **通过项**：
+  - 红线：无 `agent/pre-step` 调用（仅注释声明不做）、无 `appendMessage` / 消息 append、无 `eval` / `new Function` / `child_process`，client 半区不读文件系统。
+  - 注入面：新增代码只用 `createElement` / `textContent` / `setAttribute`；全文仅一处 `innerHTML`（配置页代码预览，内容经 `escapeHtml`）与一处 `dangerouslySetInnerHTML`（同一预览，DOM 由自建节点序列化，身份头文本走 `textContent`）。
+  - 宿主受控子树：新增语句只写属性；唯一搬动宿主节点的地方是 `renderPersonaContent` 既有的「块外正文」重排（1.0 起的设计，近两周 680+ 条信封无崩溃报告）。
+  - 元数据：version 1.1.3、`files` 含 `cordis.patch.yml`、`engines.dsh >=0.1.7-rc.2 <0.4.0-0`、compatibility 9 条。
+  - 打包：58 文件 / 2,436,483 B / unpacked 3,199,868 B；无 `.tmp` / `.tools` / 审计类文档 / `.git`；含鲸鱼娘 JSON 与许可文件。
+  - 凭据与本机路径：跟踪文件里扫不到 `sk-` / `ghp_` / apiKey 字面量，也没有 `C:\Users` / `G:\dsh` 这类绝对路径随包外泄。
+  - 一致性：`lib` 重建后与 `src` 零 diff；桌面 profile 预览 1.1.3 与仓库 `lib` 哈希一致。
+  - git：工作区干净，16 个提交未推送，无 `v1.1.3` tag。
+- **发现并已修的两处（都出在我自己攒批时的批量替换上）**：
+  1. **ACCEPTANCE 历史数字被改成同一个值**：我用 `pack 58 文件 / N B / unpacked M B` 全局替换时，把 1.0.15 / 1.0.16 / 1.0.17 / 1.1.0 / 1.1.1 的实测数字一并覆盖成最新值——历史记录失真。已从 `v1.1.2` tag 取回旧段落整段还原，现 7 段数字各不相同（2436337 / 2426522 / 2425370 / 2418110 / 2411503 / 2411026 / 2409439）。
+  2. **1.1.3 段数字滞后**：CHANGELOG 写 121/121、604 条信封，实跑是 124/124、635 条信封（3 条为脚本误抽）。已按实测更新，并重钉 pack 基线 2436483 / 3199868。
+- **观察（非缺陷）**：桌面 profile 的预览会被回滚——依赖行仍是 1.1.2，宿主启动按 package.json 重装后 `node_modules` 回到 1.1.2（本轮审计时实测到过一次）。发版后 `pnpm add dsh-structured@1.1.3` 才是稳定形态。
+- **结论**：审计通过，可发布；等 Boss 明确点头。
