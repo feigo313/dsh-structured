@@ -466,7 +466,6 @@ body[data-ds-dark-theme] [data-dsh-structured-config] button#dsh-structured-them
 .dss-scope .dss-table-wrap > table{margin:0}
 .dss-scope .dss-table-copy{position:absolute;top:6px;right:6px}
 .dss-scope .dss-reply-copy{display:flex;justify-content:flex-end;margin:8px 0 0}
-.dss-scope .dss-reply-copy-btn{opacity:.4}
 .dss-scope .dss-card:hover .dss-card-copy,.dss-scope .dss-card:focus-within .dss-card-copy,
 .dss-scope .dss-table-wrap:hover .dss-table-copy,.dss-scope .dss-table-wrap:focus-within .dss-table-copy,
 .dss-scope .dss-reply-copy:hover .dss-reply-copy-btn,.dss-scope .dss-reply-copy:focus-within .dss-reply-copy-btn{opacity:1}
@@ -1862,13 +1861,13 @@ body[data-ds-dark-theme] .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{colo
           const table = makePersonaElement(doc, 'table')
           const thead = makePersonaElement(doc, 'thead')
           const headRow = makePersonaElement(doc, 'tr')
-          for (const head of content.table.head) headRow.appendChild(makePersonaElement(doc, 'th', '', head))
+          for (const head of content.table.head) headRow.appendChild(fillPersonaText(doc, makePersonaElement(doc, 'th'), head))
           thead.appendChild(headRow)
           table.appendChild(thead)
           const tbody = makePersonaElement(doc, 'tbody')
           for (const row of content.table.rows) {
             const tr = makePersonaElement(doc, 'tr')
-            for (const cell of row) tr.appendChild(makePersonaElement(doc, 'td', '', cell))
+            for (const cell of row) tr.appendChild(fillPersonaText(doc, makePersonaElement(doc, 'td'), cell))
             tbody.appendChild(tr)
           }
           table.appendChild(tbody)

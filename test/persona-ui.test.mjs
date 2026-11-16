@@ -1315,6 +1315,17 @@ test('PersonaMode：信封写短了（少一层 }、缺 suggestions/risk）仍�
   const full = flowFor(wrap('{"version":1,"kind":"normal","conclusion":{"lead":"结论"},"suggestions":["建议"],"risk":"风险"}'))
   harness.flushPersonaErrors()
   assert.equal(full.markdown.querySelectorAll('[data-dsh-structured-card-type]').length, 3, '完整信封三张卡')
+
+  // 表格单元格里的 **粗体** 与 `代码` 也要变节点（模型常这么写，此前会露出星号）。
+  const tableEnvelope = flowFor(wrap('{"version":1,"kind":"table","conclusion":{"lead":"看表"},"suggestions":["继续"],"risk":"无","table":{"head":["模块","说明"],"rows":[["**注入**","走 `hook` 链路"]]}}'))
+  harness.flushPersonaErrors()
+  const cells = [...tableEnvelope.markdown.querySelectorAll('td')]
+  assert.equal(cells.length, 2, '表格单元格数量')
+  assert.ok(cells[0].querySelector('strong'), '表体单元格的 **粗体** 要变 strong')
+  assert.ok(cells[1].querySelector('code'), '表体单元格的 `代码` 要变 code')
+  assert.doesNotMatch(cells[0].textContent, /\*\*/, '单元格不再露出星号')
+  assert.doesNotMatch(cells[1].textContent, /`/, '单元格不再露出反引号')
+  assert.equal(cells[0].textContent, '注入', '文本内容保持纯文本')
 })
 
 test('v5 emptyTone 兜底只写语言风格，不写结构要求', () => {

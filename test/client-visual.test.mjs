@@ -437,6 +437,8 @@ test('client：三套主题的卡片配色两两不同，复制按钮常驻可�
   // 卡片 / 表格复制按钮常驻可见（Boss 2026-11-15：不要 hover 才出现），hover 只是加深。
   assert.match(css, /\.dss-card-copy[^}]*opacity:\.6/)
   assert.doesNotMatch(css, /\.dss-card-copy[^}]{0,200}opacity:0[^.6-9]/)
+  // 整条回复按钮不能有更低的常驻透明度覆盖（曾残留 opacity:.4，比卡片按钮更淡）。
+  assert.doesNotMatch(css, /\.dss-reply-copy-btn\{[^}]*opacity:\.4\}/)
 })
 
 test('client：卡片样式三套主题统一，只靠配色区分', () => {
