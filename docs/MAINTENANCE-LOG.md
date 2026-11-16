@@ -530,3 +530,11 @@
 - **市场**：PR [awesome-dsh-plugin#15946](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/15946)，条目 `tarball` 已从 v1.1.2 指向 v1.1.3（commit `59ecbcf`），状态 OPEN / UNSTABLE（check 在跑）。
 - **本批内容**（17 个提交）：信封写短救卡、写坏的 persona 头部不再摊成代码块、卡片正文与表格单元格行内标记、粗体不再被当大标题、块外正文回到原位置、表格列宽只对三列表 + 窄屏横向滚动、流式闸门按宿主真实属性、状态色/序号圆点/复制勾走主题变量、合同补 GenUI 口径、删 198 行死 CSS + 2 个死函数、README 同步实况、四条常驻机检。
 - **待办**：① npm CDN 传播完成后把桌面 profile 从本地包换回 registry 1.1.3（`pnpm add dsh-structured@1.1.3`，改前备份）；② 市场 PR 等维护者合并后确认 listing；③ 真机像素级复核仍未做（用 headless Edge 六宫格替代）。
+
+### 第 37 轮补记（22:00 +08）
+
+- **推送兜底**：`git push` 到 github.com:443 期间反复 Connection reset / 30s 超时（`git fetch` 后来恢复可用）。日志提交 `f7f48ab` 改用 git-data API 逐对象重建（blob→tree→commit→PATCH ref），远端得到等价提交 `dc9855a`，**tree 与本地 `8436546235cb…` 完全一致**；随后 `git fetch` 恢复，本地 `git reset --hard origin/main` 对齐。历史里因此有两个内容相同、sha 不同的日志提交（`f7f48ab` 只在本地出现过，未进入远端历史）。
+- **npm 传播完成**：`registry.npmjs.org/dsh-structured/1.1.3` 返回 200，`dist-tags.latest = 1.1.3`（30 个版本在册）；registry shasum `4e14bdba…` 与本地 tgz 逐字节一致，58 文件。
+- **桌面 profile 换回 registry 版**：备份 `package.json.bak-20261116-2200` / `pnpm-lock.yaml.bak-20261116-2200` 后 `pnpm add dsh-structured@1.1.3 --registry https://registry.npmjs.org` 成功；依赖行 1.1.2 → 1.1.3，实装 1.1.3，与其他插件版本零变动；`lib/client.js` 与仓库构建产物 sha256 前缀同为 `d97667c6a4bc2efd`。
+- **CI**：`3bc8330`（tag 指向的代码提交）与 `dc9855a` 两次 ci 均 success。
+- **仍待**：市场 PR #15946 等维护者合并（check 在跑）；真机像素级复核未做。
