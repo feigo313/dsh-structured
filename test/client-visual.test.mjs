@@ -409,6 +409,20 @@ test('client：三套主题选择器真的被 CSS 消费，装饰文本不参与
   assert.match(css, /\.dss-persona-prefix,\.dss-persona-suffix,\[data-dsh-persona-head\]\{user-select:none/)
 })
 
+test('client：表格列宽提示只对三列表生效，窄屏横向滚动', () => {
+  const dom = makeDom()
+  loadClient(dom).apply(makeContext(null))
+  const css = dom.styles.get('dsh-structured-skin-style')?.textContent ?? ''
+  assert.ok(css, 'skin style should be injected')
+  // 26% / 18% 这套宽档只适合三列表；4 列以上会被压成一字一行（390px 截图可复现），
+  // 所以必须用列数属性限定，而不是对所有表格生效。
+  assert.match(css, /\.dss-table\[data-dsh-structured-cols="3"\] th:nth-child\(1\)/)
+  assert.doesNotMatch(css, /\.dss-table th:nth-child\(1\),\.dss-scope \.dss-table td:nth-child\(1\)\{width:26%\}/)
+  // 容器允许横向滚动，窄屏下表格保底可读宽度。
+  assert.match(css, /\.dss-table-wrap\{[^}]*overflow-x:auto/)
+  assert.match(css, /@media \(max-width:560px\)\{[\s\S]{0,200}min-width:520px/)
+})
+
 test('client：活 CSS 用到的每个 --dss-* 变量都必须有定义', () => {
   const dom = makeDom()
   loadClient(dom).apply(makeContext(null))
