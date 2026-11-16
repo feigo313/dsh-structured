@@ -436,6 +436,27 @@ test('client：活 CSS 用到的每个 --dss-* 变量都必须有定义', () => 
   assert.deepEqual(missing, [], '这些变量被引用却从未定义：' + missing.join(', '))
 })
 
+test('client：CSS 里的 dss-* 类必须有代码创建（防空规则）', () => {
+  const dom = makeDom()
+  loadClient(dom).apply(makeContext(null))
+  const css = dom.styles.get('dsh-structured-skin-style')?.textContent ?? ''
+  const configCss = dom.styles.get('dsh-structured-config-style')?.textContent ?? ''
+  const source = readFileSync('src/client.js', 'utf8')
+
+  const cssClasses = new Set([
+    ...[...css.matchAll(/\.(dss-[a-z0-9-]+)/g)].map((m) => m[1]),
+    ...[...configCss.matchAll(/\.(dss-[a-z0-9-]+)/g)].map((m) => m[1]),
+  ])
+  // 类名都以单引号字符串字面量的形式出现在源码里（className / setAttribute / classList）。
+  const created = new Set()
+  for (const match of source.matchAll(/'([^']*)'/g)) {
+    for (const token of match[1].split(/\s+/)) if (/^dss-[a-z0-9-]+$/.test(token)) created.add(token)
+  }
+  // 2026-11-16：删 .dss-status-* 与 .dss-status 时发现「CSS 有、代码没有」的死规则肉眼不可见。
+  const dead = [...cssClasses].filter((name) => !created.has(name)).sort()
+  assert.deepEqual(dead, [], '这些类只有 CSS 规则、没有任何代码创建：' + dead.join(', '))
+})
+
 test('client：三套主题的卡片配色两两不同，复制按钮常驻可见', () => {
   const dom = makeDom()
   loadClient(dom).apply(makeContext(null))

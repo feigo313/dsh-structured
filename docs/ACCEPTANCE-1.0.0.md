@@ -1,6 +1,6 @@
 # dsh-structured 1.1.3 验收（未发布）
 
-[1.1.3 · 信封写短] session-87d46d52 turn 110 / 111：模型只写到 conclusion，suggestions / risk 缺失且根对象未闭合，JSON.parse 失败导致整条回复降级成普通文字。现在解析失败路径先按配平补闭合括号，补齐后允许缺 suggestions / risk（缺哪段少哪张卡，结论卡照出）；完整信封与其它畸形形状行为不变；卡片正文与人格表格单元格按标记建 strong / code 节点（不再露出 ** 与反引号，复制仍为净文本）；整条回复按钮去掉 opacity:.4 覆盖。回归 120/120。流式闸门对齐宿主真实属性（data-streaming / data-chat-running 均为空串，按属性存在判断），半截信封流式期间保持 pending；新增静态机检「活 CSS 引用的 --dss-* 变量必须都有定义」。另：人格合同补「普通汇报走 persona 块、dsh-ui 不得替代三卡」（roadmap C 遗留项）；删除死常量 V5_TOKENS / V5_COMPONENTS（198 行，lib/client.js 207591 → 194406 B）；pack 58 文件 / 2436306 B / unpacked 3202087 B。
+[1.1.3 · 信封写短] session-87d46d52 turn 110 / 111：模型只写到 conclusion，suggestions / risk 缺失且根对象未闭合，JSON.parse 失败导致整条回复降级成普通文字。现在解析失败路径先按配平补闭合括号，补齐后允许缺 suggestions / risk（缺哪段少哪张卡，结论卡照出）；完整信封与其它畸形形状行为不变；卡片正文与人格表格单元格按标记建 strong / code 节点（不再露出 ** 与反引号，复制仍为净文本）；整条回复按钮去掉 opacity:.4 覆盖。回归 120/120。流式闸门对齐宿主真实属性（data-streaming / data-chat-running 均为空串，按属性存在判断），半截信封流式期间保持 pending；新增静态机检「活 CSS 引用的 --dss-* 变量必须都有定义」。另：人格合同补「普通汇报走 persona 块、dsh-ui 不得替代三卡」（roadmap C 遗留项）；删除死常量 V5_TOKENS / V5_COMPONENTS（198 行，lib/client.js 207591 → 194406 B）；pack 58 文件 / 2436467 B / unpacked 3202103 B。
 
 [1.1.3 · 状态色跟主题] 状态胶囊、状态单元格（底色 + 左侧色条）、建议卡序号圆点、复制成功勾原先写死浅色（#dcf3e7 / #ecfdf3 / #12b76a / #f79009 / #f04438），Codex 与 Anthropic 下不跟主题；现在全部走 --dss-green/amber/red(-soft)，深色主题 7 条写死覆盖删除。机检：活 CSS 非变量声明零硬编码 hex。回归 120/120。
 
@@ -8,22 +8,22 @@
 
 [1.1.2 · 三套主题配色与调性] 三套主题共用一套卡面（圆角 / 边框 / 阴影 / 结构一致），只换配色：DeepSeek 结论 #eff6ff / 建议 #f0faf4 / 风险 #fffbf3，Codex #eef8f5 / #eef6ea / #fdf7ea，Anthropic #fbf5f1 / #f4f5e2 / #fcf3e2，深色版透明度 .14–.16。表头底色 --dss-head-bg、表格左边条、表头文字 --dss-th-text 跟各自主题主色（DeepSeek 蓝 / Codex 绿 / Anthropic 土褐），不再混 teal。卡片与表格复制按钮常驻 opacity .6（hover 1、触屏 .85）。
 
-[1.1.2 · 长对话卡片掉光] 人格模式与通用尾部提醒互斥后不再补任何提醒，模型在短回复 / 催进度 / 解释 / 等待回合漏掉 persona 信封，整条回复降级成普通文字（身份头还在、卡片全没了）。现在人格模式注入只讲信封的专用尾部提醒（PERSONA_REMINDER_TEXT），合同补「任何回复都必须是信封」硬约束，缺块说明改成「降级成普通排版（这条回复就没有卡片）」。新增断言覆盖人格开启 / 关闭 / 子代理三种情形，全套 118/118；pack 58 文件 / 2436306 B / unpacked 3202087 B。
+[1.1.2 · 长对话卡片掉光] 人格模式与通用尾部提醒互斥后不再补任何提醒，模型在短回复 / 催进度 / 解释 / 等待回合漏掉 persona 信封，整条回复降级成普通文字（身份头还在、卡片全没了）。现在人格模式注入只讲信封的专用尾部提醒（PERSONA_REMINDER_TEXT），合同补「任何回复都必须是信封」硬约束，缺块说明改成「降级成普通排版（这条回复就没有卡片）」。新增断言覆盖人格开启 / 关闭 / 子代理三种情形，全套 118/118；pack 58 文件 / 2436467 B / unpacked 3202103 B。
 
 
-[1.1.1 · 卡片级复制] 五档按钮（结论 / 建议 / 风险 / 表格 / 整条回复）：内容为净文本（无卡标签、无身份头、无开场收尾），卡片内换行与列表序号保留，表格输出 TSV。按钮 hover/focus-within 显示、触屏常显，aria-label 齐备；连续 decorate 10 次按钮数不变（幂等）。新增回归测试（五档按钮、净文本逐字、TSV 逐字、幂等），全套 114/114；pack 58 文件 / 2436306 B / unpacked 3202087 B。
+[1.1.1 · 卡片级复制] 五档按钮（结论 / 建议 / 风险 / 表格 / 整条回复）：内容为净文本（无卡标签、无身份头、无开场收尾），卡片内换行与列表序号保留，表格输出 TSV。按钮 hover/focus-within 显示、触屏常显，aria-label 齐备；连续 decorate 10 次按钮数不变（幂等）。新增回归测试（五档按钮、净文本逐字、TSV 逐字、幂等），全套 114/114；pack 58 文件 / 2436467 B / unpacked 3202103 B。
 
 
-[1.1.0 · 代码/构建] `npm test` 113/113；`npm run build` 完成；`desktop-check` 全 PASS；pack 58 文件 / 2436306 B / unpacked 3202087 B。修复 issue #5 的 P1 渲染崩溃：状态表格单元格改为只写属性（data-dsh-structured-status-cell），不再清空 textContent / 插入胶囊节点，避免 React reconcile 抛 NotFoundError 导致整条回复空白；卡片标题 strong 同样改为只写 data-dsh-card-label，不替换文本节点。新增真实 DOM 回归（单元格文本与子节点身份、strong 文本节点身份）与 CSS 契约断言（三套主题选择器必须存在、装饰文本 user-select:none 不参与复制）。另修主题不生效（Codex/Anthropic 两套配色 + 深色变体落地）与复制带装饰（身份头/开场/收尾 user-select:none）。
+[1.1.0 · 代码/构建] `npm test` 113/113；`npm run build` 完成；`desktop-check` 全 PASS；pack 58 文件 / 2436467 B / unpacked 3202103 B。修复 issue #5 的 P1 渲染崩溃：状态表格单元格改为只写属性（data-dsh-structured-status-cell），不再清空 textContent / 插入胶囊节点，避免 React reconcile 抛 NotFoundError 导致整条回复空白；卡片标题 strong 同样改为只写 data-dsh-card-label，不替换文本节点。新增真实 DOM 回归（单元格文本与子节点身份、strong 文本节点身份）与 CSS 契约断言（三套主题选择器必须存在、装饰文本 user-select:none 不参与复制）。另修主题不生效（Codex/Anthropic 两套配色 + 深色变体落地）与复制带装饰（身份头/开场/收尾 user-select:none）。
 
 
-[1.0.17 · 代码/构建] `npm test` 110/110；`npm run build` 完成；pack 58 文件 / 2436306 B / unpacked 3202087 B（较 1.0.16 基线 +477 / +2283）。三处视觉修正：① 代码块 banner 改 `position:static`（宿主 `_bannerWrap` 是 sticky + 不透明底，我们清掉了底色，长代码块滚动时标题会叠字）；② 「代码 · 」前缀改为条件显示（只在 `data-dsh-structured-lang` 存在时输出，避免无语言块显示「代码 · 代码块」）；③ `[class*="_fenceSeat"]:has(> .dss-code){margin:0}` 让卡片 14px 间距不再被宿主的 16px 折叠吞掉，宿主其它块保持原样。回归断言锁住这三条。
+[1.0.17 · 代码/构建] `npm test` 110/110；`npm run build` 完成；pack 58 文件 / 2436467 B / unpacked 3202103 B（较 1.0.16 基线 +477 / +2283）。三处视觉修正：① 代码块 banner 改 `position:static`（宿主 `_bannerWrap` 是 sticky + 不透明底，我们清掉了底色，长代码块滚动时标题会叠字）；② 「代码 · 」前缀改为条件显示（只在 `data-dsh-structured-lang` 存在时输出，避免无语言块显示「代码 · 代码块」）；③ `[class*="_fenceSeat"]:has(> .dss-code){margin:0}` 让卡片 14px 间距不再被宿主的 16px 折叠吞掉，宿主其它块保持原样。回归断言锁住这三条。
 
-[1.0.16 · 代码/构建] `npm test` 109/109；`npm run build` 完成；pack 58 文件 / 2436306 B / unpacked 3202087 B（较 1.0.15 基线 +1587 B，来自 fenceSeat 修复与 seated fixture）。rc.2 起 `.fenceSeat` 包裹层的「没包裹住」已修：块外正文过滤改为排除子树含 persona 块的节点，错误降级路径清空 seat；回归 fixture 按 rc.2 真实 DOM（fenceSeat + Rp banner「代码块」+ pre>code>span.line）构造，断言出卡 3 张 / 零 `.md-code-block` / 零空 seat / 块外正文存活。rc.3 兼容性实测：渲染契约哈希类名与 rc.2 逐项相同、`systemPrompt.section` / `getSectionOrder` 签名不变、隔离 DSH_HOME 下 `plugin add dsh-structured@1.0.15` PASS、`--dump-config` exit 0。
+[1.0.16 · 代码/构建] `npm test` 109/109；`npm run build` 完成；pack 58 文件 / 2436467 B / unpacked 3202103 B（较 1.0.15 基线 +1587 B，来自 fenceSeat 修复与 seated fixture）。rc.2 起 `.fenceSeat` 包裹层的「没包裹住」已修：块外正文过滤改为排除子树含 persona 块的节点，错误降级路径清空 seat；回归 fixture 按 rc.2 真实 DOM（fenceSeat + Rp banner「代码块」+ pre>code>span.line）构造，断言出卡 3 张 / 零 `.md-code-block` / 零空 seat / 块外正文存活。rc.3 兼容性实测：渲染契约哈希类名与 rc.2 逐项相同、`systemPrompt.section` / `getSectionOrder` 签名不变、隔离 DSH_HOME 下 `plugin add dsh-structured@1.0.15` PASS、`--dump-config` exit 0。
 
 [1.0.14 · 字体跟随] 卡片 / 正文 / 标题 / 表格 / 代码字号改用宿主 ui-theme 变量（--dsh-content-font-size / --dsh-code-font-size），字体栈改用 --dsh-font-family-text / --dsh-font-family-code；未设置时逐像素等价（style-gate ok:true）。设置页字体族跟随、字号不变。
 
-[1.0.15 · 代码/构建] `npm test` 108/108；`npm run build` 完成；`desktop-check` 全 PASS；`theme-contrast` 60；`theme-hue-distance` 12；`lib` 由 src 构建并注入鲸鱼娘 JSON；pack 58 文件 / 2436306 B / unpacked 3202087 B（1.0.3 起 7 张截图全部为本地部署实机高清图，体积较旧版明显上升属预期；代码与文档部分与 1.0.2 相当）。仓库新增 `.gitattributes` 统一 LF，`scripts/build.mjs` 构建时把 CRLF 折成 LF，保证 `lib/` 与 `src/` 字节一致、pack 体积不随检出状态漂移；本地实机截图产物统一 `*-local.png` 命名并被 `.gitignore` + package.json `files` 双重排除，不进 git 也不进包。pack 数字为**本地 Windows 基线**；`test/pack.test.mjs` 对 size/unpackedSize 按 ±16 KB 容差校验（tar 条目元数据随平台差异 ~137 B，Linux CI 与本地内容相同、字节数不同），文件数与必含/排除清单仍为精确断言。
+[1.0.15 · 代码/构建] `npm test` 108/108；`npm run build` 完成；`desktop-check` 全 PASS；`theme-contrast` 60；`theme-hue-distance` 12；`lib` 由 src 构建并注入鲸鱼娘 JSON；pack 58 文件 / 2436467 B / unpacked 3202103 B（1.0.3 起 7 张截图全部为本地部署实机高清图，体积较旧版明显上升属预期；代码与文档部分与 1.0.2 相当）。仓库新增 `.gitattributes` 统一 LF，`scripts/build.mjs` 构建时把 CRLF 折成 LF，保证 `lib/` 与 `src/` 字节一致、pack 体积不随检出状态漂移；本地实机截图产物统一 `*-local.png` 命名并被 `.gitignore` + package.json `files` 双重排除，不进 git 也不进包。pack 数字为**本地 Windows 基线**；`test/pack.test.mjs` 对 size/unpackedSize 按 ±16 KB 容差校验（tar 条目元数据随平台差异 ~137 B，Linux CI 与本地内容相同、字节数不同），文件数与必含/排除清单仍为精确断言。
 
 [1.0.10 · 字段内裸引号修复] 模型在中文里直接写 ASCII 双引号（“这份“低”不是系统的功劳”）时，JSON 断在第一个内层引号上；1.0.9 的字段抢救只能抢救到引号之前的半句话，卡片看起来像回复被截断。现在解析失败分支先做 repairInnerQuotes：按结构判断字符串内的引号，若其后第一个非空白字符不是逗号、右花括号、右方括号或冒号，就按内容引号转义，整段 JSON 恢复正常解析、字段完整渲染。回归用例直接用实机原文（lead / body / risk 各含未转义引号）。
 
