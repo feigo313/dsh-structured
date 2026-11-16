@@ -474,3 +474,11 @@
 - **验证**：`npm test` **118/118**（新增 CSS 契约：三套 soft 两两不同、卡面无主题级覆盖、复制按钮常驻；人格提醒三分支 + 合同必备句）；`desktop-check` 全 PASS；pack 58 文件 / 2,426,844 B / unpacked 3,199,466 B；lib 由 src 重建。
 - **预览工具**：`.tools/theme-preview.mjs` 用真实 CSS + 真实 class 渲染六宫格（浅 / 深 × 三主题），复制按钮与身份头结构与插件一致。
 - **本地安装**：desktop profile 备份 `.backup-dsh-structured-1.1.1` 后，用 `npm pack` 产物替换 `node_modules/dsh-structured`（实装 1.1.2；package.json 依赖行仍是 1.1.1，发版后从 registry 装回）。
+
+## 2026-11-16 · 第 34 轮（日常巡检）
+
+- **issue 水位**：0 open / 2 closed（#5、#2 均已关；#1 / #4 实体仍 404、仅事件残留，维持「证据不足」口径，不进入分诊）。`search/issues` total=2，与列表一致。**0 个新 issue、0 个新 PR**（仓库 PR 仅 #3，已 MERGED）。
+- **线上复核**：npm `latest = 1.1.2`（29 个版本）；Release `v1.1.2` 资产 `dsh-structured-1.1.2.tgz` 2,426,522 B（与本地 tgz 逐字节一致）；CI 最近一次 `4b6ef9b` success；市场 PR [#15607](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/15607) 已 MERGED，上游 main 的 entry `tarball` 已指向 `v1.1.2`。
+- **漂移**：工作树干净，HEAD = `4b6ef9b`（与 origin/main 一致）。
+- **本轮动作**：只读复核 + 记录；无 issue 可修，未改代码、未 push。
+- **待办不变**：① 死常量 `V5_TOKENS` / `V5_COMPONENTS` 未清；② 1.1.2 的三套主题配色与常驻复制按钮只做过静态渲染核对，未做 style-gate 实机像素复核；③ roadmap A / C 项未动。
