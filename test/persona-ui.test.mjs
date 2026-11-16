@@ -1344,7 +1344,8 @@ test('PersonaMode：信封写短了（少一层 }、缺 suggestions/risk）仍�
     return { flow, markdown }
   }
   const streaming = mkFlow('{"version":1,"kind":"normal","conclusion":{"lead":"写到一半"')
-  streaming.flow.setAttribute('data-streaming', 'true')
+  // 宿主写的是空串属性（data-streaming / data-chat-running），不是 ='true'。
+  streaming.flow.setAttribute('data-streaming', '')
   harness.plugin.__test.decorate(streaming.flow)
   assert.notEqual(streaming.markdown.getAttribute('data-dsh-persona-kind'), 'normal', '流式中不抢先渲染卡片')
   streaming.flow.removeAttribute('data-streaming')

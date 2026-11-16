@@ -409,6 +409,19 @@ test('client：三套主题选择器真的被 CSS 消费，装饰文本不参与
   assert.match(css, /\.dss-persona-prefix,\.dss-persona-suffix,\[data-dsh-persona-head\]\{user-select:none/)
 })
 
+test('client：活 CSS 用到的每个 --dss-* 变量都必须有定义', () => {
+  const dom = makeDom()
+  loadClient(dom).apply(makeContext(null))
+  const css = dom.styles.get('dsh-structured-skin-style')?.textContent ?? ''
+  assert.ok(css, 'skin style should be injected')
+  // 2026-11-16：删掉 --dss-table-bar 时留下 6 处 `var(--dss-table-bar, var(--dss-blue))`
+  // 这类「引用了不存在的变量、靠 fallback 蒙对」的写法，肉眼很难发现。这里机检。
+  const used = new Set([...css.matchAll(/var\((--dss-[a-z0-9-]+)/g)].map((m) => m[1]))
+  const defined = new Set([...css.matchAll(/(--dss-[a-z0-9-]+)\s*:/g)].map((m) => m[1]))
+  const missing = [...used].filter((name) => !defined.has(name)).sort()
+  assert.deepEqual(missing, [], '这些变量被引用却从未定义：' + missing.join(', '))
+})
+
 test('client：三套主题的卡片配色两两不同，复制按钮常驻可见', () => {
   const dom = makeDom()
   loadClient(dom).apply(makeContext(null))
