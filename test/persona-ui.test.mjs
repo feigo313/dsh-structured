@@ -968,6 +968,17 @@ test('PersonaMode：块外正文保留、其它代码块不误报、不可见字
   assert.equal(withOutside.markdown.getAttribute('data-dsh-persona-kind'), 'normal')
   assert.match(withOutside.markdown.textContent, /说明一下：先看结论。/, 'outside prose must survive persona rendering')
   assert.equal(withOutside.markdown.querySelectorAll('[data-dsh-structured-card-type]').length, 3)
+  // 块外正文必须留在原位置：信封前的开场白在卡片上方，信封后的补充在卡片下方（实机 137/680 条有块外正文）。
+  const beforeText = withOutside.markdown.firstElementChild?.textContent ?? ''
+  assert.match(beforeText, /说明一下：先看结论。/, '前置正文要留在卡片上方')
+  const bothSides = flowFor('<p>开场白</p>' + personaBlock(personaNormalPayload) + '<p>补充说明</p>')
+  const kids = [...bothSides.markdown.children]
+  const cardIndex = kids.findIndex((node) => node.getAttribute?.('data-dsh-structured-card-type'))
+  const leadIndex = kids.findIndex((node) => (node.textContent ?? '').includes('开场白'))
+  const tailIndex = kids.findIndex((node) => (node.textContent ?? '').includes('补充说明'))
+  assert.ok(leadIndex >= 0 && tailIndex >= 0 && cardIndex >= 0, '三部分都要在')
+  assert.ok(leadIndex < cardIndex, '开场白必须在卡片之前')
+  assert.ok(tailIndex > cardIndex, '补充说明必须在卡片之后')
 
   // B. persona 块 + 另一个普通代码块：不是合同冲突。
   const withOtherCode = flowFor(personaBlock(personaNormalPayload) + personaBlock('const x = 1', 'js'))

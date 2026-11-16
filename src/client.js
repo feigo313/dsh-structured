@@ -1824,13 +1824,20 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
       // 插件自己生成的节点（卡片 / 前后缀）不能当作"块外正文"再追加一次。
       // 0.2.2-rc.2 起 fence 外面多包一层 .fenceSeat，只排除直接子级会让 seat 当作
       // "块外正文"原样留下 —— 必须排除「包含 persona 块」或「本身就是 persona 块」的子树。
-      const outsideNodes = [...(markdown.children ?? [])].filter((node) => {
+      // 块外正文要留在原位置：模型常把「先说一句」写在信封前（实机统计 137 / 680 条），
+      // 早先一律追加到卡片后面，等于把开场白搬到结尾。按 persona 块在子级里的下标切成前 / 后两组。
+      const allChildren = [...(markdown.children ?? [])]
+      const personaIndex = allChildren.findIndex((node) => node.matches?.('.md-code-block') || node.querySelector?.('.md-code-block'))
+      const isOutsideNode = (node) => {
         if (node.matches?.(`[${GENERATED_ATTR}]`)) return false
         if (node.matches?.('.md-code-block')) return false
         if (node.querySelector?.('.md-code-block')) return false
         return true
-      })
+      }
+      const outsideBefore = personaIndex < 0 ? [] : allChildren.slice(0, personaIndex).filter(isOutsideNode)
+      const outsideAfter = (personaIndex < 0 ? allChildren : allChildren.slice(personaIndex + 1)).filter(isOutsideNode)
       while (markdown.firstChild) markdown.removeChild(markdown.firstChild)
+      for (const node of outsideBefore) markdown.appendChild(node)
       if (config.prefix) markdown.appendChild(makePersonaElement(doc, 'p', 'dss-persona-prefix', config.prefix))
       if (content.kind === 'short') {
         appendPersonaCard(doc, markdown, '短答', [fillPersonaText(doc, makePersonaElement(doc, 'p'), content.text)])
@@ -1868,7 +1875,7 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
         if (content.risk) appendPersonaCard(doc, markdown, '风险', [fillPersonaText(doc, makePersonaElement(doc, 'p'), content.risk)])
       }
       if (config.suffix && content.kind === 'normal') markdown.appendChild(makePersonaElement(doc, 'p', 'dss-persona-suffix', config.suffix))
-      for (const node of outsideNodes) markdown.appendChild(node)
+      for (const node of outsideAfter) markdown.appendChild(node)
       // 整条回复复制：放在最后，内容不含身份头 / 开场 / 收尾 / 表格复制按钮。
       if (!markdown.querySelector?.(`[${REPLY_COPY_ATTR}]`)) {
         const bar = makePersonaElement(doc, 'div', 'dss-reply-copy')
