@@ -1277,6 +1277,46 @@ test('PersonaMode：尾部多余 } 不判死、按正常信封渲染', () => {
   assert.match(salvaged.markdown.textContent, /帧目录已全删/, 'risk must be salvaged')
 })
 
+test('PersonaMode：信封写短了（少一层 }、缺 suggestions/risk）仍要出卡', () => {
+  const harness = makeHarness(baseState, async () => true)
+  const tone = JSON.stringify({ schema: 'dsh-structured/tone@1', prefix: 'Boss，', style: '搞怪', suffix: '——完', skipIn: ['code', 'diff', 'error', 'short', 'table'] })
+  harness.plugin.__test.setPersonaModeConfig({ personaEnabled: true, persona: tone, personaName: 'N', personaSignature: 'S', personaAvatar: '' })
+  const flowFor = (html) => {
+    const flow = harness.document.createElement('div')
+    flow.setAttribute('data-chat-flow-kind', 'assistant-step')
+    flow.setAttribute('data-chat-node-key', 'short-envelope-' + Math.random())
+    const slot = harness.document.createElement('div')
+    slot.setAttribute('data-slot', 'conversation.chat.node')
+    const markdown = harness.document.createElement('div')
+    markdown.className = '_markdown_preview'
+    markdown.innerHTML = html
+    slot.appendChild(markdown)
+    flow.appendChild(slot)
+    harness.document.body.appendChild(flow)
+    harness.plugin.__test.decorate(flow)
+    return { flow, markdown }
+  }
+  const wrap = (json) => `<div class="md-code-block"><div class="bannerWrap"><div data-code-block-banner><span class="_heading_persona">persona</span></div></div><div data-code-block-content><pre>${json}</pre></div></div>`
+
+  // 实机症状（session-87d46d52 turn 110 / 111，两张截图里的回复）：模型只写到 conclusion，
+  // suggestions / risk 整段没写，最后的 } 是 conclusion 的闭合，根对象没闭合。
+  const truncated = '{"version":1,"kind":"normal","conclusion":{"lead":"已照办：六个源文件逐字复制","body":"「菱形」我按语音同音读成「另行」"}}'.slice(0, -1)
+  const item = flowFor(wrap(truncated))
+  harness.flushPersonaErrors()
+  assert.equal(item.markdown.getAttribute('data-dsh-persona-kind'), 'normal', '缺字段的短信封必须照样出卡')
+  assert.equal(item.markdown.getAttribute('data-dsh-persona-error'), null, '不应报错')
+  assert.equal(item.markdown.querySelectorAll('.md-code-block').length, 0, '原始 JSON 不能露出来')
+  assert.doesNotMatch(item.markdown.textContent, /"version"/, '原始 JSON 不能露出来')
+  assert.match(item.markdown.textContent, /已照办：六个源文件逐字复制/, 'lead 进结论卡')
+  assert.match(item.markdown.textContent, /另行/, 'body 保留')
+  assert.equal(item.markdown.querySelectorAll('[data-dsh-structured-card-type]').length, 1, '只出结论卡，不补空卡')
+
+  // 完整信封仍然出三张卡。
+  const full = flowFor(wrap('{"version":1,"kind":"normal","conclusion":{"lead":"结论"},"suggestions":["建议"],"risk":"风险"}'))
+  harness.flushPersonaErrors()
+  assert.equal(full.markdown.querySelectorAll('[data-dsh-structured-card-type]').length, 3, '完整信封三张卡')
+})
+
 test('v5 emptyTone 兜底只写语言风格，不写结构要求', () => {
   const harness = makeHarness(baseState, async () => true)
   const tone = harness.api.emptyTone()

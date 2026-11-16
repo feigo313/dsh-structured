@@ -145,7 +145,7 @@ export const PERSONA_MODE_RULES = [
  * 模型对 system prompt 末尾最敏感，所以人格模式下改注入这句只讲信封的提醒。
  */
 export const PERSONA_REMINDER_TEXT = [
-  '提醒：本轮回复仍然只有一个 ```persona fenced block，块外不写正文、标题或 Markdown 卡片；短回复 / 催进度 / 解释 / 报错说明同样用 short 或 normal，省略信封这条回复就降级成普通文字、没有卡片。',
+  '提醒：本轮回复仍然只有一个 ```persona fenced block，块外不写正文、标题或 Markdown 卡片；短回复 / 催进度 / 解释 / 报错说明同样用 short 或 normal，省略信封这条回复就降级成普通文字、没有卡片。字段必须写全：normal / table 要有 conclusion、suggestions（1-5 条）、risk，最后一个 } 不能漏——少写一段就少一张卡。',
 ].join(String.fromCharCode(10))
 
 const isRecord = (value) => value !== null && typeof value === 'object' && !Array.isArray(value)
