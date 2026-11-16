@@ -1326,6 +1326,32 @@ test('PersonaMode：信封写短了（少一层 }、缺 suggestions/risk）仍�
   assert.doesNotMatch(cells[0].textContent, /\*\*/, '单元格不再露出星号')
   assert.doesNotMatch(cells[1].textContent, /`/, '单元格不再露出反引号')
   assert.equal(cells[0].textContent, '注入', '文本内容保持纯文本')
+
+  // 流式期间不抢先出卡：半截信封补括号后能解析，但宿主还在流式（data-streaming），
+  // 此刻渲染会随 token 反复重排卡片；等完成信号消失后再出。
+  const mkFlow = (json) => {
+    const flow = harness.document.createElement('div')
+    flow.setAttribute('data-chat-flow-kind', 'assistant-step')
+    flow.setAttribute('data-chat-node-key', 'streaming-' + Math.random())
+    const slot = harness.document.createElement('div')
+    slot.setAttribute('data-slot', 'conversation.chat.node')
+    const markdown = harness.document.createElement('div')
+    markdown.className = '_markdown_preview'
+    markdown.innerHTML = wrap(json)
+    slot.appendChild(markdown)
+    flow.appendChild(slot)
+    harness.document.body.appendChild(flow)
+    return { flow, markdown }
+  }
+  const streaming = mkFlow('{"version":1,"kind":"normal","conclusion":{"lead":"写到一半"')
+  streaming.flow.setAttribute('data-streaming', 'true')
+  harness.plugin.__test.decorate(streaming.flow)
+  assert.notEqual(streaming.markdown.getAttribute('data-dsh-persona-kind'), 'normal', '流式中不抢先渲染卡片')
+  streaming.flow.removeAttribute('data-streaming')
+  harness.plugin.__test.decorate(streaming.flow)
+  harness.flushPersonaErrors()
+  assert.equal(streaming.markdown.getAttribute('data-dsh-persona-kind'), 'normal', '流式结束后照常出卡')
+  assert.match(streaming.markdown.textContent, /写到一半/, '结论内容保留')
 })
 
 test('v5 emptyTone 兜底只写语言风格，不写结构要求', () => {

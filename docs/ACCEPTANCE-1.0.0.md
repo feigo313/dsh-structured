@@ -1,6 +1,6 @@
 # dsh-structured 1.1.3 验收（未发布）
 
-[1.1.3 · 信封写短] session-87d46d52 turn 110 / 111：模型只写到 conclusion，suggestions / risk 缺失且根对象未闭合，JSON.parse 失败导致整条回复降级成普通文字。现在解析失败路径先按配平补闭合括号，补齐后允许缺 suggestions / risk（缺哪段少哪张卡，结论卡照出）；完整信封与其它畸形形状行为不变；卡片正文与人格表格单元格按标记建 strong / code 节点（不再露出 ** 与反引号，复制仍为净文本）；整条回复按钮去掉 opacity:.4 覆盖。回归 119/119。另：人格合同补「普通汇报走 persona 块、dsh-ui 不得替代三卡」（roadmap C 遗留项）；删除死常量 V5_TOKENS / V5_COMPONENTS（198 行，lib/client.js 207591 → 194406 B）；pack 58 文件 / 2430896 B / unpacked 3188070 B。
+[1.1.3 · 信封写短] session-87d46d52 turn 110 / 111：模型只写到 conclusion，suggestions / risk 缺失且根对象未闭合，JSON.parse 失败导致整条回复降级成普通文字。现在解析失败路径先按配平补闭合括号，补齐后允许缺 suggestions / risk（缺哪段少哪张卡，结论卡照出）；完整信封与其它畸形形状行为不变；卡片正文与人格表格单元格按标记建 strong / code 节点（不再露出 ** 与反引号，复制仍为净文本）；整条回复按钮去掉 opacity:.4 覆盖。回归 119/119。另：人格合同补「普通汇报走 persona 块、dsh-ui 不得替代三卡」（roadmap C 遗留项）；删除死常量 V5_TOKENS / V5_COMPONENTS（198 行，lib/client.js 207591 → 194406 B）；pack 58 文件 / 2431617 B / unpacked 3190593 B。
 
 [1.1.2 · 主题底色] 卡片 / 表格 / 代码块底色原先硬编码 hex（#eef4ff / #f0faf4 / #fffbf3 / #f5f3ff / #ecfeff），切主题只换文字色不改底色。现在统一走 var(--dss-blue-soft) / var(--dss-green-soft) / var(--dss-amber-soft) + var(--dss-paper)，三套主题浅深自动跟随；快捷卡的固定紫与标题色一并改为主题 token。新增 CSS 契约断言（必须引用主题变量且不得出现硬编码 hex）。
 
