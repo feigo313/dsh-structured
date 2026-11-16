@@ -143,7 +143,7 @@ body[data-ds-dark-theme] .dss-scope {
 .dss-scope .dss-card-short{
   border-left-color:var(--dss-blue);background:linear-gradient(135deg,var(--dss-blue-soft),var(--dss-paper) 90%);box-shadow:none;
 }
-.dss-scope .dss-card-short > p:first-child > strong:first-child{
+.dss-scope .dss-card-short > p:first-child > strong:first-child:not([data-dss-inline]){
   display:block;width:100%;margin:0 0 8px;padding:0 0 6px;border-bottom:1px solid var(--dss-line);
   font:700 12px/1.5 var(--dss-sans);letter-spacing:.04em;color:var(--dss-blue-text);
 }
@@ -163,14 +163,14 @@ body[data-ds-dark-theme] .dss-scope {
 .dss-scope .dss-card-next > p,.dss-scope .dss-card-risk > p{
   margin:.45em 0;font-size:13.5px;line-height:1.7;color:var(--dss-ink-2);
 }
-.dss-scope .dss-card-conclusion > p:not(:first-child) > strong:first-child,
-.dss-scope .dss-card-accept > p:not(:first-child) > strong:first-child{
+.dss-scope .dss-card-conclusion > p:not(:first-child) > strong:first-child:not([data-dss-inline]),
+.dss-scope .dss-card-accept > p:not(:first-child) > strong:first-child:not([data-dss-inline]){
   display:block;margin:0 0 6px;padding:0;border:0;
   font:700 19px/1.45 var(--dss-serif);letter-spacing:.01em;color:var(--dss-ink);
 }
 .dss-scope .dss-card-conclusion > p strong,.dss-scope .dss-card-accept > p strong,
 .dss-scope .dss-card-next > p strong,.dss-scope .dss-card-risk > p strong{color:var(--dss-ink);font-weight:700}
-.dss-scope .dss-card-statement > p:first-child > strong:first-child{
+.dss-scope .dss-card-statement > p:first-child > strong:first-child:not([data-dss-inline]){
   display:block;margin:0 0 6px;padding:0;border:0;
   font:700 19px/1.45 var(--dss-serif);letter-spacing:.01em;color:var(--dss-ink);
 }
@@ -259,7 +259,7 @@ body[data-ds-dark-theme] .dss-scope {
 
 
 
-body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:first-child{color:var(--dss-blue-text)}
+body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:first-child:not([data-dss-inline]){color:var(--dss-blue-text)}
 
 
 .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{color:var(--dss-green)}
@@ -553,7 +553,7 @@ body[data-ds-dark-theme][data-dsh-structured-theme="anthropic"] .dss-scope {
 .dss-scope .dss-card-short{
   border-left-color:var(--dss-blue);background:linear-gradient(135deg,var(--dss-blue-soft),var(--dss-paper) 90%);box-shadow:none;
 }
-.dss-scope .dss-card-short > p:first-child > strong:first-child{
+.dss-scope .dss-card-short > p:first-child > strong:first-child:not([data-dss-inline]){
   display:block;width:100%;margin:0 0 8px;padding:0 0 6px;border-bottom:1px solid var(--dss-line);
   font:700 calc(var(--dss-text-size) * 12 / 13.5)/1.5 var(--dss-sans);letter-spacing:.04em;color:var(--dss-blue-text);
 }
@@ -573,14 +573,14 @@ body[data-ds-dark-theme][data-dsh-structured-theme="anthropic"] .dss-scope {
 .dss-scope .dss-card-next > p,.dss-scope .dss-card-risk > p{
   margin:.45em 0;font-size:var(--dss-text-size);line-height:1.7;color:var(--dss-ink-2);
 }
-.dss-scope .dss-card-conclusion > p:not(:first-child) > strong:first-child,
-.dss-scope .dss-card-accept > p:not(:first-child) > strong:first-child{
+.dss-scope .dss-card-conclusion > p:not(:first-child) > strong:first-child:not([data-dss-inline]),
+.dss-scope .dss-card-accept > p:not(:first-child) > strong:first-child:not([data-dss-inline]){
   display:block;margin:0 0 6px;padding:0;border:0;
   font:700 calc(var(--dss-text-size) * 19 / 13.5)/1.45 var(--dss-serif);letter-spacing:.01em;color:var(--dss-ink);
 }
 .dss-scope .dss-card-conclusion > p strong,.dss-scope .dss-card-accept > p strong,
 .dss-scope .dss-card-next > p strong,.dss-scope .dss-card-risk > p strong{color:var(--dss-ink);font-weight:700}
-.dss-scope .dss-card-statement > p:first-child > strong:first-child{
+.dss-scope .dss-card-statement > p:first-child > strong:first-child:not([data-dss-inline]){
   display:block;margin:0 0 6px;padding:0;border:0;
   font:700 calc(var(--dss-text-size) * 19 / 13.5)/1.45 var(--dss-serif);letter-spacing:.01em;color:var(--dss-ink);
 }
@@ -669,7 +669,7 @@ body[data-ds-dark-theme][data-dsh-structured-theme="anthropic"] .dss-scope {
 
 
 
-body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:first-child{color:var(--dss-blue-text)}
+body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:first-child:not([data-dss-inline]){color:var(--dss-blue-text)}
 
 
 .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{color:var(--dss-green)}
@@ -1707,6 +1707,8 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
         const at = match.index ?? 0
         if (at > last) element.appendChild(doc.createTextNode(source.slice(last, at)))
         const inline = makePersonaElement(doc, token.startsWith('**') ? 'strong' : 'code')
+        // 行内标记不能套卡片标题样式：段落开头的 **粗体** 会被 19px 标题规则命中。
+        inline.setAttribute('data-dss-inline', '1')
         inline.textContent = token.startsWith('**') ? token.slice(2, -2) : token.slice(1, -1)
         element.appendChild(inline)
         last = at + token.length

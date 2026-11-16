@@ -472,6 +472,22 @@ test('client：三套主题的卡片配色两两不同，复制按钮常驻可�
   assert.doesNotMatch(css, /data-dsh-structured-status-cell[^}]*#[0-9a-f]{3,8}/i, '状态单元格不得残留硬编码 hex')
 })
 
+test('client：段落开头的行内粗体不能被卡片标题规则吃掉', () => {
+  const dom = makeDom()
+  loadClient(dom).apply(makeContext(null))
+  const css = dom.styles.get('dsh-structured-skin-style')?.textContent ?? ''
+  assert.ok(css, 'skin style should be injected')
+  // :first-child 只看元素节点：段落以 **粗体** 开头时 strong 就是 first-child，
+  // 会被「正文首卡标题」规则吃成 19px 衬线大标题。fillPersonaText 给行内标记打
+  // data-dss-inline，凡是给 strong:first-child 上 19px 的规则都必须排除它。
+  assert.match(css, /strong:first-child:not\(\[data-dss-inline\]\)/, '行内标记排除选择器必须存在')
+  assert.doesNotMatch(
+    css,
+    /strong:first-child(?!:not\(\[data-dss-inline\]\))[^{]*\{[^}]*font:700 19px/,
+    '给 strong:first-child 上 19px 的规则必须排除 data-dss-inline',
+  )
+})
+
 test('client：卡片样式三套主题统一，只靠配色区分', () => {
   const dom = makeDom()
   loadClient(dom).apply(makeContext(null))

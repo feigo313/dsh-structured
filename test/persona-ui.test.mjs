@@ -1288,6 +1288,40 @@ test('PersonaMode：尾部多余 } 不判死、按正常信封渲染', () => {
   assert.match(salvaged.markdown.textContent, /帧目录已全删/, 'risk must be salvaged')
 })
 
+test('PersonaMode：段落开头的行内 **粗体** 不套卡片标题样式', () => {
+  const harness = makeHarness(baseState, async () => true)
+  const tone = JSON.stringify({ schema: 'dsh-structured/tone@1', prefix: '', style: '搞怪', suffix: '', skipIn: ['code', 'diff', 'error', 'short', 'table'] })
+  harness.plugin.__test.setPersonaModeConfig({ personaEnabled: true, persona: tone, personaName: 'N', personaSignature: 'S', personaAvatar: '' })
+  const flow = harness.document.createElement('div')
+  flow.setAttribute('data-chat-flow-kind', 'assistant-step')
+  flow.setAttribute('data-chat-node-key', 'inline-heading')
+  const slot = harness.document.createElement('div')
+  slot.setAttribute('data-slot', 'conversation.chat.node')
+  const markdown = harness.document.createElement('div')
+  markdown.className = '_markdown_preview'
+  // 真实形状：body 以 **粗体** 开头（模型极常这么写）。
+  markdown.innerHTML = '<div class="md-code-block"><div class="bannerWrap"><div data-code-block-banner><span class="_heading_persona">persona</span></div></div><div data-code-block-content><pre>'
+    + '{"version":1,"kind":"normal","conclusion":{"lead":"结论","body":"**粗体开头** 后面还有正文"},"suggestions":["**第一条**"],"risk":"**风险开头** 说明"}'
+    + '</pre></div></div>'
+  slot.appendChild(markdown)
+  flow.appendChild(slot)
+  harness.document.body.appendChild(flow)
+  harness.plugin.__test.decorate(flow)
+  harness.flushPersonaErrors()
+
+  const cards = [...markdown.querySelectorAll('[data-dsh-structured-card-type]')]
+  assert.equal(cards.length, 3, '三张卡')
+  const inlineStrongs = [...markdown.querySelectorAll('strong[data-dss-inline]')]
+  assert.ok(inlineStrongs.length >= 3, '行内粗体必须打 data-dss-inline 标记')
+  assert.ok(inlineStrongs.some((s) => s.textContent === '粗体开头'), 'body 开头的粗体是行内标记')
+  assert.ok(inlineStrongs.some((s) => s.textContent === '第一条'), '建议里的粗体是行内标记')
+  assert.ok(inlineStrongs.some((s) => s.textContent === '风险开头'), '风险开头的粗体是行内标记')
+  // 卡标签（结论 / 建议 / 风险）与 lead 不能被打成行内标记，否则会丢标题样式。
+  const label = cards[0].querySelector('p > strong')
+  assert.equal(label?.textContent, '结论', '第一段是卡标签')
+  assert.equal(label?.getAttribute('data-dss-inline'), null, '卡标签不带行内标记')
+})
+
 test('PersonaMode：信封写短了（少一层 }、缺 suggestions/risk）仍要出卡', () => {
   const harness = makeHarness(baseState, async () => true)
   const tone = JSON.stringify({ schema: 'dsh-structured/tone@1', prefix: 'Boss，', style: '搞怪', suffix: '——完', skipIn: ['code', 'diff', 'error', 'short', 'table'] })
