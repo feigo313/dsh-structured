@@ -866,13 +866,6 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
       if (cell.getAttribute?.(STATUS_CELL_ATTR) !== status) cell.setAttribute(STATUS_CELL_ATTR, status)
     }
 
-    const clearStatusPills = (row) => {
-      for (const cell of row?.cells ?? []) {
-        cell?.removeAttribute?.(STATUS_CELL_ATTR)
-        const pill = typeof cell?.querySelector === 'function' ? cell.querySelector(`[${STATUS_PILL_ATTR}]`) : null
-        pill?.remove?.()
-      }
-    }
 
     const ensureCodeCopy = (code) => {
       const banner = code?.querySelector?.('[data-code-block-banner]')
@@ -1354,54 +1347,6 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
       return out
     }
 
-    // 收集「被判定为收尾、但可能其实是内容」的引号位置，供候选回退搜索使用。
-    // 判据与 repairInnerQuotes 一致：值字符串里其后紧跟 , } ] 或结尾的引号。
-    const ambiguousQuotePositions = (text) => {
-      const source = String(text ?? '')
-      const stack = []
-      const positions = []
-      let inString = false
-      let stringIsKey = false
-      let escaped = false
-      for (let i = 0; i < source.length; i += 1) {
-        const ch = source[i]
-        if (inString) {
-          if (escaped) { escaped = false; continue }
-          if (ch === '\\') { escaped = true; continue }
-          if (ch !== '"') continue
-          let lookahead = i + 1
-          while (lookahead < source.length && /\s/.test(source[lookahead])) lookahead += 1
-          const next = source[lookahead]
-          const closes = stringIsKey
-            ? (next === ':' || next === undefined)
-            : (next === undefined || next === ',' || next === '}' || next === ']')
-          if (closes && !stringIsKey) positions.push(i)
-          if (closes) inString = false
-          continue
-        }
-        if (ch === '"') {
-          const top = stack[stack.length - 1]
-          stringIsKey = Boolean(top && top.type === 'object' && top.expectKey)
-          inString = true
-          continue
-        }
-        if (ch === '{') { stack.push({ type: 'object', expectKey: true }); continue }
-        if (ch === '[') { stack.push({ type: 'array', expectKey: false }); continue }
-        if (ch === '}' || ch === ']') { stack.pop(); continue }
-        if (ch === ',') {
-          const top = stack[stack.length - 1]
-          if (top && top.type === 'object') top.expectKey = true
-          continue
-        }
-        if (ch === ':') {
-          const top = stack[stack.length - 1]
-          if (top && top.type === 'object') top.expectKey = false
-        }
-      }
-      return positions
-    }
-
-    // 顶层 JSON 对象结束的位置：字符串感知地找到深度归零的下标，用于判断是否还有尾随内容。
     const topLevelJsonEnd = (text) => {
       const source = String(text ?? '')
       let depth = 0
