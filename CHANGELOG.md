@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.4 — 2026-11-17
+
+- 修复 **状态单元格底色从未生效**（1.1.0 起）：issue #5 把状态胶囊换成属性选择器时没算特异性——`.dss-scope .dss-table tbody td{background:transparent}`（0,2,2）压过状态色规则（0,2,1），浏览器算出来的 background 一直是 `rgba(0,0,0,0)`。可见后果：状态列只剩左侧 3px 色条、没有浅色底，而 CHANGELOG / README 一直写着「浅底 + 色条」。
+  - 状态色选择器加上 `.dss-table tbody`（0,3,2），重算后 6 个主题块 × 7 项全部通过。
+- **三套主题的语义色各自归位**（Boss 2026-11-17：修必须三款主题一起适配）：深色模式下 codex / anthropic 的 warn、error 此前与 deepseek 共用同一组 rgba——计算样式实测三套完全相同。现在 codex 用 `#facc15` / `#fb7185`（黄 / 玫瑰），anthropic 用 `#e8aa5a` / `#f97066`（土黄 / 珊瑚），deepseek 保持 `#fbbf24` / `#f87171`；三种状态 × 三套主题 × 浅深共 18 个组合两两可区分。
+- 校验方式升级：新增 **真实 Chromium 计算样式校核**（`.tools/computed-style-check.mjs`，headless Edge，不弹窗口）——渲染 6 个主题块后读 `getComputedStyle`，断言状态底色、左侧色条、卡片圆角、复制按钮常驻透明度、三列 / 四列宽档，以及「三套主题同名状态的底色两两不同」。这类特异性覆盖问题静态 CSS 断言看不出来，算出来的值能。
+- 回归：新增断言「状态色选择器必须带 `.dss-table tbody`」，全套 **126/126**；对比度 60/60、色相距离 12/12 仍全过。
 ## 1.1.3 — 2026-11-16
 
 - 修复 **信封写短就整条掉卡**（2026-11-16 实机：`session-87d46d52` turn 110 / 111 连续两条）：模型只写到 `conclusion` 就收尾——`suggestions` / `risk` 整段没写，最后一个 `}` 只闭合了 `conclusion`，根对象没闭合。`JSON.parse` 直接失败，整条回复降级成普通文字（身份头还在、卡片全没了）。

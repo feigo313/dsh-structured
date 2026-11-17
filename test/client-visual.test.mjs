@@ -423,6 +423,18 @@ test('client：表格列宽提示只对三列表生效，窄屏横向滚动', ()
   assert.match(css, /@media \(max-width:560px\)\{[\s\S]{0,200}min-width:520px/)
 })
 
+test('client：状态单元格底色不被宿主 td 规则盖掉（计算样式回归）', () => {
+  const dom = makeDom()
+  loadClient(dom).apply(makeContext(null))
+  const css = dom.styles.get('dsh-structured-skin-style')?.textContent ?? ''
+  // .dss-scope .dss-table tbody td 带 background:transparent，特异性 (0,2,2)；
+  // 状态色选择器必须至少同等或更高，否则底色被盖掉、只剩左侧色条（2026-11-17 实测发现）。
+  for (const state of ['success', 'warn', 'error']) {
+    const pattern = new RegExp('\\.dss-scope \\.dss-table tbody td\\[data-dsh-structured-status-cell="' + state + '"\\]')
+    assert.match(css, pattern, state + ' 状态色选择器必须带上 .dss-table tbody 以提高特异性')
+  }
+})
+
 test('client：活 CSS 用到的每个 --dss-* 变量都必须有定义', () => {
   const dom = makeDom()
   loadClient(dom).apply(makeContext(null))
