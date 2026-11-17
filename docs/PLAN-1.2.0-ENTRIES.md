@@ -1,62 +1,53 @@
-# 1.2.0 开发计划：侧边栏入口 + 设置页入口
+# 1.2.0 开发计划：侧边栏入口（不做设置页）
 
-> 目标（Boss 2026-11-17）：dsh-structured 在**侧边栏**和**设置页**各有一个入口，两处都能进到插件自己的面板/设置；入口展示位置可配置（参考 `@michengai/dsh-archive-manager` 的「两边显示 / 仅侧边栏 / 仅设置」）。
+> Boss 口径（2026-11-17）：「简单点，只做一个侧边栏开关，不需要在设置里做」，形态选定为**一行入口 + 点开打开面板**。本文件只是计划，未动代码。
 
 ## 一、现状（已核实）
 
-- 目前只有**插件详情页**里的配置区：`src/client.js` 的 `setupConfigPage` 通过 `plugins.bundle.config` slot 注册，Boss 需要先进「插件市场 → dsh-structured 详情」才能看到。
-- 侧边栏「更多 (11)」里那些条目（插件市场 / 技能 / 归档会话 / 上下文洞察 / 使用统计 …）都是各插件各自注册的；dsh-structured **不在其中**。
-- 设置页左侧（账号与余额 / 通用设置 / … / 侧边卡片 / Codex UI）由 `settings.section` slot 驱动；dsh-structured **不在其中**。
+- 目前唯一入口是**插件详情页**的配置区（`plugins.bundle.config` slot），Boss 要先进「插件市场 → dsh-structured 详情」。
+- 侧边栏「更多 (11)」里那些行（插件市场 / 技能 / 归档会话 / 上下文洞察 / 使用统计 …）由各插件自己注册；dsh-structured 不在其中。
+- 设置页（`settings.section`）**本次不做**，配置仍可从详情页与新面板进入。
 
-## 二、宿主契约（从 app.asar 与已装插件双向核实）
+## 二、宿主契约（从 app.asar + 已装 archive-manager 双向核实）
 
-| slot | 用途 | 注册形状（archive-manager 实测） |
+| slot | 用途 | 实测形状 |
 | --- | --- | --- |
-| `sidebar.panellist` | 侧边栏「更多」列表项 | `{ name:'sidebar.panellist', id, order, label:()=>string, locale }`，渲染函数只收 `{ size }`（图标尺寸）；配套 `sidebar.panel.icon` 决定图标 |
-| `settings.section` | 设置页一个新的分区 | `{ name:'settings.section', id, order, label:()=>string, icon:'archive', locale, inject }`，渲染是整页内容 |
-| `settings.section.icon` | 设置项图标（可选，单独注册） | `{ name:'settings.section.icon', id, locale }` |
-| `plugins.bundle.config` | 插件详情页配置区（现有） | 已经实现，保留 |
+| `sidebar.panellist` | 侧边栏「更多」里的一行 | `{ name, id, order, label: () => string, locale? }`；渲染函数只收 `{ size }`（图标尺寸） |
+| `main` | 面板内容（宿主的「选中面板」容器） | `{ name, key, inject }`；**key 与行的 id 相同**，宿主点行 → 选中同 key 面板 |
+| `plugins.bundle.config` | 详情页配置区（现有，保留不动） | `{ name, key:'dsh-structured', inject }` |
 
-`sidebar.panellist` 只给图标尺寸，**不是导航按钮**——条目点开去哪由插件自己决定（archive-manager 用 `main` slot 挂主面板 + `sidebar.panellist` 挂列表行）。
+行本身不接收点击回调——点击语义由宿主负责（选面板）。archive-manager 里能看到的同类逻辑：`services.panelInfo.getSnapshot().activePanelId === id` 判断当前面板。
 
-## 三、方案（三选一，推荐 A）
+## 三、要做的两件事
 
-**A. 双入口 = 设置页分区 + 侧边栏行（推荐）**
-- 设置页：注册 `settings.section`（id `dsh-structured`，order 50），内容直接复用现有配置卡（结构化输出 / 语气风格两个 tab 的 React 组件），等于把「插件详情页」的配置搬进设置页。
-- 侧边栏：注册 `sidebar.panellist`（id `dsh-structured`，图标沿用插件 icon.svg）。点击行为＝跳转设置页对应分区（若宿主没有跨区跳转 API，则退化为「打开一个轻面板，内嵌同一份配置卡」）。
-- 配置项新增 `entryPlacement`：`both`（默认）/ `sidebar` / `settings`，与 archive-manager 语义一致；两处都关掉时回落 `both` 防止无入口。
+1. **面板**：注册 `main`（`key: 'dsh-structured'`），内容**复用现有配置卡**（`StructuredConfigCard`：结构化输出 / 语气风格两个 tab），注入面与详情页同源（同一份 `configForms` 实例）。
+2. **侧边栏行**：注册 `sidebar.panellist`（`id: 'dsh-structured'`，`order` 排在归档会话之后），`label` 返回「结构化输出」，图标内联 SVG（三横档 + 滑钮，跟随 `currentColor`）。
+3. 两者与 `configForms` 服务生命周期绑定：命名空间停服时一并撤销，不留空入口、不重复注册。
 
-**B. 只做设置页分区**（最小改动，满足「设置里能进」，侧边栏留给以后）
+## 四、落地步骤
 
-**C. 只做侧边栏行 + 弹出面板**（面板里放配置卡，设置页不动）
-
-## 四、落地步骤（按 A 拆）
-
-1. **抽配置卡**：把 `setupConfigPage` 里 `StructuredConfigCard` 拆成可复用组件 `StructuredConfigView`，接收 `{ state, setField, mutateFields, readFields }`；插件详情页与设置页共用同一份（避免两套 UI 漂移）。
-2. **设置页分区**：`slots.register({name:'settings.section', id:'dsh-structured', order:50, label, icon:'sliders', locale, inject})`；`inject` 提供 `hooks.structuredConfig: form` 与 `setField/mutateFields/readFields`，与现有详情页注入同源。
-3. **侧边栏行**：`slots.register({name:'sidebar.panellist', id:'dsh-structured', order, label, locale})`；点击 → 优先跳设置分区，落不到再开轻面板。
-4. **入口开关**：`Config` 增加 `entryPlacement`（`both|sidebar|settings`，默认 `both`），设置页/详情页都可改；注册时按值决定注册哪一个，两个都禁用时强制 `both`。
-5. **国际化**：`locale/*.json` 补 `entry.title`、`settings.section.title`、`entryPlacement.*` 三项文案（中/英）。
-6. **幂等与清理**：注册函数返回 disposer，配置变化时先撤后建（archive-manager 的 `mountSettingsSection/unmountSettingsSection` 是同一模式）；避免重复注册造成两个入口项。
-7. **红线**：不碰宿主受控子树，只注册 slot；不新增 require 依赖（slot 由宿主注入）。
+1. 抽注入面：把详情页 effect 里的 `inject()` 提成 `configCardProps()`，两处共用（避免两套写入逻辑漂移）。
+2. 加常量：`MAIN_SLOT='main'`、`SIDEBAR_ENTRY_SLOT='sidebar.panellist'`、`ENTRY_ID='dsh-structured'`、`ENTRY_LABEL='结构化输出'`、`ENTRY_ORDER`。
+3. `setupConfigPage` 内新增两个 `child.effect(...)`：一个注册 `main` 面板，一个注册 `sidebar.panellist` 行；都用 `child.slots.inject(slot, () => child.slots.register(...))` 形态（与现有详情页注册同款）。
+4. 图标组件 `SidebarEntryIcon({ size })`：缺省 16，`aria-hidden="true"`。
+5. 测试：把 `collectRegistration()` 的 fake slots 从「只认 plugins.bundle.config」改成按名记录多 slot；新增断言——三处注册齐全、`main.key === 'dsh-structured'`、面板注入面与详情页同一 form、行 `id/order/label` 正确、图标按 `size` 渲染且带 `aria-hidden`。
+6. 文档：CHANGELOG（1.2.0 条目）、README「入口」小节、ACCEPTANCE 补一段、`docs/MAINTENANCE.md` 12.1 记录。
+7. 内部计划文档不进包：`package.json` 的 `files` 加 `!docs/PLAN-*.md`（`npm pack` 保持 58 文件）。
 
 ## 五、验收标准
 
-- 设置页左侧出现「结构化输出」分区，点进去可改全部字段并保存，与插件详情页写入同一份配置（改一处两处都变）。
-- 侧边栏「更多」列表出现 dsh-structured 行，图标与插件一致，点击可用（跳设置或开面板）。
-- `entryPlacement` 三个取值分别生效：`settings` 只留设置页、`sidebar` 只留侧边栏、`both` 两处都在；关掉两处时回落 `both`。
-- 连续开关 `personaEnabled` / 主题 10 次，入口不重复、不残留（DOM 里 `sidebar.panellist` 行与 `settings.section` 各 1 个）。
-- 回归：`npm test` 全绿（新增至少 3 条：双注册、开关生效、幂等）；`desktop-check` 全 PASS；关闭插件后两处入口消失。
+- 侧边栏「更多」出现「结构化输出」一行，图标与其它入口同风格，点击后面板显示配置卡。
+- 面板里改字段并保存 → 与插件详情页读到同一份值（改一处两处都变）。
+- 连续开关 10 次 `personaEnabled`、切主题 3 次，不出现重复入口行、面板不叠加。
+- 插件停用/命名空间未服务时，行与面板一起消失，侧边栏无残留空行。
+- `npm test` 全绿（新增 ≥4 条断言）、`desktop-check` 全 PASS、`npm pack` 仍 58 文件。
 
 ## 六、风险与未知
 
-- `sidebar.panellist` 的点击行为契约未在 app.asar 里找到「跳转设置分区」的公开 API；需要 1 次实机实验确认（否则用轻面板兜底）。
-- 设置页与插件详情页共用 `configForms` 实例时，`form.set` 的写入是否需要 revision 校验（`mutate`）待实测；archive-manager 用 `inject` 注入同一 form，应当可直接复用。
-- 版本线：这是**功能**，按 1.2.0；按 12.0 攒批规矩，需 ≥3 条修复才发版——功能不占「修复」名额，故 1.2.0 需要单独与 Boss 约定发布节奏（建议：功能本身一次发，bug 修复仍按攒批）。
+- **点击行为未实机验证**：宿主是否真的「点行即选中同 key 面板」只在 archive-manager 代码里看到证据，需 1 次实机确认；若不成立，退化为「行点击后由插件自己 `selectPanel(id)` 主动选中」。
+- 面板与详情页共用 `configForms` 时是否需要 `mutate` 的 revision 校验：archive-manager 是直接注入同一 form，预计不需要；若宿主强制乐观锁，改走 `mutate` 通道并补测试。
+- 版本节奏：这是**功能**，按 12.0 攒批规矩不占「3 条修复」名额；建议功能本身单独发一版（1.2.0），bug 修复继续攒批。
 
-## 七、工作量估算（本机实测口径）
+## 七、工作量（本机口径）
 
-- 抽组件 + 设置页分区：约 1.5 小时（含实测宿主 slot 行为）
-- 侧边栏行 + 点击跳转/轻面板：约 1 小时
-- 入口开关 + 国际化 + 幂等：约 1 小时
-- 回归与文档（CHANGELOG/README/ACCEPTANCE/测试 3 条）：约 1 小时
+抽注入面 + 两个 slot 注册：约 1 小时；图标 + 测试 4 条：约 0.5 小时；文档与 pack 基线：约 0.5 小时。合计约 2 小时，含一次实机验证。
