@@ -1322,6 +1322,73 @@ test('PersonaMode：段落开头的行内 **粗体** 不套卡片标题样式', 
   assert.equal(label?.getAttribute('data-dss-inline'), null, '卡标签不带行内标记')
 })
 
+test('PersonaMode：table.rows 漏键（多行裸数组 / 落单 ] / 短行）也要出表格卡', () => {
+  const harness = makeHarness(baseState, async () => true)
+  const tone = JSON.stringify({ schema: 'dsh-structured/tone@1', prefix: 'Boss，', style: '搞怪', suffix: '——完', skipIn: ['code', 'diff', 'error', 'short', 'table'] })
+  harness.plugin.__test.setPersonaModeConfig({ personaEnabled: true, persona: tone, personaName: 'N', personaSignature: 'S', personaAvatar: '' })
+  const flowFor = (json) => {
+    const flow = harness.document.createElement('div')
+    flow.setAttribute('data-chat-flow-kind', 'assistant-step')
+    flow.setAttribute('data-chat-node-key', 'rows-' + Math.random())
+    const slot = harness.document.createElement('div')
+    slot.setAttribute('data-slot', 'conversation.chat.node')
+    const markdown = harness.document.createElement('div')
+    markdown.className = '_markdown_preview'
+    markdown.innerHTML = '<div class="md-code-block"><div class="bannerWrap"><div data-code-block-banner><span class="_heading_persona">persona</span></div></div><div data-code-block-content><pre>'
+      + json.replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      + '</pre></div></div>'
+    slot.appendChild(markdown)
+    flow.appendChild(slot)
+    harness.document.body.appendChild(flow)
+    harness.plugin.__test.decorate(flow)
+    harness.flushPersonaErrors()
+    return markdown
+  }
+  const head = '{"version":1,"kind":"table","conclusion":{"lead":"看表"},"table":{"head":["项","证据","处置"]'
+  const tail = '},"suggestions":["继续"],"risk":"无"}'
+
+  // A. 实机形状（session-3b2f63dc turn 19）：head 后直接跟多行裸数组，结尾多一个 ]。
+  const multiRow = head + ',[ "崩溃","exit 0xC0000409","无堆栈"],[ "人为","卸载后仍加载","已修"]]' + tail
+  const a = flowFor(multiRow)
+  assert.equal(a.getAttribute('data-dsh-persona-kind'), 'table', '漏键多行表格必须出卡')
+  assert.equal(a.querySelectorAll('[data-dsh-structured-card-type]').length, 3, '三卡都在')
+  assert.equal(a.querySelectorAll('tbody tr').length, 2, '两行都要还原')
+  assert.doesNotMatch(a.textContent, /"version"/, '不能露出原始 JSON')
+
+  // B. 单行裸数组、没有落单 ]。
+  const singleRow = '{"version":1,"kind":"table","conclusion":{"lead":"看表"},"table":{"head":["项","值"],["a","b"]' + tail
+  const b = flowFor(singleRow)
+  assert.equal(b.getAttribute('data-dsh-persona-kind'), 'table', '漏键单行表格必须出卡')
+  assert.equal(b.querySelectorAll('tbody tr').length, 1)
+
+  // C. 短行（某行少写一列）：补空格子，不丢内容。
+  const ragged = '{"version":1,"kind":"table","conclusion":{"lead":"看表"},"table":{"head":["项","数据","判定"],["正常","3.26GB","稳定"],["当前","8 进程 / 3.26GB"]]' + tail
+  const c = flowFor(ragged)
+  assert.equal(c.getAttribute('data-dsh-persona-kind'), 'table', '短行也要出卡')
+  const widths = [...c.querySelectorAll('tbody tr')].map((tr) => tr.children.length)
+  assert.deepEqual(widths, [3, 3], '短行补到与表头同宽')
+
+  // D. 反例：普通 json 代码块（无 persona 语言、无信封形状）必须原样保留。
+  const plain = '{"apiVersion":"v1","kind":"ConfigMap","data":{"a":"b"}}'
+  const flow = harness.document.createElement('div')
+  flow.setAttribute('data-chat-flow-kind', 'assistant-step')
+  flow.setAttribute('data-chat-node-key', 'plain-' + Math.random())
+  const slot = harness.document.createElement('div')
+  slot.setAttribute('data-slot', 'conversation.chat.node')
+  const markdown = harness.document.createElement('div')
+  markdown.className = '_markdown_preview'
+  markdown.innerHTML = '<div class="md-code-block"><div class="bannerWrap"><div data-code-block-banner><span class="_heading_json">json</span></div></div><div data-code-block-content><pre>'
+    + plain.replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    + '</pre></div></div>'
+  slot.appendChild(markdown)
+  flow.appendChild(slot)
+  harness.document.body.appendChild(flow)
+  harness.plugin.__test.decorate(flow)
+  assert.equal(markdown.getAttribute('data-dsh-persona-kind'), 'code', '普通 json 走代码通道，不按信封渲染')
+  assert.equal(markdown.querySelectorAll('.md-code-block').length, 1, '原代码块保留')
+  assert.equal(markdown.querySelectorAll('table').length, 0, '不能凭空生成表格')
+})
+
 test('PersonaMode：信封写短了（少一层 }、缺 suggestions/risk）仍要出卡', () => {
   const harness = makeHarness(baseState, async () => true)
   const tone = JSON.stringify({ schema: 'dsh-structured/tone@1', prefix: 'Boss，', style: '搞怪', suffix: '——完', skipIn: ['code', 'diff', 'error', 'short', 'table'] })

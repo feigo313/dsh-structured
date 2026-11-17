@@ -1211,6 +1211,106 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
     // lenient 只用在「JSON 本身要修」的抢救路径：模型把信封写短了（少一层 }、suggestions /
     // risk 整段没写）时，宁可少一张卡也要把已有的内容渲染成卡，绝不让整条回复降级成普通文字。
     // 正常路径仍按完整合同校验，流式半截不会被提前当成品渲染。
+    // rows 漏键的修复常带出「短行」（某行少写一个单元格）：补空串即可，
+    // 不删任何内容；若某行比表头还长则放弃修复（截断会丢信息，宁可降级）。
+    const padShortTableRows = (value) => {
+      const table = value?.table
+      if (!table || !Array.isArray(table.head) || !Array.isArray(table.rows)) return value
+      const width = table.head.length
+      if (!table.rows.every((row) => Array.isArray(row) && row.length <= width)) return null
+      return {
+        ...value,
+        table: {
+          head: [...table.head],
+          rows: table.rows.map((row) => (row.length === width ? [...row] : [...row, ...Array(width - row.length).fill('')])),
+        },
+      }
+    }
+
+    // 模型偶尔把 table.rows 的键名整个漏掉（head 数组后直接跟行数组）：
+    //   "table":{"head":["项","证据"],["崩溃类型",…]}
+    // 语法上多了一个裸数组，JSON.parse 直接失败，整条降级成纯文本。
+    // 这里只在 "head" 数组结束后紧跟 `,` + `[` 的位置补一个 "rows": —— 证据充分、改动最小。
+    // 模型偶尔把 table.rows 的键名整个漏掉，且把多行写成连续裸数组：
+    //   "table":{"head":["项","证据"],["崩溃类型",…],["高危…",…]}
+    // 语法上是一串裸数组，JSON.parse 直接失败。这里把这串数组整体包成 "rows":[…]。
+    // 模型把 table.rows 写成「漏键 + 落单右括号」的形式：
+    //   "table":{"head":["项","证据"],[r1],[r2]]}
+    // 既没有 "rows":[ 前缀，结尾又多一个本该闭合 rows 的 ]。
+    // 这里把连续裸数组整体包成 "rows":[…] ，并吃掉紧随其后的落单 ]。
+    const repairMissingRowsKey = (text) => {
+      const source = String(text ?? '')
+      const headAt = source.indexOf('"head"')
+      if (headAt < 0) return null
+
+      const skipSpace = (i) => {
+        while (i < source.length && /\s/.test(source[i])) i += 1
+        return i
+      }
+      const arrayEndAt = (from) => {
+        let depth = 0
+        let inString = false
+        let escaped = false
+        for (let i = from; i < source.length; i += 1) {
+          const ch = source[i]
+          if (inString) {
+            if (escaped) { escaped = false; continue }
+            if (ch === '\\') { escaped = true; continue }
+            if (ch === '"') inString = false
+            continue
+          }
+          if (ch === '"') { inString = true; continue }
+          if (ch === '[') depth += 1
+          else if (ch === ']') {
+            depth -= 1
+            if (depth === 0) return i
+          }
+        }
+        return -1
+      }
+
+      const headStart = source.indexOf('[', headAt)
+      if (headStart < 0) return null
+      const headEnd = arrayEndAt(headStart)
+      if (headEnd < 0) return null
+
+      let i = skipSpace(headEnd + 1)
+      if (source[i] !== ',') return null
+      i = skipSpace(i + 1)
+      if (source[i] !== '[') return null
+      const firstRowStart = i
+
+      let lastRowEnd = -1
+      let cursor = firstRowStart
+      for (;;) {
+        const rowEnd = arrayEndAt(cursor)
+        if (rowEnd < 0) return null
+        lastRowEnd = rowEnd
+        let next = skipSpace(rowEnd + 1)
+        if (source[next] !== ',') break
+        next = skipSpace(next + 1)
+        if (source[next] !== '[') break
+        cursor = next
+      }
+
+      // 落单的 ] ：仅当后面紧跟 } 或 , 时才算 rows 的孤立闭合括号
+      let tailStart = lastRowEnd + 1
+      const afterRow = skipSpace(tailStart)
+      let dropOrphan = false
+      if (source[afterRow] === ']') {
+        const afterBracket = skipSpace(afterRow + 1)
+        if (source[afterBracket] === '}' || source[afterBracket] === ',') {
+          dropOrphan = true
+          tailStart = afterRow + 1
+        }
+      }
+
+      return source.slice(0, firstRowStart)
+        + '"rows":[' + source.slice(firstRowStart, lastRowEnd + 1) + ']'
+        + (dropOrphan ? '' : '')
+        + source.slice(tailStart)
+    }
+
     const validatePersonaContent = (raw, { lenient = false } = {}) => {
       if (!personaObject(raw)) return { ok: false, error: 'JSON 必须是对象' }
       if (raw.version !== 1) return { ok: false, error: 'version 必须为 1' }
@@ -2256,6 +2356,16 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
         // 不因为一次截断把整条回复降级成普通文字。
         const truncated = balanceTruncatedJson(cleaned)
         if (truncated) candidates.push(truncated)
+        // table.rows 漏键（head 后直接跟行数组）：补键后再试一次。
+        const rowsRepaired = repairMissingRowsKey(cleaned)
+        if (rowsRepaired) {
+          candidates.push(rowsRepaired)
+          // 修复后可能仍有短行（某行少写一列）：补空单元格也算可渲染。
+          try {
+            const padded = padShortTableRows(JSON.parse(rowsRepaired))
+            if (padded) candidates.push(JSON.stringify(padded))
+          } catch {}
+        }
         // 中文里直接写 ASCII 双引号（"这份"低"不是系统的功劳"）会让 JSON 断在第一个内层引号上，
         // 解析失败后抢救出的字段都只剩半句。这里按结构判断内层引号并转义，优先于截断类修复。
         // 内层引号后面紧邻 ASCII , ] } 时单次判定会误当收尾（`"他说"好",然后走了"`），
