@@ -538,3 +538,14 @@
 - **桌面 profile 换回 registry 版**：备份 `package.json.bak-20261116-2200` / `pnpm-lock.yaml.bak-20261116-2200` 后 `pnpm add dsh-structured@1.1.3 --registry https://registry.npmjs.org` 成功；依赖行 1.1.2 → 1.1.3，实装 1.1.3，与其他插件版本零变动；`lib/client.js` 与仓库构建产物 sha256 前缀同为 `d97667c6a4bc2efd`。
 - **CI**：`3bc8330`（tag 指向的代码提交）与 `dc9855a` 两次 ci 均 success。
 - **仍待**：市场 PR #15946 等维护者合并（check 在跑）；真机像素级复核未做。
+
+## 2026-11-17 · 第 38 轮（1.1.3 上线次日巡检）
+
+- **issue 水位**：**0 open / 2 closed**（#5、#2 均已关；#1 / #4 实体仍 404、仅事件残留，维持「证据不足」口径，不进分诊）。`search/issues` total=2，与列表一致。仓库 PR 仅 #3（MERGED）。**0 个新 issue、0 个新 PR**。
+- **线上复核**：npm `latest = 1.1.3`（30 个版本，发布时间 2026-11-16T13:50:24Z）；Release `v1.1.3` 资产 `dsh-structured-1.1.3.tgz` 2,438,489 B（2026-11-16T13:47:59Z）；CI 最近四次 `131fe21` / `dc9855a` / `3bc8330` / `4b6ef9b` 全 success。
+- **市场闭环**：PR [#15946](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/15946) 已于 2026-11-16T17:19:23Z **MERGED**；上游 main 的 `feigo313__dsh-structured.yml` 的 `tarball` 已指向 `v1.1.3/dsh-structured-1.1.3.tgz`，与 npm/Release 同版本，无需再补 PR。
+- **仓库对齐**：`git fetch` 恢复可用，把本地从「API 重建的等价提交」对齐到远端 `131fe21`（tree `9558f5d6…` 一致），工作区干净。上一轮因 git HTTPS 不通产生的双胞胎提交不再需要手工处理。
+- **桌面**：profile 依赖行与实装均为 `1.1.3`（registry 版本，lib/client.js 哈希与仓库一致）。
+- **下载**：npm 近 7 天 2,350 次（11-09~11-15，含本机安装/测试流量）。
+- **本轮动作**：只读复核 + 记录；无 issue 可修，未改代码。日志提交留在本地（push 需 consent token，本轮无授权）。
+- **待办不变**：① 真机像素级复核（style-gate 的 ego 门禁未跑，用 headless Edge 六宫格替代）；② roadmap A（用户头像本地化）与 C 的实测项未动。
