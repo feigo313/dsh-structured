@@ -95,7 +95,8 @@
     "README.md",
     "ACCEPTANCE.md",
     "CHANGELOG.md",
-    "LICENSE"
+    "LICENSE",
+    "!docs/PLAN-*.md"
   ],
   "scripts": {
     "build": "node scripts/build.mjs",
