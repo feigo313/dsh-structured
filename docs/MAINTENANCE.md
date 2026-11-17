@@ -104,6 +104,7 @@ dsh plugin --profile <profile> add dsh-structured@x.y.z
 
 - 本地 commit：可以。
 - push / tag / Release / npm publish / 市场 PR：**必须先拿 Boss 明确同意**；全局 pre-push 需要 consent token（`~/.zcode/push-consent`，30 分钟有效）。
+- **攒批前置条件（2026-11-17 起）**：即使 Boss 同意，也要先看 12.0 的攒批规矩是否满足（≥3 条修复，或 <3 条但已跨过「发现日 + 次日整日」无新增）；不满足时只本地 commit、不 push。
 - npm 发布 token 已撤销：下次发布先 `npm login --registry https://registry.npmjs.org`（`package.json` 的 `publishConfig.registry` 已锁定 npmjs）。
 - 市场 PR：仓库满 1 天（≥ 2026-10-22 21:33 +08）、有 `dsh-plugin` topic、条目真实可用；**不得修改市场生成的 README**。
 - 本地 `main` 与 `origin/main` 保持同步：`git fetch` 后 `git merge --ff-only`；consent token 有效时普通 `git push` 可用。仅当 git HTTPS 不通时才用 `gh api` 写文件，并在事后把本地历史对齐到远端（避免重复提交）。**不要 force push**。
@@ -129,6 +130,29 @@ dsh plugin --profile <profile> add dsh-structured@x.y.z
 | 500 字上限未运行时强制 | P3 | 目前只是提示词约束 |
 
 ## 12. 发布门槛（本项目自定）
+
+### 12.0 攒批规矩（Boss 2026-11-17 立，硬性）
+
+发版不再「修一个发一个」。**同一个版本号攒批，满足下面任一条才能发**：
+
+1. **修复 ≥ 3 条 bug**；或
+2. **修复 < 3 条，但按日历日等满「发现日 + 次日整日」无新增**——即 bug 发现的当天（D）与 D+1 全天都没有再冒出新的待修项，则 D+2（第三天）可以发。**不要求满 48 小时**，跨自然日即可。
+
+补充口径：
+
+- 「修复」指真正改了代码/样式的缺陷修复；纯文档、纯断言、纯清理不计入条数（可以随批带走，但不能拿来凑 3 条）。
+- 同一条 bug 的后续返工（比如修完又补一刀）仍算 1 条，不重复计数。
+- 攒批期间照常本地 commit、桌面 profile 装预览；**不 push、不 tag、不发 npm、不开市场 PR**。
+- 到点满足条件后仍需 Boss 明确点头，才执行 push / tag / npm publish / Release / 市场 PR。
+- 反例（2026-11-17 实测）：1.1.4 只有「状态底色 + 语义色」1 条修复就发了，属于违反本规矩的操作，留作教训。
+
+### 12.1 下一版待发清单（攒批中）
+
+| 序号 | 发现日 | 缺陷 | 证据 | 状态 |
+| --- | --- | --- | --- | --- |
+| 1 | 2026-11-17 | persona 信封的 `table` 少写 `"rows":` 键（`{"head":[…],["a","b"]}`），解析失败降级成纯文本、整条无卡 | session-3b2f63dc 73 条回复里 17 条命中该形状（其余 26 条正常出卡、30 条根本没交信封） | 待修（Boss：先攒着） |
+
+### 12.2 发版顺序
 
 发版顺序固定，缺一项不发：
 
