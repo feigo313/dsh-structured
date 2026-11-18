@@ -596,3 +596,16 @@
 - **桌面 profile**：已装 1.1.6 预览（备份 `*.bak-20261118-115027`）；registry tarball 传播完成后补 `pnpm add dsh-structured@1.1.6` 对齐 spec。
 - **遗留**：市场 PR 等维护者合并；1.1.7 待发清单为空；1.2.0 侧边栏入口待开工。
 - **补记（12:21）**：npm tarball 传播完成，desktop profile 已 `pnpm add dsh-structured@1.1.6`，spec 与实装对齐 1.1.6。
+
+## 2026-11-18 · 第 44 轮（项目文件夹与宣传视频冗余清理）
+
+- **触发**：Boss「清理一下项目文件夹…宣传视频也有大量冗余…一起清理」。
+- **清理**：项目 **3.1G → 296M**（净释放约 2.8G）：
+  - `.tools` 2.5G → 182M：`video-intro` 1.7G→27M（frames1–7/test、多版 TTS 只留 final5.wav、deliver v1–v8/中间成片只留 v9）；`video-1.0` 726M→145M（删 508M 高码率中间渲染、37M 旧版、h3out/drafts/logs）；另删 awesome-dsh-plugin clone、catalog、asar dumps、pdfium、dsh-concise、pack-* 等参考副本。
+  - `dsh/` 461M：误装的 @deepseek-ai/dsh-web-frontend 依赖副本，整目录删除。
+  - `.tmp` 98M：Edge profile 与临时渲染清空（保留 `.tmp` 目录）。
+  - `artifacts` 139M→51M：删 53 个发布包副本（88M）；notes/verify/PNG 证据保留。
+  - 根目录 tgz 41 → 1（只留 1.1.6，1.4M）；`assets/screenshots-1.0.3` 与 `head-104-local.png` 删除。
+- **保留**：三支成片（根目录 34M / video-intro v9 11M / video-1.0 升级版 135M）、HTML+py 源、CARD-MAP/PLAN、final5 配音母带、voice-src/assets、证据 PNG、全部 `.tools` 门禁脚本。
+- **验证**：`npm test` 127/127；`npm pack` 58 文件 / 1,495,212 B（清理未影响发布物）；工作区干净。
+- **未推**：本轮提交留在本地（push 需 Boss 明确同意 + consent token）。
