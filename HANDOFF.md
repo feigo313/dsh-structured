@@ -39,7 +39,7 @@
 - npm：`latest = 1.1.5`；GitHub Release `v1.1.5`（资产 2,443,372 B）；tag `v1.1.5`。
 - 市场（awesome-dsh-plugin）：PR **#16327 已 MERGED**（2026-11-18 00:53 CST）；上游 listing tarball 已指向 `v1.1.5`；#16157（1.1.4）已关闭并注明 supersede。
 - 桌面 profile（`C:\Users\MYCAIGC\.dsh\profiles\desktop`）：`dsh-structured` spec 与实装均为 **1.1.5**（registry 源；未装本地 1.1.6 预览）。
-- 门禁（2026-11-18 复跑）：`npm test` 127/127；`desktop-check` 全 PASS；对比度 60/60；色相 12/12；计算样式 **6 主题块 × 8 项**全过；`npm pack` 58 文件（体积见 `test/pack.test.mjs` 的 PINNED_*）。
+- 门禁（2026-11-18 复跑）：`npm test` 127/127；`desktop-check` 全 PASS；对比度 60/60；色相 12/12；计算样式 **6 主题块 × 9 项**全过；`npm pack` 58 文件（体积见 `test/pack.test.mjs` 的 PINNED_*）。
 - 定时任务：每日巡检「dsh-structured 项目巡检」已重建（每天 10:00 Asia/Shanghai，target=本会话）。
 
 ---
@@ -103,7 +103,7 @@ node .tools/market-XXX.mjs     # fork 同步 → 改 tarball 行 → 提交 → 
 ## 7. 待办队列
 
 1. **1.2.0 侧边栏入口**（Boss 口径：**只做侧边栏，不做设置页**）——计划见 `docs/PLAN-1.2.0-ENTRIES.md`：注册 `main` 面板 + `sidebar.panellist` 一行「结构化输出」，面板复用现有配置卡；**动手前先实机验证「点行是否真的选中同 key 面板」**（宿主无公开跳转 API，是最大未知）。
-2. **1.1.6 攒批**：已 2 条（① 两列表首列过窄：`[cols="2"]` 18% + 7.5em + 合同「首列 ≤10 字」；② 索引型首列被 26% 撑空：首列 ≤6 字走 `lead-mode="compact"` 贴列）；按 12.0 不足 3 条 → 最早 **2026-11-20** 可发（D=11-18、D+1=11-19 整日无新增）。发版前先补截图（见下条）。
+2. **1.1.6 攒批**：已 3 条（① 两列表首列过窄；② 索引型首列被 26% 撑空；③ 头尾宽、中间正文窄——统一改为「按内容定宽 + 窄列贴内容 + 尾列封顶 32% + 合同首尾列字数」）；满 3 条 → **1.1.6 可发**（仍需 Boss 明确点头 + consent token），发版前先补截图。
 3. **截图重拍**：7 张仍是 1.0.4 实机图（1.1.2 主题色、1.1.4 状态底色后未重拍），违反 12.2 第 3 条；1.1.6 发版前补齐并更新 `screenshots.json` / README。
 4. 已知未修：信封里字符串被截断的那类仍然降级（补引号会造假内容，刻意不修）；没有任何 persona 块的回复只能靠合同/提醒压概率。
 5. 长期项（`docs/ROADMAP.md`）：A = 用户头像落本地数据目录（不写进配置）；C = persona 抗漂移实测（12 类提示词产出率 ≥90%）。
@@ -119,7 +119,7 @@ npm test                                   # 127/127（node:test + linkedom）
 node scripts/desktop-check.mjs             # 全 PASS
 node scripts/theme-contrast.mjs            # 60/60
 node scripts/theme-hue-distance.mjs        # 12/12
-node .tools/computed-style-check.mjs       # 6 主题块 × 8 项（headless Edge，读 getComputedStyle）
+node .tools/computed-style-check.mjs       # 6 主题块 × 9 项（headless Edge，读 getComputedStyle）
 node .tools/corpus-persona.mjs             # 真实会话语料回归（近期信封全部出卡）
 npm pack --json --ignore-scripts           # 58 文件，体积基线在 test/pack.test.mjs（±16 KB 容差）
 ```
@@ -133,7 +133,7 @@ npm pack --json --ignore-scripts           # 58 文件，体积基线在 test/pa
 - bash 双引号里的反引号会被 shell 执行（改 CHANGELOG 时踩过两次）→ 改文档写 `.mjs` 脚本，改完回读校验。
 - **工作区行尾会漂**：`.gitattributes` 要求 LF，但 2026-11-18 实测 README / `docs/1.0-3-RELEASE-CHECKPOINT.md` / `test/persona-ui.test.mjs` 仍是 CRLF。写文档统一 LF 并回读，否则 `npm pack` 体积随检出状态漂移（1.1.5 发布包比仓库重打包大 78 B 就是这个原因）。
 - CSS 特异性：`.dss-table tbody td{background:transparent}`（0,2,2）会盖掉状态色规则（0,2,1），已修但同类问题还会再来——加规则前算特异性。
-- 表格列宽按列数：三列 26% / 18%；**两列首列 `width:18%;min-width:7.5em`**（2026-11-18 修：无规则时首列被压到 ~95px，5 字标签折行）；4 列以上不套宽档、走横向滚动。设置页预览 `CONFIG_CSS` 与会话皮肤 `CSS` 两处常量要同步。首列全部 ≤6 字时由 `decorate` 打 `data-dsh-structured-lead-mode="compact"`（`width:1%;white-space:nowrap;min-width:0`），否则 `#` 这类序号列会被 26% 宽档撑成空白列。
+- 表格列宽改为按内容：`decorate` 逐列量显示宽度（CJK=2 / ASCII=1，含表头，≤12 单位标 `data-dsh-structured-col="narrow"`），尾列在 3 列以上且中间更长时标 `tail="capped"`（≤32%）；**不再按列数写死 26%/18%**。流式半截表跳过测量；设置页预览 `CONFIG_CSS` 与会话皮肤 `CSS` 两处常量要同步。2026-11-18 实测：索引表首列 40px、正文表中间 56.3%、尾列 31.8%。
 - `:first-child` 只看元素节点：行内 `**粗体**` 变成 `strong` 后会命中标题规则，已用 `data-dss-inline` 排除。
 - 流式信号是**空串属性**（`data-streaming` / `data-chat-running`），不能按 `="true"` 匹配。
 - 桌面 profile 由 Electron 独占，不能用 `dsh plugin --profile desktop`；预览只能手工替换 `node_modules/dsh-structured` 或 `pnpm add`，且会被下一次 install 覆盖。
