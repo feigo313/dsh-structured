@@ -147,7 +147,7 @@ Phase 2 已落地 2.1–2.4：卡片类型（结论/判断/指标/风险/下一�
 
 ![语气风格设置页](assets/screenshots/11-config-page.png)
 
-`screenshots.json` 列出全部 7 张，全部是 1.0.4 本地部署实机截图（DSH Web GUI + 已安装的 dsh-structured v1.0.4）：身份头、卡外前缀、结论 / 建议 / 风险三卡、收尾，以及语气风格设置页。1.1.2 起主题配色、1.1.4 起状态底色有调整，这批图仍代表 1.0.4 观感；按 `docs/MAINTENANCE.md` 12.2 第 3 条，1.1.6 发版前重拍。
+`screenshots.json` 列出 7 张：06 / 09-theme-light / 09-theme-dark / 10-theme-dark 是 **1.1.6 实机截图**（本机 DSH Web GUI，装 1.1.6 后的真实会话）；01 / 07 / 11 为 1.0.4 实机图，不含表格，未受 1.1.6 列宽变更影响、暂不重拍。
 
 ### 配置
 

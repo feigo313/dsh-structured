@@ -35,7 +35,7 @@
 
 ## 3. 当前状态（2026-11-18 10:xx 实测 / 第 40 轮收尾，版本 1.1.5）
 
-- 仓库：`main` 头部 = 本轮「审计 + 1.1.6 首条修复 + 文档回填」提交（版本仍 **1.1.5**，1.1.6 攒批中未 bump）；工作区干净；本地领先 `origin/main` **7 个提交**（含本文件，全部未推）。
+- 仓库：`main` 头部 = 1.1.6 发版提交（版本 **1.1.6**）；工作区干净；本地领先 `origin/main`（发版前全部未推，push 在发布链内完成）。
 - npm：`latest = 1.1.5`；GitHub Release `v1.1.5`（资产 2,443,372 B）；tag `v1.1.5`。
 - 市场（awesome-dsh-plugin）：PR **#16327 已 MERGED**（2026-11-18 00:53 CST）；上游 listing tarball 已指向 `v1.1.5`；#16157（1.1.4）已关闭并注明 supersede。
 - 桌面 profile（`C:\Users\MYCAIGC\.dsh\profiles\desktop`）：`dsh-structured` spec 与实装均为 **1.1.5**（registry 源；未装本地 1.1.6 预览）。
