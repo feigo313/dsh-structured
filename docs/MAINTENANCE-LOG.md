@@ -586,3 +586,12 @@
 - **验证**：计算样式四 fixture——索引表首列 40px / 中间 86.5%；三列正文表中间 56.3% / 尾列 31.8%；两列表标签列 92px；6 主题 × 9 项全过；npm test 127/127；desktop-check PASS；对比度 60/60；色相 12/12；corpus exit 0；pack 58 文件 / 2,446,493 B / unpacked 3,233,721 B。
 - **计数**：1.1.6 攒批 3 条（同一统一修复），按 12.0 已达可发门槛；发版仍需 Boss 点头 + consent token，且先补截图重拍。
 - **未推**：本轮提交留在本地，等 Boss 明确授权 push。
+
+## 2026-11-18 · 第 43 轮（1.1.6 发布）
+
+- **触发**：Boss「发 1.1.6，截图按①重拍，动 desktop profile 前先备份」。
+- **发布链**：main `b5d470c` → tag `v1.1.6`（对象 `159796b`）→ `npm publish`（PUT 202；shasum `89718b2b…`，58 文件 / 1,495,212 B）→ Release `v1.1.6`（资产 1,495,212 B）→ 市场 PR **#16480**（OPEN / MERGEABLE，tarball 指 v1.1.6）。
+- **校验**：registry `1.1.6?ts=` 200 且 `dist-tags.latest = 1.1.6`（12:18 CST 确认，CDN tarball 仍在传播）；CI run 44235481471 success；`npm test` 127/127；计算样式 6 主题 × 10 项；pack 58 文件 / 1,495,212 B / unpacked 2,220,310 B。
+- **截图**：06 / 09-theme-light / 09-theme-dark / 10-theme-dark 用 1.1.6 实机重拍（本机 GUI：ego lite + 本机凭据自签 cookie 进入 57449，真实会话渲染）；01 / 07 / 11 不含表格、未受影响，保留 1.0.4 实机图。
+- **桌面 profile**：已装 1.1.6 预览（备份 `*.bak-20261118-115027`）；registry tarball 传播完成后补 `pnpm add dsh-structured@1.1.6` 对齐 spec。
+- **遗留**：市场 PR 等维护者合并；1.1.7 待发清单为空；1.2.0 侧边栏入口待开工。
