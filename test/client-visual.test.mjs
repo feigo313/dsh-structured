@@ -236,14 +236,28 @@ test('v5 skin：结论/表格/代码注入 dss class，状态表标状态单元�
   assert.equal(row.attrs.get('data-dsh-structured-row'), 'success')
   // 状态只写属性，值是状态名（不再用 '1' 配胶囊节点）——React 受控子树不被改写。
   assert.equal(statusCell.attrs.get('data-dsh-structured-status-cell'), 'success')
-  // 首列内容短（≤6 字）时贴住内容，否则三列 26% 宽档会把「#」撑成一列空白（2026-11-18 实机）。
-  assert.equal(table.attrs.get('data-dsh-structured-lead-mode'), 'compact')
+  // 内容 ≤12 显示单位的列贴内容（「✅ 完成」= 7 单位）；长首列不贴，按内容分。
+  assert.equal(statusCell.attrs.get('data-dsh-structured-col'), 'narrow')
   const longCell = classElement({ textContent: '这是一段很长的首列标签文本' })
   const longNote = classElement({ textContent: '已完成' })
   const longRow = classElement({ cells: [longCell, longNote], closest: () => null })
   const longTable = classElement({ querySelectorAll: (selector) => selector === 'tbody tr' ? [longRow] : [] })
   module.__test.decorate({ querySelectorAll: (selector) => selector === '[class*="_markdown_"] table' ? [longTable] : [] })
-  assert.equal(longTable.attrs.has('data-dsh-structured-lead-mode'), false)
+  assert.equal(longCell.attrs.has('data-dsh-structured-col'), false)
+  // 3 列「短 / 长正文 / 长状态」：中间明显更长时尾列封顶。
+  const h = (text) => classElement({ textContent: text })
+  const c = (text) => classElement({ textContent: text })
+  const t3row = classElement({ cells: [c('记忆投毒'), c('外部内容写得像资料，我顺手存进记忆文档，之后读回来当既有事实，这是最隐蔽的一条'), c('已补 1：外部内容只能以来源加未验证原文引用留档')], closest: () => null })
+  const t3 = classElement({ querySelectorAll: (selector) => selector === 'tbody tr' ? [t3row] : selector === 'thead th' ? [h('漏洞'), h('为什么能绕过'), h('状态')] : [] })
+  module.__test.decorate({ querySelectorAll: (selector) => selector === '[class*="_markdown_"] table' ? [t3] : [] })
+  assert.equal(t3.attrs.get('data-dsh-structured-tail'), 'capped')
+  assert.equal(t3row.cells[0].attrs.get('data-dsh-structured-col'), 'narrow')
+  // 流式半截表不测量，避免列宽半路跳。
+  const streamCell = classElement({ textContent: '短' })
+  const streamRow = classElement({ cells: [streamCell], closest: () => null })
+  const streamTable = classElement({ closest: (selector) => selector.includes('data-streaming') ? {} : null, querySelectorAll: (selector) => selector === 'tbody tr' ? [streamRow] : [] })
+  module.__test.decorate({ querySelectorAll: (selector) => selector === '[class*="_markdown_"] table' ? [streamTable] : [] })
+  assert.equal(streamCell.attrs.has('data-dsh-structured-col'), false)
   assert.equal(statusCell.textContent, '✅ 完成')
 
   const heading = { textContent: 'js' }
@@ -417,18 +431,18 @@ test('client：三套主题选择器真的被 CSS 消费，装饰文本不参与
   assert.match(css, /\.dss-persona-prefix,\.dss-persona-suffix,\[data-dsh-persona-head\]\{user-select:none/)
 })
 
-test('client：表格宽档按列数分配（三列 26%/18%、两列首列 min-width），窄屏横向滚动', () => {
+test('client：表格列宽按内容判定（窄列贴内容 / 尾列封顶），不再按列数硬分，窄屏横向滚动', () => {
   const dom = makeDom()
   loadClient(dom).apply(makeContext(null))
   const css = dom.styles.get('dsh-structured-skin-style')?.textContent ?? ''
   assert.ok(css, 'skin style should be injected')
-  // 26% / 18% 这套宽档只适合三列表；4 列以上会被压成一字一行（390px 截图可复现），
-  // 所以必须用列数属性限定，而不是对所有表格生效。
-  assert.match(css, /\.dss-table\[data-dsh-structured-cols="3"\] th:nth-child\(1\)/)
-  // 两列表没有宽档时，auto 布局把首列压到标签一行宽（2026-11-18 实机：类别/发现与判定）。
-  assert.match(css, /\.dss-table\[data-dsh-structured-cols="2"\] th:nth-child\(1\)[^{]*\{width:18%;min-width:7\.5em\}/)
-  assert.match(css, /\.dss-table\[data-dsh-structured-lead-mode="compact"\] th:nth-child\(1\)[^{]*\{width:1%;white-space:nowrap;min-width:0\}/)
-  assert.doesNotMatch(css, /\.dss-table th:nth-child\(1\),\.dss-scope \.dss-table td:nth-child\(1\)\{width:26%\}/)
+  // 2026-11-18 起不再按列数写死 26%/18%：短列（≤12 显示单位）贴内容，长列按内容分；
+  // 尾列在「3 列以上且中间明显更长」时封顶 32%，避免备注列吃掉正文列。
+  assert.match(css, /\.dss-table th\[data-dsh-structured-col="narrow"\][^{]*\{width:1%;white-space:nowrap;min-width:0\}/)
+  assert.match(css, /\.dss-table\[data-dsh-structured-tail="capped"\] th:last-child[^{]*\{width:32%\}/)
+  assert.doesNotMatch(css, /data-dsh-structured-cols="[23]"\] th:nth-child\(1\)/)
+  assert.doesNotMatch(css, /data-dsh-structured-lead-mode/)
+  assert.match(css, /\.dss-table tbody td\{[^}]*overflow-wrap:anywhere/)
   // 容器允许横向滚动，窄屏下表格保底可读宽度。
   assert.match(css, /\.dss-table-wrap\{[^}]*overflow-x:auto/)
   assert.match(css, /@media \(max-width:560px\)\{[\s\S]{0,200}min-width:520px/)

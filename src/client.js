@@ -17,7 +17,9 @@ window.__ModuleLoader__.load({
     const TONE_ATTR = 'data-dsh-structured-tone'
     const LANG_ATTR = 'data-dsh-structured-lang'
     const COLS_ATTR = 'data-dsh-structured-cols'
-const LEAD_MODE_ATTR = 'data-dsh-structured-lead-mode'
+const COL_ATTR = 'data-dsh-structured-col'
+const TAIL_ATTR = 'data-dsh-structured-tail'
+const COL_NARROW = 'narrow'
     const CODE_ATTR = 'data-dsh-structured-code'
     const SKIP_ATTR = 'data-dsh-structured-skip'
     const STATUS_ATTR = 'data-dsh-structured-status'
@@ -195,15 +197,13 @@ body[data-ds-dark-theme] .dss-scope {
 }
 .dss-scope .dss-table thead th{
   height:auto;padding:10px 16px!important;background:var(--dss-head-bg)!important;border-bottom:0;
-  color:var(--dss-th-text)!important;font:600 11.5px/1.5 var(--dss-sans)!important;letter-spacing:.08em!important;text-align:left;
+  color:var(--dss-th-text)!important;font:600 11.5px/1.5 var(--dss-sans)!important;letter-spacing:.08em!important;text-align:left;overflow-wrap:anywhere;
 }
-.dss-scope .dss-table[data-dsh-structured-cols="3"] th:nth-child(1),.dss-scope .dss-table[data-dsh-structured-cols="3"] td:nth-child(1){width:26%}
-.dss-scope .dss-table[data-dsh-structured-cols="3"] th:nth-child(2),.dss-scope .dss-table[data-dsh-structured-cols="3"] td:nth-child(2){width:18%}
-.dss-scope .dss-table[data-dsh-structured-cols="2"] th:nth-child(1),.dss-scope .dss-table[data-dsh-structured-cols="2"] td:nth-child(1){width:18%;min-width:7.5em}
-.dss-scope .dss-table[data-dsh-structured-lead-mode="compact"] th:nth-child(1),.dss-scope .dss-table[data-dsh-structured-lead-mode="compact"] td:nth-child(1){width:1%;white-space:nowrap;min-width:0}
+.dss-scope .dss-table th[data-dsh-structured-col="narrow"],.dss-scope .dss-table td[data-dsh-structured-col="narrow"]{width:1%;white-space:nowrap;min-width:0}
+.dss-scope .dss-table[data-dsh-structured-tail="capped"] th:last-child,.dss-scope .dss-table[data-dsh-structured-tail="capped"] td:last-child{width:32%}
 .dss-scope .dss-table tbody td{
   padding:11px 16px!important;border-bottom:1px solid var(--dss-line)!important;background:transparent;
-  color:var(--dss-ink-2)!important;font-size:13px!important;line-height:1.55!important;vertical-align:middle;
+  color:var(--dss-ink-2)!important;font-size:13px!important;line-height:1.55!important;vertical-align:middle;overflow-wrap:anywhere;
 }
 .dss-scope .dss-table tbody td:first-child{color:var(--dss-ink)!important;font-weight:600!important;font-size:13.5px!important}
 .dss-scope .dss-table tbody tr:nth-child(even){background:var(--dss-zebra)}
@@ -602,15 +602,13 @@ body[data-ds-dark-theme][data-dsh-structured-theme="anthropic"] .dss-scope {
 }
 .dss-scope .dss-table thead th{
   height:auto;padding:10px 16px!important;background:var(--dss-head-bg)!important;border-bottom:0;
-  color:var(--dss-th-text)!important;font:600 calc(var(--dss-text-size) * 11.5 / 13.5)/1.5 var(--dss-sans)!important;letter-spacing:.08em!important;text-align:left;
+  color:var(--dss-th-text)!important;font:600 calc(var(--dss-text-size) * 11.5 / 13.5)/1.5 var(--dss-sans)!important;letter-spacing:.08em!important;text-align:left;overflow-wrap:anywhere;
 }
-.dss-scope .dss-table[data-dsh-structured-cols="3"] th:nth-child(1),.dss-scope .dss-table[data-dsh-structured-cols="3"] td:nth-child(1){width:26%}
-.dss-scope .dss-table[data-dsh-structured-cols="3"] th:nth-child(2),.dss-scope .dss-table[data-dsh-structured-cols="3"] td:nth-child(2){width:18%}
-.dss-scope .dss-table[data-dsh-structured-cols="2"] th:nth-child(1),.dss-scope .dss-table[data-dsh-structured-cols="2"] td:nth-child(1){width:18%;min-width:7.5em}
-.dss-scope .dss-table[data-dsh-structured-lead-mode="compact"] th:nth-child(1),.dss-scope .dss-table[data-dsh-structured-lead-mode="compact"] td:nth-child(1){width:1%;white-space:nowrap;min-width:0}
+.dss-scope .dss-table th[data-dsh-structured-col="narrow"],.dss-scope .dss-table td[data-dsh-structured-col="narrow"]{width:1%;white-space:nowrap;min-width:0}
+.dss-scope .dss-table[data-dsh-structured-tail="capped"] th:last-child,.dss-scope .dss-table[data-dsh-structured-tail="capped"] td:last-child{width:32%}
 .dss-scope .dss-table tbody td{
   padding:11px 16px!important;border-bottom:1px solid var(--dss-line)!important;background:transparent;
-  color:var(--dss-ink-2)!important;font-size:calc(var(--dss-text-size) * 13 / 13.5)!important;line-height:1.55!important;vertical-align:middle;
+  color:var(--dss-ink-2)!important;font-size:calc(var(--dss-text-size) * 13 / 13.5)!important;line-height:1.55!important;vertical-align:middle;overflow-wrap:anywhere;
 }
 .dss-scope .dss-table tbody td:first-child{color:var(--dss-ink)!important;font-weight:600!important;font-size:var(--dss-text-size)!important}
 .dss-scope .dss-table tbody tr:nth-child(even){background:var(--dss-zebra)}
@@ -790,6 +788,27 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
     function isDiffCode(code) {
       const lang = bannerLanguage(code)
       return lang === 'diff' || lang === 'patch'
+    }
+
+    function displayUnits(text) {
+      let units = 0
+      for (const char of text) {
+        const code = char.codePointAt(0)
+        if (code === 0x200b || code === 0x200c || code === 0x200d || code === 0xfe0f || (code >= 0x0300 && code <= 0x036f)) continue
+        const wide = code >= 0x1100 && (
+          code <= 0x115f || code === 0x2329 || code === 0x232a ||
+          (code >= 0x2e80 && code <= 0xa4cf && code !== 0x303f) ||
+          (code >= 0xac00 && code <= 0xd7a3) ||
+          (code >= 0xf900 && code <= 0xfaff) ||
+          (code >= 0xfe30 && code <= 0xfe4f) ||
+          (code >= 0xff00 && code <= 0xff60) ||
+          (code >= 0xffe0 && code <= 0xffe6) ||
+          (code >= 0x1f300 && code <= 0x1faff) ||
+          (code >= 0x20000 && code <= 0x3fffd)
+        )
+        units += wide ? 2 : 1
+      }
+      return units
     }
 
     function statusFor(text) {
@@ -2500,7 +2519,8 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
         if (inGenui(table)) {
           table.removeAttribute(SKIP_ATTR)
           table.removeAttribute(STATUS_TABLE_ATTR)
-          table.removeAttribute(LEAD_MODE_ATTR)
+          table.removeAttribute(COL_ATTR)
+          table.removeAttribute(TAIL_ATTR)
           toggleClass(table, 'dss-table', false)
           continue
         }
@@ -2516,12 +2536,36 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
         if (columnCount > 0) table.setAttribute(COLS_ATTR, String(columnCount))
         else table.removeAttribute(COLS_ATTR)
         const rows = [...table.querySelectorAll('tbody tr')]
-        const leadCells = rows
-          .map((row) => (row.cells && row.cells.length ? row.cells[0] : row.querySelector?.('td')))
-          .filter((cell) => cell && typeof cell.textContent === 'string')
-        const leadCompact = leadCells.length > 0 && leadCells.every((cell) => [...cell.textContent.trim()].length <= 6)
-        if (leadCompact) table.setAttribute(LEAD_MODE_ATTR, 'compact')
-        else table.removeAttribute(LEAD_MODE_ATTR)
+        const tableStreaming = Boolean(table.closest?.('[data-streaming], [data-chat-running], [aria-busy="true"], [data-state="running"]'))
+        if (!tableStreaming) {
+          const headerCells = [...(table.querySelectorAll?.('thead th') ?? [])]
+          const bodyCells = rows.map((row) => (row.cells && row.cells.length ? [...row.cells] : [...(row.querySelectorAll?.('td,th') ?? [])]))
+          const columnTotal = Math.max(columnCount, headerCells.length, ...bodyCells.map((cells) => cells.length))
+          const widths = []
+          for (let index = 0; index < columnTotal; index += 1) {
+            let max = 0
+            for (const cell of [headerCells[index], ...bodyCells.map((cells) => cells[index])]) {
+              if (!cell) continue
+              max = Math.max(max, displayUnits((cell.textContent ?? '').trim()))
+            }
+            widths.push(max)
+          }
+          const narrow = widths.map((width) => width > 0 && width <= 12)
+          for (let index = 0; index < columnTotal; index += 1) {
+            for (const cell of [headerCells[index], ...bodyCells.map((cells) => cells[index])]) {
+              if (!cell) continue
+              if (!cell.setAttribute) continue
+              if (narrow[index]) cell.setAttribute(COL_ATTR, COL_NARROW)
+              else cell.removeAttribute(COL_ATTR)
+            }
+          }
+          const last = columnTotal - 1
+          const middle = widths.slice(1, last)
+          const middleMax = middle.length > 0 ? Math.max(...middle) : 0
+          const tailCapped = columnTotal >= 3 && !narrow[last] && middleMax >= widths[last] + 6
+          if (tailCapped) table.setAttribute(TAIL_ATTR, 'capped')
+          else table.removeAttribute(TAIL_ATTR)
+        }
         let statusTable = rows.length > 0
         for (const row of rows) {
           if (row.closest?.('thead') || row.closest?.(`[${SKIP_ATTR}="table"]`)) {
@@ -3611,7 +3655,7 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
         document.body?.removeAttribute(THEME_ATTR)
         document.body?.removeAttribute(PERSONA_MODE_ATTR)
         removePersonaHeads(document)
-        for (const attr of [CARD_ATTR, CARD_TYPE_ATTR, ICON_ATTR, TONE_ATTR, LANG_ATTR, COLS_ATTR, CODE_ATTR, SKIP_ATTR, STATUS_ATTR, STATUS_TABLE_ATTR, LEAD_ATTR, LEAD_MODE_ATTR, ROW_ATTR, PERSONA_KIND_ATTR, PERSONA_FALLBACK_ATTR, PERSONA_ERROR_ATTR, PERSONA_PENDING_ATTR, GENERATED_ATTR]) {
+        for (const attr of [CARD_ATTR, CARD_TYPE_ATTR, ICON_ATTR, TONE_ATTR, LANG_ATTR, COLS_ATTR, CODE_ATTR, SKIP_ATTR, STATUS_ATTR, STATUS_TABLE_ATTR, LEAD_ATTR, ROW_ATTR, COL_ATTR, TAIL_ATTR, PERSONA_KIND_ATTR, PERSONA_FALLBACK_ATTR, PERSONA_ERROR_ATTR, PERSONA_PENDING_ATTR, GENERATED_ATTR]) {
           for (const element of document.querySelectorAll('[' + attr + ']')) element.removeAttribute(attr)
         }
         try {
@@ -3632,7 +3676,7 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
       document.body?.removeAttribute(THEME_ATTR)
       document.body?.removeAttribute(PERSONA_MODE_ATTR)
       removePersonaHeads(document)
-      for (const attr of [CARD_ATTR, CARD_TYPE_ATTR, ICON_ATTR, TONE_ATTR, LANG_ATTR, COLS_ATTR, CODE_ATTR, SKIP_ATTR, STATUS_ATTR, STATUS_TABLE_ATTR, LEAD_ATTR, LEAD_MODE_ATTR, ROW_ATTR, PERSONA_KIND_ATTR, PERSONA_FALLBACK_ATTR, PERSONA_ERROR_ATTR, PERSONA_PENDING_ATTR, GENERATED_ATTR]) {
+      for (const attr of [CARD_ATTR, CARD_TYPE_ATTR, ICON_ATTR, TONE_ATTR, LANG_ATTR, COLS_ATTR, CODE_ATTR, SKIP_ATTR, STATUS_ATTR, STATUS_TABLE_ATTR, LEAD_ATTR, ROW_ATTR, COL_ATTR, TAIL_ATTR, PERSONA_KIND_ATTR, PERSONA_FALLBACK_ATTR, PERSONA_ERROR_ATTR, PERSONA_PENDING_ATTR, GENERATED_ATTR]) {
         for (const element of document.querySelectorAll('[' + attr + ']')) element.removeAttribute(attr)
       }
     }
