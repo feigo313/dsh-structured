@@ -17,6 +17,7 @@ window.__ModuleLoader__.load({
     const TONE_ATTR = 'data-dsh-structured-tone'
     const LANG_ATTR = 'data-dsh-structured-lang'
     const COLS_ATTR = 'data-dsh-structured-cols'
+const LEAD_MODE_ATTR = 'data-dsh-structured-lead-mode'
     const CODE_ATTR = 'data-dsh-structured-code'
     const SKIP_ATTR = 'data-dsh-structured-skip'
     const STATUS_ATTR = 'data-dsh-structured-status'
@@ -198,6 +199,8 @@ body[data-ds-dark-theme] .dss-scope {
 }
 .dss-scope .dss-table[data-dsh-structured-cols="3"] th:nth-child(1),.dss-scope .dss-table[data-dsh-structured-cols="3"] td:nth-child(1){width:26%}
 .dss-scope .dss-table[data-dsh-structured-cols="3"] th:nth-child(2),.dss-scope .dss-table[data-dsh-structured-cols="3"] td:nth-child(2){width:18%}
+.dss-scope .dss-table[data-dsh-structured-cols="2"] th:nth-child(1),.dss-scope .dss-table[data-dsh-structured-cols="2"] td:nth-child(1){width:18%;min-width:7.5em}
+.dss-scope .dss-table[data-dsh-structured-lead-mode="compact"] th:nth-child(1),.dss-scope .dss-table[data-dsh-structured-lead-mode="compact"] td:nth-child(1){width:1%;white-space:nowrap;min-width:0}
 .dss-scope .dss-table tbody td{
   padding:11px 16px!important;border-bottom:1px solid var(--dss-line)!important;background:transparent;
   color:var(--dss-ink-2)!important;font-size:13px!important;line-height:1.55!important;vertical-align:middle;
@@ -603,6 +606,8 @@ body[data-ds-dark-theme][data-dsh-structured-theme="anthropic"] .dss-scope {
 }
 .dss-scope .dss-table[data-dsh-structured-cols="3"] th:nth-child(1),.dss-scope .dss-table[data-dsh-structured-cols="3"] td:nth-child(1){width:26%}
 .dss-scope .dss-table[data-dsh-structured-cols="3"] th:nth-child(2),.dss-scope .dss-table[data-dsh-structured-cols="3"] td:nth-child(2){width:18%}
+.dss-scope .dss-table[data-dsh-structured-cols="2"] th:nth-child(1),.dss-scope .dss-table[data-dsh-structured-cols="2"] td:nth-child(1){width:18%;min-width:7.5em}
+.dss-scope .dss-table[data-dsh-structured-lead-mode="compact"] th:nth-child(1),.dss-scope .dss-table[data-dsh-structured-lead-mode="compact"] td:nth-child(1){width:1%;white-space:nowrap;min-width:0}
 .dss-scope .dss-table tbody td{
   padding:11px 16px!important;border-bottom:1px solid var(--dss-line)!important;background:transparent;
   color:var(--dss-ink-2)!important;font-size:calc(var(--dss-text-size) * 13 / 13.5)!important;line-height:1.55!important;vertical-align:middle;
@@ -2495,6 +2500,7 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
         if (inGenui(table)) {
           table.removeAttribute(SKIP_ATTR)
           table.removeAttribute(STATUS_TABLE_ATTR)
+          table.removeAttribute(LEAD_MODE_ATTR)
           toggleClass(table, 'dss-table', false)
           continue
         }
@@ -2510,6 +2516,12 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
         if (columnCount > 0) table.setAttribute(COLS_ATTR, String(columnCount))
         else table.removeAttribute(COLS_ATTR)
         const rows = [...table.querySelectorAll('tbody tr')]
+        const leadCells = rows
+          .map((row) => (row.cells && row.cells.length ? row.cells[0] : row.querySelector?.('td')))
+          .filter((cell) => cell && typeof cell.textContent === 'string')
+        const leadCompact = leadCells.length > 0 && leadCells.every((cell) => [...cell.textContent.trim()].length <= 6)
+        if (leadCompact) table.setAttribute(LEAD_MODE_ATTR, 'compact')
+        else table.removeAttribute(LEAD_MODE_ATTR)
         let statusTable = rows.length > 0
         for (const row of rows) {
           if (row.closest?.('thead') || row.closest?.(`[${SKIP_ATTR}="table"]`)) {
@@ -3599,7 +3611,7 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
         document.body?.removeAttribute(THEME_ATTR)
         document.body?.removeAttribute(PERSONA_MODE_ATTR)
         removePersonaHeads(document)
-        for (const attr of [CARD_ATTR, CARD_TYPE_ATTR, ICON_ATTR, TONE_ATTR, LANG_ATTR, COLS_ATTR, CODE_ATTR, SKIP_ATTR, STATUS_ATTR, STATUS_TABLE_ATTR, LEAD_ATTR, ROW_ATTR, PERSONA_KIND_ATTR, PERSONA_FALLBACK_ATTR, PERSONA_ERROR_ATTR, PERSONA_PENDING_ATTR, GENERATED_ATTR]) {
+        for (const attr of [CARD_ATTR, CARD_TYPE_ATTR, ICON_ATTR, TONE_ATTR, LANG_ATTR, COLS_ATTR, CODE_ATTR, SKIP_ATTR, STATUS_ATTR, STATUS_TABLE_ATTR, LEAD_ATTR, LEAD_MODE_ATTR, ROW_ATTR, PERSONA_KIND_ATTR, PERSONA_FALLBACK_ATTR, PERSONA_ERROR_ATTR, PERSONA_PENDING_ATTR, GENERATED_ATTR]) {
           for (const element of document.querySelectorAll('[' + attr + ']')) element.removeAttribute(attr)
         }
         try {
@@ -3620,7 +3632,7 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
       document.body?.removeAttribute(THEME_ATTR)
       document.body?.removeAttribute(PERSONA_MODE_ATTR)
       removePersonaHeads(document)
-      for (const attr of [CARD_ATTR, CARD_TYPE_ATTR, ICON_ATTR, TONE_ATTR, LANG_ATTR, COLS_ATTR, CODE_ATTR, SKIP_ATTR, STATUS_ATTR, STATUS_TABLE_ATTR, LEAD_ATTR, ROW_ATTR, PERSONA_KIND_ATTR, PERSONA_FALLBACK_ATTR, PERSONA_ERROR_ATTR, PERSONA_PENDING_ATTR, GENERATED_ATTR]) {
+      for (const attr of [CARD_ATTR, CARD_TYPE_ATTR, ICON_ATTR, TONE_ATTR, LANG_ATTR, COLS_ATTR, CODE_ATTR, SKIP_ATTR, STATUS_ATTR, STATUS_TABLE_ATTR, LEAD_ATTR, LEAD_MODE_ATTR, ROW_ATTR, PERSONA_KIND_ATTR, PERSONA_FALLBACK_ATTR, PERSONA_ERROR_ATTR, PERSONA_PENDING_ATTR, GENERATED_ATTR]) {
         for (const element of document.querySelectorAll('[' + attr + ']')) element.removeAttribute(attr)
       }
     }

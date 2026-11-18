@@ -236,6 +236,14 @@ test('v5 skin：结论/表格/代码注入 dss class，状态表标状态单元�
   assert.equal(row.attrs.get('data-dsh-structured-row'), 'success')
   // 状态只写属性，值是状态名（不再用 '1' 配胶囊节点）——React 受控子树不被改写。
   assert.equal(statusCell.attrs.get('data-dsh-structured-status-cell'), 'success')
+  // 首列内容短（≤6 字）时贴住内容，否则三列 26% 宽档会把「#」撑成一列空白（2026-11-18 实机）。
+  assert.equal(table.attrs.get('data-dsh-structured-lead-mode'), 'compact')
+  const longCell = classElement({ textContent: '这是一段很长的首列标签文本' })
+  const longNote = classElement({ textContent: '已完成' })
+  const longRow = classElement({ cells: [longCell, longNote], closest: () => null })
+  const longTable = classElement({ querySelectorAll: (selector) => selector === 'tbody tr' ? [longRow] : [] })
+  module.__test.decorate({ querySelectorAll: (selector) => selector === '[class*="_markdown_"] table' ? [longTable] : [] })
+  assert.equal(longTable.attrs.has('data-dsh-structured-lead-mode'), false)
   assert.equal(statusCell.textContent, '✅ 完成')
 
   const heading = { textContent: 'js' }
@@ -409,7 +417,7 @@ test('client：三套主题选择器真的被 CSS 消费，装饰文本不参与
   assert.match(css, /\.dss-persona-prefix,\.dss-persona-suffix,\[data-dsh-persona-head\]\{user-select:none/)
 })
 
-test('client：表格列宽提示只对三列表生效，窄屏横向滚动', () => {
+test('client：表格宽档按列数分配（三列 26%/18%、两列首列 min-width），窄屏横向滚动', () => {
   const dom = makeDom()
   loadClient(dom).apply(makeContext(null))
   const css = dom.styles.get('dsh-structured-skin-style')?.textContent ?? ''
@@ -417,6 +425,9 @@ test('client：表格列宽提示只对三列表生效，窄屏横向滚动', ()
   // 26% / 18% 这套宽档只适合三列表；4 列以上会被压成一字一行（390px 截图可复现），
   // 所以必须用列数属性限定，而不是对所有表格生效。
   assert.match(css, /\.dss-table\[data-dsh-structured-cols="3"\] th:nth-child\(1\)/)
+  // 两列表没有宽档时，auto 布局把首列压到标签一行宽（2026-11-18 实机：类别/发现与判定）。
+  assert.match(css, /\.dss-table\[data-dsh-structured-cols="2"\] th:nth-child\(1\)[^{]*\{width:18%;min-width:7\.5em\}/)
+  assert.match(css, /\.dss-table\[data-dsh-structured-lead-mode="compact"\] th:nth-child\(1\)[^{]*\{width:1%;white-space:nowrap;min-width:0\}/)
   assert.doesNotMatch(css, /\.dss-table th:nth-child\(1\),\.dss-scope \.dss-table td:nth-child\(1\)\{width:26%\}/)
   // 容器允许横向滚动，窄屏下表格保底可读宽度。
   assert.match(css, /\.dss-table-wrap\{[^}]*overflow-x:auto/)
