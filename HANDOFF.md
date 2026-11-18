@@ -33,13 +33,13 @@
 
 ---
 
-## 3. 当前状态（2026-11-18 10:xx 实测 / 第 40 轮收尾，版本 1.1.5）
+## 3. 当前状态（2026-11-18 12:1x 实测 / 1.1.6 已发布，版本 1.1.6）
 
-- 仓库：`main` 头部 = 1.1.6 发版提交（版本 **1.1.6**）；工作区干净；本地领先 `origin/main`（发版前全部未推，push 在发布链内完成）。
-- npm：`latest = 1.1.5`；GitHub Release `v1.1.5`（资产 2,443,372 B）；tag `v1.1.5`。
-- 市场（awesome-dsh-plugin）：PR **#16327 已 MERGED**（2026-11-18 00:53 CST）；上游 listing tarball 已指向 `v1.1.5`；#16157（1.1.4）已关闭并注明 supersede。
-- 桌面 profile（`C:\Users\MYCAIGC\.dsh\profiles\desktop`）：`dsh-structured` spec 与实装均为 **1.1.5**（registry 源；未装本地 1.1.6 预览）。
-- 门禁（2026-11-18 复跑）：`npm test` 127/127；`desktop-check` 全 PASS；对比度 60/60；色相 12/12；计算样式 **6 主题块 × 9 项**全过；`npm pack` 58 文件（体积见 `test/pack.test.mjs` 的 PINNED_*）。
+- 仓库：`main` = `b5d470c`（1.1.6 发版提交）已推；工作区干净；tag `v1.1.6`（对象 `159796b`）已推；CI success。
+- npm：`dsh-structured@1.1.6` 已 publish（shasum `89718b2b…`），registry 传播中（截止本节写作 VER 仍 404，见第 4 节判定口径）；GitHub Release `v1.1.6`（资产 1,495,212 B）。
+- 市场（awesome-dsh-plugin）：PR **#16480** OPEN / MERGEABLE，指向 `v1.1.6`；#16327（1.1.5）已 MERGED。
+- 桌面 profile（`C:\Users\MYCAIGC\.dsh\profiles\desktop`）：实装 **1.1.6** 本地预览（备份 `node_modules/dsh-structured.bak-20261118-115027`、`package.json.bak-20261118-115027`、`pnpm-lock.yaml.bak-20261118-115027`）；spec 仍 1.1.5，等 registry 传播后 `pnpm add dsh-structured@1.1.6` 对齐。
+- 门禁（2026-11-18 发布复跑）：`npm test` 127/127；`desktop-check` 全 PASS；对比度 60/60；色相 12/12；计算样式 **6 主题块 × 10 项**全过；`npm pack` 58 文件 / **1,495,212 B** / unpacked 2,220,310 B。
 - 定时任务：每日巡检「dsh-structured 项目巡检」已重建（每天 10:00 Asia/Shanghai，target=本会话）。
 
 ---
@@ -103,8 +103,8 @@ node .tools/market-XXX.mjs     # fork 同步 → 改 tarball 行 → 提交 → 
 ## 7. 待办队列
 
 1. **1.2.0 侧边栏入口**（Boss 口径：**只做侧边栏，不做设置页**）——计划见 `docs/PLAN-1.2.0-ENTRIES.md`：注册 `main` 面板 + `sidebar.panellist` 一行「结构化输出」，面板复用现有配置卡；**动手前先实机验证「点行是否真的选中同 key 面板」**（宿主无公开跳转 API，是最大未知）。
-2. **1.1.6 攒批**：已 3 条（① 两列表首列过窄；② 索引型首列被 26% 撑空；③ 头尾宽、中间正文窄——统一改为「按内容定宽 + 窄列贴内容 + 尾列封顶 32% + 合同首尾列字数」）；满 3 条 → **1.1.6 可发**（仍需 Boss 明确点头 + consent token），发版前先补截图。
-3. **截图重拍**：7 张仍是 1.0.4 实机图（1.1.2 主题色、1.1.4 状态底色后未重拍），违反 12.2 第 3 条；1.1.6 发版前补齐并更新 `screenshots.json` / README。
+2. **1.1.6 已发布**（2026-11-18：npm `dsh-structured@1.1.6` / tag `v1.1.6` / Release 资产 1,495,212 B / 市场 PR #16480）；1.1.7 待发清单为空（12.1 已重新计数）。
+3. **截图**：06 / 09-theme-light / 09-theme-dark / 10-theme-dark 已于 2026-11-18 用 1.1.6 实机重拍（本机 GUI，装 1.1.6 后）；01 / 07 / 11 不含表格、不受列宽变更影响，保留 1.0.4 实机图。
 4. 已知未修：信封里字符串被截断的那类仍然降级（补引号会造假内容，刻意不修）；没有任何 persona 块的回复只能靠合同/提醒压概率。
 5. 长期项（`docs/ROADMAP.md`）：A = 用户头像落本地数据目录（不写进配置）；C = persona 抗漂移实测（12 类提示词产出率 ≥90%）。
 6. **发布物可复现**：工作区 CRLF 已于 2026-11-18 归一（README、`docs/1.0-3-RELEASE-CHECKPOINT.md`、`test/persona-ui.test.mjs` → LF）；发版打包前按 12.2 第 4 条先确认工作区 LF。
@@ -147,7 +147,7 @@ npm pack --json --ignore-scripts           # 58 文件，体积基线在 test/pa
 | 文件 | 内容 |
 | --- | --- |
 | `docs/MAINTENANCE.md` | 手册：巡检流程、缺陷三态判定、发布门槛（9 节）、攒批规矩（12.0）、待发清单（12.1） |
-| `docs/MAINTENANCE-LOG.md` | 逐轮记录（最近：37 发布、38 巡检、39 1.1.5 破例发布、40 全量审计 + 1.1.6 首条修复） |
+| `docs/MAINTENANCE-LOG.md` | 逐轮记录（最近：38 巡检、39 1.1.5 破例发布、40 全量审计、41 巡检、42 列宽重做、43 1.1.6 发布） |
 | `docs/ACCEPTANCE-1.0.0.md` | 逐版验收记录与 pack 数字 |
 | `docs/ROADMAP.md` | 1.1/1.2 候选 |
 | `docs/PLAN-1.2.0-ENTRIES.md` | 侧边栏入口计划（待开工） |
