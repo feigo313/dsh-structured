@@ -569,3 +569,11 @@
 - **行尾**：README、`docs/1.0-3-RELEASE-CHECKPOINT.md`、`test/persona-ui.test.mjs` 由 CRLF 归一 LF（`.gitattributes` 要求），消除 pack 体积随检出状态漂移。
 - **门禁**：npm test 127/127；desktop-check 全 PASS；对比度 60/60；色相 12/12；计算样式 6 主题块 × 8 项全过；pack 58 文件 / 2,444,806 B / unpacked 3,228,425 B。
 - **未推**：本轮提交留在本地（push 需 Boss 明确同意 + consent token）。1.1.6 攒批 2 条，不足 3 条，最早 2026-11-20 可发；截图重拍压到发版前。
+
+## 2026-11-18 · 第 41 轮（每日巡检，0 issue）
+
+- **issue 水位**：0 open issue / 0 open PR（仓库与市场搜索均为空）；近 4 次 CI 全 success（最新 `d339524`）。
+- **线上复核**：npm `latest = 1.1.5`、单版本端点 200；Release `v1.1.5` 仍 Latest；市场 listing tarball 指向 `v1.1.5`；桌面 profile spec 与实装均 1.1.5。
+- **本地**：工作区干净，领先 `origin/main` 7 个提交（第 40 轮 2 个修复/文档提交 + 5 个历史文档提交，未推）；1.1.6 攒批 2 条（两列表首列 18%+7.5em、索引列 compact），不足 3 条，最早 2026-11-20 可发。
+- **本轮动作**：只读巡检，无 issue 可修，未改代码；同树复核 npm test 127/127、pack 58 文件 / 2,444,806 B。
+- **待办不变**：截图重拍（1.1.6 发版前）、1.2.0 侧边栏入口（先实机验证点击语义）、push 需 Boss 明确同意 + consent token。
