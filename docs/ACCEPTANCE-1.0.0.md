@@ -1,4 +1,8 @@
-# dsh-structured 1.1.5 验收（未发布）
+# dsh-structured 验收记录（最新：1.1.5 已发布 2026-11-17；1.1.6 攒批中）
+
+[1.1.6 · 两列表首列过窄] 2026-11-18 实机：persona 两列表（head「类别 / 发现与判定」）首列约 95px，「交接·市场」折成两行。根因是 1.1.3 把列宽提示限定到 `[cols="3"]`，两列表没有宽度规则。修复：`[cols="2"]` 首列 `width:18%;min-width:7.5em`；人格合同与结构化规则各加「表格首列是标签列，≤10 个汉字」。校验：headless Edge 长标签下首列实测 136px（120–200 区间断言）、6 主题 × 8 项全过、127 项全绿。本地已修，未发布（1.1.6 攒批第 1 条）。
+
+[1.1.6 · 索引型首列空白] 2026-11-18 实机：3 列 `# / 昨天提的 / 现在` 表，首列只有 1 个字符却被 26% 宽档撑到约 390px，第二列被 18% 压窄。修复：`decorate` 统计首列单元格长度，全部 ≤6 字符时标 `data-dsh-structured-lead-mode="compact"`，CSS `width:1%;white-space:nowrap;min-width:0` 贴住内容；长首列仍走 2 列 18% / 3 列 26%+18%。校验：计算样式短首列实测 40px（断言 <70px）、4 列不套宽档（比例 0.466 内容驱动）、127 项全绿。
 
 [1.1.4 · 状态底色 + 三套主题语义色] 状态单元格底色自 1.1.0 起被 `.dss-scope .dss-table tbody td{background:transparent}`（特异性 0,2,2）压掉，状态色规则只有 0,2,1，计算样式实测 `rgba(0,0,0,0)`；状态色选择器补 `.dss-table tbody`（0,3,2）后恢复。同时深色模式下 codex / anthropic 的 warn、error 与 deepseek 共用同一组 rgba（三套算出来一模一样），现各自给值：codex `#facc15` / `#fb7185`，anthropic `#e8aa5a` / `#f97066`，deepseek 保持 `#fbbf24` / `#f87171`。校验：新增 headless Edge 计算样式校核（`.tools/computed-style-check.mjs`），6 个主题块 × 7 项断言 + 三种状态 × 三套主题 × 浅深两两可区分全过；对比度 60/60、色相 12/12、回归 126/126。
 

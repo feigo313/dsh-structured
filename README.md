@@ -29,15 +29,15 @@ node scripts/desktop-check.mjs
 
 ### 方式一：插件市场
 
-在 DSH 插件管理里搜索 `dsh-structured` 安装；市场收录后可用。桌面端由应用侧加载 client，不需要浏览器刷新。
+在 DSH 插件管理里搜索 `dsh-structured` 安装（已上架 awesome-dsh-plugin 市场）。桌面端由应用侧加载 client，不需要浏览器刷新。
 
 ### 方式二：npm
 
 ```powershell
-dsh plugin --profile <profile> add dsh-structured@1.0.4
+dsh plugin --profile <profile> add dsh-structured@1.1.5
 ```
 
-`dsh plugin add` 会转发给 profile 里的 pnpm；1.0.4 已在临时 `DSH_HOME` 实测可装（pnpm 会自动把新版本加进 `minimumReleaseAgeExclude`）。
+`dsh plugin add` 会转发给 profile 里的 pnpm；1.1.5 已在本机 desktop profile 用 registry 源安装实测（pnpm 会自动把新版本加进 `minimumReleaseAgeExclude`）。
 
 desktop profile 由 Electron 独占，使用插件管理搜索/安装，不要跑 `--profile desktop`。
 
@@ -121,7 +121,7 @@ pnpm add $tgz
 
 客户端半区会给对话 markdown 加一层 v5「软面卡片台」皮肤：12px 圆角卡 + 3px 彩色左条 + 同构渐变面；结论 / 下一步 / 风险三色线标题；表格浅色 tint 表头、首列 600 墨字、状态单元格按 `data-dsh-structured-status-cell` 上浅底 + 左侧 3px 色条（1.1.0 起不再插入胶囊节点，**不改宿主受控子树**）；代码浅色卡 + 线标题「代码 · 语言」+ 双方框复制钮；深色跟随宿主 `body[data-ds-dark-theme]`，卡面 / 表头 / 代码面 / 状态色都有深色同构。只给宿主节点加 class/attribute，不改消息内容；headless / CLI 不加载 client 半区。
 
-- **列宽提示只对三列表生效**：26% / 18% 这套宽档是给三列状态表定的，1.1.3 起 `decorate` 会把真实列数写进 `data-dsh-structured-cols`，CSS 只对 `cols="3"` 应用；四列以上不再被压成一字一行，`.dss-table-wrap` 允许横向滚动，窄窗（≤560px）表格保底 520px 宽。
+- **列宽提示按列数分配**：三列表用 26% / 18% 宽档；两列表首列 `width:18%` + `min-width:7.5em`（首列按标签列处理，长标签在列内折行，不撑宽也不挤压第二列）；四列以上不套宽档，`.dss-table-wrap` 允许横向滚动，窄窗（≤560px）表格保底 520px 宽。首列内容很短（全部 ≤6 字，如 `#` 序号列）时按内容贴列（`lead-mode="compact"`），不再吃 26% 宽档。
 - **卡片级复制**（1.1.1）：结论 / 建议 / 风险 / 表格 / 整条回复五档一键复制，内容是净文本（不含卡标签、身份头、开场收尾），表格输出 TSV；按钮常驻半透明、hover / 键盘聚焦加深，触屏常显。
 - **卡片正文的行内标记**（1.1.3）：`**粗体**` 与 `` `代码` `` 会渲染成真正的 `strong` / `code` 节点（此前会把星号原样显示），`textContent` 仍是不带标记的净文本，复制得到干净内容。
 
@@ -147,7 +147,7 @@ Phase 2 已落地 2.1–2.4：卡片类型（结论/判断/指标/风险/下一�
 
 ![语气风格设置页](assets/screenshots/11-config-page.png)
 
-`screenshots.json` 列出全部 7 张，全部是 1.0.4 本地部署实机截图（DSH Web GUI + 已安装的 dsh-structured v1.0.4）：身份头、卡外前缀、结论 / 建议 / 风险三卡、收尾，以及语气风格设置页。
+`screenshots.json` 列出全部 7 张，全部是 1.0.4 本地部署实机截图（DSH Web GUI + 已安装的 dsh-structured v1.0.4）：身份头、卡外前缀、结论 / 建议 / 风险三卡、收尾，以及语气风格设置页。1.1.2 起主题配色、1.1.4 起状态底色有调整，这批图仍代表 1.0.4 观感；按 `docs/MAINTENANCE.md` 12.2 第 3 条，1.1.6 发版前重拍。
 
 ### 配置
 

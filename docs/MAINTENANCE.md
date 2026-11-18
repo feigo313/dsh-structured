@@ -150,9 +150,12 @@ dsh plugin --profile <profile> add dsh-structured@x.y.z
 
 ### 12.1 下一版待发清单（攒批中）
 
+> 1.1.5 已于 2026-11-17 发布（npm / Release / tag / 市场 entry 四处对齐）；原清单里的 rows 抢救修复已随 1.1.5 发出，下表只记 1.1.6 起的待发项。
+
 | 序号 | 发现日 | 缺陷 | 证据 | 状态 |
 | --- | --- | --- | --- | --- |
-| 1 | 2026-11-17 | persona 信封的 `table` 漏写 `"rows":` 键且结尾多一个落单 `]`，解析失败降级成纯文本、整条无卡 | session-3b2f63dc 73 条回复里 17 条命中（其余 26 条正常出卡、30 条根本没交信封）；修复后该会话 42/43 出卡 | **已修（本地 1.1.5，未发）** |
+| 1 | 2026-11-18 | 两列表格首列被压成 3–5 个字宽（`[cols="2"]` 没有任何宽度规则，auto 布局压到标签一行），标签整行折行 | 2026-11-18 实机：persona 表「类别 / 发现与判定」首列约 95px，「交接·市场」折两行；修复后 headless Edge 长标签下首列 136px | **已修（本地 1.1.6，未发）** |
+| 2 | 2026-11-18 | 索引型首列（`#`）被三列 26% 宽档撑成空白列，第二列 18% 被压窄 | 2026-11-18 实机：3 列「# / 昨天提的 / 现在」首列 1 个字符却占约 390px；compact 规则下首列实测 40px | **已修（本地 1.1.6，未发）** |
 
 ### 12.2 发版顺序
 
@@ -161,7 +164,7 @@ dsh plugin --profile <profile> add dsh-structured@x.y.z
 1. **全量测试**：`npm test` 全绿；有 ego-browser 的机器必须跑真实浏览器测试，缺失时跳过并在报告里注明。
 2. **视觉与布局**：`theme-contrast` 60 项 PASS、`desktop-check` 全 PASS、`lib==src`、记录 `npm pack` 文件数与体积。
 3. **截图随版本走**：样式或布局有改动时，发版前必须重拍 `assets/screenshots/` 中受影响的图——实机图必须来自该版本的真实界面，token 渲染图必须标清“非实机”，同时更新 `screenshots.json` 与 README；旧版图不得继续冒充新版。
-4. **版本与发布物**：`package.json` bump、CHANGELOG、annotated tag、Release 资产与 npm tarball 同字节。
+4. **版本与发布物**：`package.json` bump、CHANGELOG、annotated tag、Release 资产与 npm tarball 同字节。打包前确认工作区行尾为 LF（`.gitattributes` 已强制；必要时 `git add --renormalize .` 后重新检出），发布包必须与同一提交重打包的结果一致——否则体积数字不可复现。
 5. **市场**：条目 tarball 指向新 Release；截图以仓库 `screenshots.json` 为准，发版后确认 listing 版本与图都已更新。
 
 外部流程（PR / CI / 第三方审计）只是辅助证据，不是门槛；本项目以上面五条为准。

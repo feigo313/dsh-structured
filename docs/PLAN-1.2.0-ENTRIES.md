@@ -32,7 +32,7 @@
 4. 图标组件 `SidebarEntryIcon({ size })`：缺省 16，`aria-hidden="true"`。
 5. 测试：把 `collectRegistration()` 的 fake slots 从「只认 plugins.bundle.config」改成按名记录多 slot；新增断言——三处注册齐全、`main.key === 'dsh-structured'`、面板注入面与详情页同一 form、行 `id/order/label` 正确、图标按 `size` 渲染且带 `aria-hidden`。
 6. 文档：CHANGELOG（1.2.0 条目）、README「入口」小节、ACCEPTANCE 补一段、`docs/MAINTENANCE.md` 12.1 记录。
-7. 内部计划文档不进包：`package.json` 的 `files` 加 `!docs/PLAN-*.md`（`npm pack` 保持 58 文件）。
+7. 内部计划文档不进包：`package.json` 的 `files` 加 `!docs/PLAN-*.md`（`npm pack` 保持 58 文件）。**已完成（4ba7841）**。
 
 ## 五、验收标准
 

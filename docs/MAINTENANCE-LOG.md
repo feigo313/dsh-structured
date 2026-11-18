@@ -559,3 +559,13 @@
 - **市场**：[#16327](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/16327) 指向 v1.1.5；上一版 [#16157](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/16157)（1.1.4）已关闭并在新 PR 里注明 supersede。上游 main 条目当前仍指 v1.1.3，等 #16327 合并。
 - **顺带纠正**：另一个会话的桌面插件升级把 `dsh-structured` spec 精确锁到 1.1.4，覆盖了我此前手工装的 1.1.5 预览；该会话称「1.1.4 可能含 rows 抢救」不成立——实装 1.1.4 里没有 `repairMissingRowsKey`。
 - **待办**：① npm 传播完成后把桌面 spec 从 1.1.4 升到 1.1.5（client 侧）；② 市场 #16327 等合并；③ 真机像素级复核改用计算样式校核脚本，已固化。
+
+## 2026-11-18 · 第 40 轮（全量审计 + 1.1.6 前两条修复 + 文档回填）
+
+- **触发**：Boss「自己扫一遍项目 对应项目交接 看看有啥问题」「其他问题需要优化补齐的直接做」，随后实机反馈两处表格首列问题。
+- **审计（只读）**：交接过期 3 条（市场 #16327 已 MERGED、桌面已升 1.1.5、本地领先远端未记）；发布文档未回填 4 处（CHANGELOG / ACCEPTANCE 仍写「未发布」、MAINTENANCE 12.1 仍列 1.1.5、README 安装示例 1.0.4 与截图自述）；截图停在 1.0.3（1.1.2 主题色、1.1.4 状态底色后未重拍，违反 12.2 第 3 条）；1.1.5 发布包与仓库重打包不等（发布包 CHANGELOG 为 CRLF、package.json 缺 tag 后加的 PLAN 排除行）。
+- **修复**：① 两列表首列 `width:18%;min-width:7.5em`（2026-11-18 实机 95px → 136px）；② 索引型首列内容 ≤6 字时 `lead-mode="compact"`（`width:1%;white-space:nowrap;min-width:0`），3 列 `#` 表首列实测 40px，不再吃 26% 宽档；③ 合同同步「表格首列是标签列，≤10 个汉字」（人格合同 + 结构化规则）。
+- **文档回填**：CHANGELOG 1.1.5 改「已发布」、1.0.12 补日期、新增 1.1.6 段；ACCEPTANCE 头改「验收记录」并补两条 1.1.6；MAINTENANCE 12.1 清空旧行改为 1.1.6 两条、12.2 第 4 条补「打包前工作区 LF」；README 安装 1.1.5、写明市场已上架、补列宽说明与截图欠账；PLAN 第 7 步标完成；HANDOFF 第 3/6/7/8/9/10 节同步。
+- **行尾**：README、`docs/1.0-3-RELEASE-CHECKPOINT.md`、`test/persona-ui.test.mjs` 由 CRLF 归一 LF（`.gitattributes` 要求），消除 pack 体积随检出状态漂移。
+- **门禁**：npm test 127/127；desktop-check 全 PASS；对比度 60/60；色相 12/12；计算样式 6 主题块 × 8 项全过；pack 58 文件 / 2,444,806 B / unpacked 3,228,425 B。
+- **未推**：本轮提交留在本地（push 需 Boss 明确同意 + consent token）。1.1.6 攒批 2 条，不足 3 条，最早 2026-11-20 可发；截图重拍压到发版前。
