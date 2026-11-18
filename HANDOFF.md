@@ -38,7 +38,7 @@
 - 仓库：`main` = `b5d470c`（1.1.6 发版提交）已推；工作区干净；tag `v1.1.6`（对象 `159796b`）已推；CI success。
 - npm：`latest = 1.1.6`（shasum `89718b2b…`；2026-11-18 12:18 CST 用 `?ts=` 确认 200，CDN tarball 仍在传播）；GitHub Release `v1.1.6`（资产 1,495,212 B）。
 - 市场（awesome-dsh-plugin）：PR **#16480** OPEN / MERGEABLE，指向 `v1.1.6`；#16327（1.1.5）已 MERGED。
-- 桌面 profile（`C:\Users\MYCAIGC\.dsh\profiles\desktop`）：实装 **1.1.6**（先装本地预览，备份见 `*.bak-20261118-115027`）；spec 仍 1.1.5，等 npm tarball 传播完成后 `pnpm add dsh-structured@1.1.6` 对齐。
+- 桌面 profile（`C:\Users\MYCAIGC\.dsh\profiles\desktop`）：spec 与实装均为 **1.1.6**（12:21 CST 用 registry 完成 `pnpm add` 对齐，`lib/client.js` 与仓库构建逐字节一致；改前备份 `*.bak-20261118-115027`）。
 - 门禁（2026-11-18 发布复跑）：`npm test` 127/127；`desktop-check` 全 PASS；对比度 60/60；色相 12/12；计算样式 **6 主题块 × 10 项**全过；`npm pack` 58 文件 / **1,495,212 B** / unpacked 2,220,310 B。
 - 定时任务：每日巡检「dsh-structured 项目巡检」已重建（每天 10:00 Asia/Shanghai，target=本会话）。
 

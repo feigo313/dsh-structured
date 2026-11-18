@@ -595,3 +595,4 @@
 - **截图**：06 / 09-theme-light / 09-theme-dark / 10-theme-dark 用 1.1.6 实机重拍（本机 GUI：ego lite + 本机凭据自签 cookie 进入 57449，真实会话渲染）；01 / 07 / 11 不含表格、未受影响，保留 1.0.4 实机图。
 - **桌面 profile**：已装 1.1.6 预览（备份 `*.bak-20261118-115027`）；registry tarball 传播完成后补 `pnpm add dsh-structured@1.1.6` 对齐 spec。
 - **遗留**：市场 PR 等维护者合并；1.1.7 待发清单为空；1.2.0 侧边栏入口待开工。
+- **补记（12:21）**：npm tarball 传播完成，desktop profile 已 `pnpm add dsh-structured@1.1.6`，spec 与实装对齐 1.1.6。
