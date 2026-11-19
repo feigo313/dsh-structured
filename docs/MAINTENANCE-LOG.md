@@ -609,3 +609,11 @@
 - **保留**：三支成片（根目录 34M / video-intro v9 11M / video-1.0 升级版 135M）、HTML+py 源、CARD-MAP/PLAN、final5 配音母带、voice-src/assets、证据 PNG、全部 `.tools` 门禁脚本。
 - **验证**：`npm test` 127/127；`npm pack` 58 文件 / 1,495,212 B（清理未影响发布物）；工作区干净。
 - **未推**：本轮提交留在本地（push 需 Boss 明确同意 + consent token）。
+
+## 2026-11-19 · 第 45 轮（每日巡检，1 open issue：灰白主题需求）
+
+- **issue 水位**：**1 open / 2 closed**。新增 #6「希望增加灰白主题，或者开放自定义配色」（XYFrain，2026-11-18 12:48 CST）。判定：**成立（功能请求，非缺陷）**——`THEMES = ['deepseek','codex','anthropic']`（`src/index.js:56`），确实只有三套固定配色、无灰白主题、无自定义配色入口；按 12.0 不占 bug 计数，交 Boss 定 1.1.7 / 1.2.0 口径，保持 open，本轮不公开回复。
+- **PR**：仓库 0 open；市场 #16480 已于 2026-11-19 01:04 CST **MERGED**，上游 listing tarball 已指 v1.1.6。
+- **线上复核**：npm `latest = 1.1.6`（单版本端点 200）；Release 资产 1,495,212 B；桌面 spec 与实装均 1.1.6；CI 近 3 次全 success。
+- **本轮动作**：只读巡检，无 bug 可修，未改代码；门禁复跑 npm test 127/127、pack 58 文件 / 1,495,212 B、计算样式 6 主题 × 10 项通过。
+- **未推**：本地领先 `origin/main` 2 个提交（round 44 清理日志 + 本轮日志），push 需 Boss 明确同意 + consent token。
