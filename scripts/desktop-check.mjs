@@ -120,6 +120,16 @@ check('没有 Electron 专有 API', !/electron|process\.versions\.electron/.test
 const nodeMajor = Number(process.versions.node.split('.')[0])
 check('Node >= 22', nodeMajor >= 22, process.versions.node)
 
+// 6. 本机 desktop 版本是否已登记兼容（无 desktop-runtime.json 时不判定，如 CI/headless）
+try {
+  const runtime = readJson(join(home, 'tmp', 'desktop-runtime.json'))
+  const hostVersion = runtime?.release?.version
+  if (hostVersion) {
+    const releases = pkg?.dsh?.compatibility?.dshReleases ?? {}
+    check('宿主机版本已登记兼容', releases[hostVersion] === 'compatible', hostVersion)
+  }
+} catch {}
+
 function report() {
   for (const row of rows) {
     const tag = row.ok === true ? 'PASS' : row.ok === false ? 'FAIL' : 'WARN'

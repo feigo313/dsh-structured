@@ -12,7 +12,7 @@
 2. **人格模式（PersonaMode）**：模型只交一个 ` ```persona ` JSON 块，身份头 / 三卡（结论·建议·风险）/ 开场收尾由插件渲染；合同 + 专用尾部提醒都在 `src/index.js`。
 3. **视觉皮肤**：客户端半区 `src/client.js` 给对话 markdown 加卡片/表格/代码块样式，三套主题（deepseek 蓝 / codex 绿 / anthropic 土褐）× 明暗。
 
-宿主目标：DSH desktop（Electron）为主，rc.3 时代实测兼容；headless/CLI 不加载 client 半区。
+宿主目标：DSH desktop（Electron）为主；desktop `0.2.1-rc.5` 于 2026-11-19 实测兼容（rc.3 起一路实测）；headless/CLI 不加载 client 半区。
 
 ---
 
