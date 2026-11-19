@@ -425,10 +425,10 @@ test('client：三套主题选择器真的被 CSS 消费，装饰文本不参与
   // 否则选了也只会看到默认配色（issue #4 反馈的「主题不生效」）。
   assert.match(css, /body\[data-dsh-structured-theme="codex"\] \.dss-scope\s*\{/)
   assert.match(css, /body\[data-dsh-structured-theme="anthropic"\] \.dss-scope\s*\{/)
-  assert.match(css, /body\[data-dsh-structured-theme="neutral"\] \.dss-scope\s*\{/)
+  assert.match(css, /body\[data-dsh-structured-theme="dsh"\] \.dss-scope\s*\{/)
   assert.match(css, /body\[data-ds-dark-theme\]\[data-dsh-structured-theme="codex"\] \.dss-scope\s*\{/)
   assert.match(css, /body\[data-ds-dark-theme\]\[data-dsh-structured-theme="anthropic"\] \.dss-scope\s*\{/)
-  assert.match(css, /body\[data-ds-dark-theme\]\[data-dsh-structured-theme="neutral"\] \.dss-scope\s*\{/)
+  assert.match(css, /body\[data-ds-dark-theme\]\[data-dsh-structured-theme="dsh"\] \.dss-scope\s*\{/)
   // 开场 / 收尾 / 身份头只是界面装饰：选中复制时跳过（配置页承诺「复制不带」）。
   assert.match(css, /\.dss-persona-prefix,\.dss-persona-suffix,\[data-dsh-persona-head\]\{user-select:none/)
 })
@@ -484,8 +484,8 @@ test('client：活 CSS 用到的每个 --dss-* 变量都必须有定义', () => 
     'codex-dark': /body\[data-ds-dark-theme\]\[data-dsh-structured-theme="codex"\]\s*\.dss-scope\s*\{([\s\S]*?)\n\}/,
     'anthropic-light': /body\[data-dsh-structured-theme="anthropic"\]\s*\.dss-scope\s*\{([\s\S]*?)\n\}/,
     'anthropic-dark': /body\[data-ds-dark-theme\]\[data-dsh-structured-theme="anthropic"\]\s*\.dss-scope\s*\{([\s\S]*?)\n\}/,
-    'neutral-light': /body\[data-dsh-structured-theme="neutral"\]\s*\.dss-scope\s*\{([\s\S]*?)\n\}/,
-    'neutral-dark': /body\[data-ds-dark-theme\]\[data-dsh-structured-theme="neutral"\]\s*\.dss-scope\s*\{([\s\S]*?)\n\}/,
+    'dsh-light': /body\[data-dsh-structured-theme="dsh"\]\s*\.dss-scope\s*\{([\s\S]*?)\n\}/,
+    'dsh-dark': /body\[data-ds-dark-theme\]\[data-dsh-structured-theme="dsh"\]\s*\.dss-scope\s*\{([\s\S]*?)\n\}/,
   }
   const blockVars = {}
   for (const [name, pattern] of Object.entries(blocks)) {
@@ -544,8 +544,8 @@ test('client：三套主题的卡片配色两两不同，复制按钮常驻可�
     const base = soft(deepseek, key)
     const codex = soft(themeBlock('codex'), key)
     const anthropic = soft(themeBlock('anthropic'), key)
-    const neutral = soft(themeBlock('neutral'), key)
-    assert.ok(base && codex && anthropic && neutral, key + '-soft 各主题都必须有值')
+    const dsh = soft(themeBlock('dsh'), key)
+    assert.ok(base && codex && anthropic && dsh, key + '-soft 各主题都必须有值')
     assert.notEqual(codex, anthropic, key + '-soft：codex 与 anthropic 必须不同')
     assert.notEqual(codex, base, key + '-soft：codex 必须不同于 deepseek')
     assert.notEqual(anthropic, base, key + '-soft：anthropic 必须不同于 deepseek')
@@ -584,7 +584,7 @@ test('client：卡片样式三套主题统一，只靠配色区分', () => {
   assert.ok(css, 'skin style should be injected')
   // 卡面（圆角 / 边框 / 阴影 / 底色结构）必须只有一套：三套主题不各写一份覆盖。
   // Boss 2026-11-15：Codex / Anthropic 的主题风格已有配色定义，卡片样式不要跟着改。
-  for (const theme of ['codex', 'anthropic', 'neutral']) {
+  for (const theme of ['dsh', 'codex', 'anthropic']) {
     assert.doesNotMatch(
       css,
       new RegExp('body\\[data-dsh-structured-theme="' + theme + '"\\] \\.dss-scope \\.dss-card[\\s\\S]{0,240}?border-radius:'),

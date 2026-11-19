@@ -8,11 +8,11 @@ import { checkHueSeparation } from '../scripts/theme-hue-distance.mjs'
 const value = (field) => (field && typeof field.get === 'function' ? field.get() : field)
 
 test('1.0 Config：theme 默认 deepseek，四值可选（含黑白原色）；v5 档案字段有默认值', () => {
-  assert.deepEqual(THEMES, ['deepseek', 'codex', 'anthropic', 'neutral'])
+  assert.deepEqual(THEMES, ['dsh', 'deepseek', 'codex', 'anthropic'])
   assert.equal(value(Config({}).theme), 'deepseek')
   assert.equal(value(Config({ theme: 'codex' }).theme), 'codex')
   assert.equal(value(Config({ theme: 'anthropic' }).theme), 'anthropic')
-  assert.equal(value(Config({ theme: 'neutral' }).theme), 'neutral')
+  assert.equal(value(Config({ theme: 'dsh' }).theme), 'dsh')
   assert.equal(value(Config({ defaultEnabled: false }).defaultEnabled), false)
   assert.equal(value(Config({}).personaName), '蓝色大肥鱼')
   assert.equal(value(Config({}).personaSignature), '主人，再来一碗白米饭！！~')

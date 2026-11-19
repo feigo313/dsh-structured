@@ -27,7 +27,7 @@ const NEUTRAL_DARK = {
 const PRESET_TOKENS = Object.fromEntries(
   ['deepseek', 'codex', 'anthropic'].map((theme) => [theme, { light: { ...V5_LIGHT }, dark: { ...V5_DARK } }]),
 )
-export const THEME_TOKENS = { ...PRESET_TOKENS, neutral: { light: NEUTRAL_LIGHT, dark: NEUTRAL_DARK } }
+export const THEME_TOKENS = { ...PRESET_TOKENS, dsh: { light: NEUTRAL_LIGHT, dark: NEUTRAL_DARK } }
 
 const hex = (value) => {
   const raw = value.replace('#', '')

@@ -265,7 +265,7 @@ test('config page：卡片渲染六字段，switch/segmented 值来自快照', (
   const theme = segmented.find((element) => element.props.id === 'dsh-structured-theme')
   assert.equal(theme.props.value, 'codex')
   // 卡片在 vm 沙箱里构建：数组跨 realm，序列化后比较。
-  assert.equal(JSON.stringify(theme.props.options.map((option) => option.value)), JSON.stringify(['deepseek', 'codex', 'anthropic', 'neutral']))
+  assert.equal(JSON.stringify(theme.props.options.map((option) => option.value)), JSON.stringify(['dsh', 'deepseek', 'codex', 'anthropic']))
   const genui = segmented.find((element) => element.props.id === 'dsh-structured-genui')
   assert.equal(genui.props.value, 'auto')
 })
@@ -362,8 +362,8 @@ test('config page：主题分段按钮带各主题强调色，随注册注入/�
   assert.match(style.textContent, /#dsh-structured-theme-deepseek\[aria-selected="true"\]/)
   assert.match(style.textContent, /#dsh-structured-theme-codex\[aria-selected="true"\]/)
   assert.match(style.textContent, /#dsh-structured-theme-anthropic\[aria-selected="true"\]/)
-  assert.match(style.textContent, /#dsh-structured-theme-neutral\[aria-selected="true"\]/)
-  assert.match(style.textContent, /#dsh-structured-theme-neutral::before/)
+  assert.match(style.textContent, /#dsh-structured-theme-dsh\[aria-selected="true"\]/)
+  assert.match(style.textContent, /#dsh-structured-theme-dsh::before/)
   assert.match(style.textContent, /body\[data-ds-dark-theme\]/)
 
   // 命名空间停服：slot 与样式一并撤下。
