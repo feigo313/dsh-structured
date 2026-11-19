@@ -617,3 +617,5 @@
 - **线上复核**：npm `latest = 1.1.6`（单版本端点 200）；Release 资产 1,495,212 B；桌面 spec 与实装均 1.1.6；CI 近 3 次全 success。
 - **本轮动作**：只读巡检，无 bug 可修，未改代码；门禁复跑 npm test 127/127、pack 58 文件 / 1,495,212 B、计算样式 6 主题 × 10 项通过。
 - **未推**：本地领先 `origin/main` 2 个提交（round 44 清理日志 + 本轮日志），push 需 Boss 明确同意 + consent token。
+
+- **补记（10:27）**：#6 已公开回复（[comment 6997803017](https://github.com/feigo313/dsh-structured/issues/6#issuecomment-6997803017)）——黑白 / 中性原色主题排近期，自定义配色后置；issue 保持 open，主题上线后再关。
