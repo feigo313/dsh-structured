@@ -265,7 +265,7 @@ test('config page：卡片渲染六字段，switch/segmented 值来自快照', (
   const theme = segmented.find((element) => element.props.id === 'dsh-structured-theme')
   assert.equal(theme.props.value, 'codex')
   // 卡片在 vm 沙箱里构建：数组跨 realm，序列化后比较。
-  assert.equal(JSON.stringify(theme.props.options.map((option) => option.value)), JSON.stringify(['deepseek', 'codex', 'anthropic']))
+  assert.equal(JSON.stringify(theme.props.options.map((option) => option.value)), JSON.stringify(['deepseek', 'codex', 'anthropic', 'neutral']))
   const genui = segmented.find((element) => element.props.id === 'dsh-structured-genui')
   assert.equal(genui.props.value, 'auto')
 })
@@ -356,12 +356,14 @@ test('config page：主题分段按钮带各主题强调色，随注册注入/�
   const style = dom.getElementById('dsh-structured-config-style')
   assert.ok(style, 'config style should be injected with the slot registration')
   // 三套主题的强调色选择器齐全（明暗两态），与视觉层 token 同源。
-  for (const token of ['#2563EB', '#10A37F', '#CC785C', '#60A5FA', '#34D399', '#E8A087']) {
+  for (const token of ['#2563EB', '#10A37F', '#CC785C', '#60A5FA', '#34D399', '#E8A087', '#6B7280', '#D1D5DB']) {
     assert.ok(style.textContent.includes(token), 'missing theme token ' + token)
   }
   assert.match(style.textContent, /#dsh-structured-theme-deepseek\[aria-selected="true"\]/)
   assert.match(style.textContent, /#dsh-structured-theme-codex\[aria-selected="true"\]/)
   assert.match(style.textContent, /#dsh-structured-theme-anthropic\[aria-selected="true"\]/)
+  assert.match(style.textContent, /#dsh-structured-theme-neutral\[aria-selected="true"\]/)
+  assert.match(style.textContent, /#dsh-structured-theme-neutral::before/)
   assert.match(style.textContent, /body\[data-ds-dark-theme\]/)
 
   // 命名空间停服：slot 与样式一并撤下。

@@ -41,7 +41,7 @@ window.__ModuleLoader__.load({
     const ROW_ATTR = 'data-dsh-structured-row'
     const ROOT_ATTR = 'data-dsh-structured'
     const THEME_ATTR = 'data-dsh-structured-theme'
-    const THEMES = ['deepseek', 'codex', 'anthropic']
+    const THEMES = ['deepseek', 'codex', 'anthropic', 'neutral']
     const STYLE_ID = 'dsh-structured-skin-style'
     const LEGACY_STYLE_ID = 'dsh-structured-card-style'
 
@@ -73,7 +73,7 @@ window.__ModuleLoader__.load({
 
     /** 六个配置字段的界面文案；field 与 host Config schema 对齐，fallback 为 schema 默认值。 */
     const CONFIG_FIELDS = [
-      { field: 'theme', kind: 'segmented', fallback: 'deepseek', label: '主题 / Theme', hint: '回复区配色，改完立即生效', options: [['deepseek', 'DeepSeek'], ['codex', 'Codex'], ['anthropic', 'Anthropic']] },
+      { field: 'theme', kind: 'segmented', fallback: 'deepseek', label: '主题 / Theme', hint: '回复区配色，改完立即生效', options: [['deepseek', 'DeepSeek'], ['codex', 'Codex'], ['anthropic', 'Anthropic'], ['neutral', 'Neutral']] },
       { field: 'visual', kind: 'switch', fallback: true, label: '视觉层 / Visual layer', hint: '关闭后不加载回复区样式（标题卡、表格、代码块皮肤）' },
       { field: 'defaultEnabled', kind: 'switch', fallback: true, label: '新会话默认开启 / Default on', hint: '新会话默认注入结构化提示词' },
       { field: 'tailReminder', kind: 'switch', fallback: true, label: '尾部提醒 / Tail reminder', hint: '在 system prompt 末尾追加一句结构化提醒' },
@@ -380,12 +380,15 @@ body[data-ds-dark-theme] .dss-scope .dss-template-option[aria-checked="true"] .m
 [data-dsh-structured-config] button#dsh-structured-theme-deepseek::before{background:#2563EB}
 [data-dsh-structured-config] button#dsh-structured-theme-codex::before{background:#10A37F}
 [data-dsh-structured-config] button#dsh-structured-theme-anthropic::before{background:#CC785C}
+[data-dsh-structured-config] button#dsh-structured-theme-neutral::before{background:#6B7280}
 [data-dsh-structured-config] button#dsh-structured-theme-deepseek[aria-selected="true"]{color:#2563EB;font-weight:600}
 [data-dsh-structured-config] button#dsh-structured-theme-codex[aria-selected="true"]{color:#0B6B4F;font-weight:600}
 [data-dsh-structured-config] button#dsh-structured-theme-anthropic[aria-selected="true"]{color:#A14A2E;font-weight:600}
+[data-dsh-structured-config] button#dsh-structured-theme-neutral[aria-selected="true"]{color:#374151;font-weight:600}
 body[data-ds-dark-theme] [data-dsh-structured-config] button#dsh-structured-theme-deepseek::before{background:#60A5FA}
 body[data-ds-dark-theme] [data-dsh-structured-config] button#dsh-structured-theme-codex::before{background:#34D399}
 body[data-ds-dark-theme] [data-dsh-structured-config] button#dsh-structured-theme-anthropic::before{background:#E8A087}
+body[data-ds-dark-theme] [data-dsh-structured-config] button#dsh-structured-theme-neutral::before{background:#D1D5DB}
 body[data-ds-dark-theme] [data-dsh-structured-config] button#dsh-structured-theme-deepseek[aria-selected="true"]{color:#60A5FA}
 body[data-ds-dark-theme] [data-dsh-structured-config] button#dsh-structured-theme-codex[aria-selected="true"]{color:#34D399}
 body[data-ds-dark-theme] [data-dsh-structured-config] button#dsh-structured-theme-anthropic[aria-selected="true"]{color:#E8A087}
@@ -522,6 +525,31 @@ body[data-ds-dark-theme][data-dsh-structured-theme="anthropic"] .dss-scope {
   --dss-head-bg:linear-gradient(90deg,rgba(232,160,135,.2),rgba(232,160,135,.06));--dss-zebra:rgba(255,255,255,.03);
   --dss-code-bg:rgba(0,0,0,.28);--dss-code-border:rgba(232,160,135,.24);--dss-code-text:#ddd5c8;
   --dss-shadow:0 1px 3px rgba(0,0,0,.42);
+}
+
+body[data-dsh-structured-theme="neutral"] .dss-scope {
+  --dss-page:#ffffff;--dss-paper:#ffffff;--dss-paper-2:#f7f7f8;
+  --dss-ink:#111827;--dss-ink-2:#4b5563;--dss-ink-3:#9ca3af;
+  --dss-line:#e5e7eb;--dss-line-strong:#d1d5db;
+  --dss-blue:#4b5563;--dss-blue-hover:#374151;--dss-blue-text:#374151;--dss-th-text:#1f2937;--dss-blue-soft:#f3f4f6;
+  --dss-green:#047857;--dss-green-strong:#059669;--dss-green-text:#047857;--dss-green-soft:#eef5f1;
+  --dss-amber:#b45309;--dss-amber-strong:#d97706;--dss-amber-text:#b45309;--dss-amber-soft:#f8f3ea;
+  --dss-red:#b42318;--dss-red-soft:#f7f1f1;
+  --dss-head-bg:linear-gradient(90deg,rgba(107,114,128,.14),rgba(107,114,128,.03));--dss-zebra:rgba(17,24,39,.02);
+  --dss-code-bg:#f7f7f8;--dss-code-border:#e5e7eb;--dss-code-text:#374151;
+  --dss-shadow:0 1px 3px rgba(16,24,40,.06);
+}
+body[data-ds-dark-theme][data-dsh-structured-theme="neutral"] .dss-scope {
+  --dss-page:#0f0f10;--dss-paper:#1a1a1c;--dss-paper-2:#222226;
+  --dss-ink:#ededf0;--dss-ink-2:#b4b4bb;--dss-ink-3:#8a8a93;
+  --dss-line:#2e2e33;--dss-line-strong:#3f3f46;
+  --dss-blue:#9ca3af;--dss-blue-hover:#e5e7eb;--dss-blue-text:#d1d5db;--dss-th-text:#e5e7eb;--dss-blue-soft:rgba(156,163,175,.14);
+  --dss-green:#34d399;--dss-green-strong:#10b981;--dss-green-text:#34d399;--dss-green-soft:rgba(52,211,153,.12);
+  --dss-amber:#fbbf24;--dss-amber-strong:#f59e0b;--dss-amber-text:#fbbf24;--dss-amber-soft:rgba(245,158,11,.12);
+  --dss-red:#f87171;--dss-red-soft:rgba(248,113,113,.16);
+  --dss-head-bg:linear-gradient(90deg,rgba(156,163,175,.16),rgba(156,163,175,.04));--dss-zebra:rgba(255,255,255,.03);
+  --dss-code-bg:rgba(0,0,0,.28);--dss-code-border:rgba(156,163,175,.24);--dss-code-text:#d4d4d8;
+  --dss-shadow:0 1px 3px rgba(0,0,0,.4);
 }
 
 .dss-scope .dss-card {

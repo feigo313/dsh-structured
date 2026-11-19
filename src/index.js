@@ -53,7 +53,7 @@ const k = (x) => (typeof x.volatile === 'function' ? x.volatile() : x)
 const readConfig = (x) => (x && typeof x.get === 'function' ? x.get() : x)
 
 /** 主题白名单：host 与 client 共用同一组值。 */
-export const THEMES = ['deepseek', 'codex', 'anthropic']
+export const THEMES = ['deepseek', 'codex', 'anthropic', 'neutral']
 
 /** 1.0 语气风格发布默认值；正式是否开启由 Boss 拍板，代码不写死。 */
 export const DEFAULT_PERSONA_ENABLED = true
@@ -223,7 +223,7 @@ export const compileTone = compilePersona
  * 不把主题/视觉写进 state.json，避免 structured-test 与 desktop 共享同一状态文件。
  */
 export const Config = Schema.object({
-  theme: k(Schema.union(THEMES).default('deepseek').description('主题 / Theme: deepseek | codex | anthropic').loose()),
+  theme: k(Schema.union(THEMES).default('deepseek').description('主题 / Theme: deepseek | codex | anthropic | neutral（黑白原色）').loose()),
   visual: k(Schema.boolean().default(true).description('视觉层 / Visual layer: 关闭后不加载回复区样式')),
   defaultEnabled: k(Schema.boolean().default(true).description('新会话默认开启 / Default on for new sessions')),
   tailReminder: k(Schema.boolean().default(true).description('尾部提醒 / Tail reminder: 每轮追加一句结构化提醒')),

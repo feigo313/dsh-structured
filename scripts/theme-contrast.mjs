@@ -14,9 +14,20 @@ const V5_DARK = {
   border: '#363A41', accent: '#3B82F6', accentText: '#8AB4FF', success: '#34D399', warn: '#FBBF24', error: '#F87171',
   codeBg: '#000000', codeText: '#C9D2E0',
 }
-export const THEME_TOKENS = Object.fromEntries(
+const NEUTRAL_LIGHT = {
+  surface: '#FFFFFF', surface2: '#F7F7F8', text: '#111827', muted: '#6B7280',
+  border: '#E5E7EB', accent: '#4B5563', accentText: '#374151', success: '#047857', warn: '#B54708', error: '#B42318',
+  codeBg: '#F7F7F8', codeText: '#374151',
+}
+const NEUTRAL_DARK = {
+  surface: '#1A1A1C', surface2: '#222226', text: '#EDEDF0', muted: '#9CA3AF',
+  border: '#2E2E33', accent: '#9CA3AF', accentText: '#D1D5DB', success: '#34D399', warn: '#FBBF24', error: '#F87171',
+  codeBg: '#000000', codeText: '#D4D4D8',
+}
+const PRESET_TOKENS = Object.fromEntries(
   ['deepseek', 'codex', 'anthropic'].map((theme) => [theme, { light: { ...V5_LIGHT }, dark: { ...V5_DARK } }]),
 )
+export const THEME_TOKENS = { ...PRESET_TOKENS, neutral: { light: NEUTRAL_LIGHT, dark: NEUTRAL_DARK } }
 
 const hex = (value) => {
   const raw = value.replace('#', '')

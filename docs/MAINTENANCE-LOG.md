@@ -619,3 +619,12 @@
 - **未推**：本地领先 `origin/main` 2 个提交（round 44 清理日志 + 本轮日志），push 需 Boss 明确同意 + consent token。
 
 - **补记（10:27）**：#6 已公开回复（[comment 6997803017](https://github.com/feigo313/dsh-structured/issues/6#issuecomment-6997803017)）——黑白 / 中性原色主题排近期，自定义配色后置；issue 保持 open，主题上线后再关。
+
+## 2026-11-19 · 第 46 轮（issue #6 回复 + Neutral 黑白原色主题落地）
+
+- **回复**：已公开回复 #6（comment 6997803017）——黑白原色主题近期做、自定义配色后置、issue 保持 open，主题上线后再关。
+- **实现**：新增第 4 套主题 `neutral`（黑白原色）——`THEMES` 两端同步 + 设置页第 4 个分段项与色点；CSS 明暗两块 token 走中性灰（浅色 accent `#4B5563`、暗色 `#9CA3AF`），状态色保留语义绿 / 琥珀 / 红；门禁脚本扩到 4 主题。
+- **门禁**：npm test 127/127；对比度 4×2 全组 80 项；色相 16 项；计算样式 8 主题块 × 10 项；pack 58 文件 / 1,498,398 B / unpacked 2,226,022 B。
+- **预览**：`.tmp/neutral-light.png` / `neutral-dark.png`（真 CSS + headless Chromium，明暗各一张）。
+- **状态**：本地已实现、未发版（1.1.7 功能版）；主题截图（09/10）与 README 截图说明留到发版前补。
+- **未推**：本地领先 `origin/main` 4 个提交，push 需 Boss 明确同意 + consent token。

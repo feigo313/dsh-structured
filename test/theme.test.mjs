@@ -7,11 +7,12 @@ import { checkHueSeparation } from '../scripts/theme-hue-distance.mjs'
 
 const value = (field) => (field && typeof field.get === 'function' ? field.get() : field)
 
-test('1.0 Config：theme 默认 deepseek，三值可选；v5 档案字段有默认值', () => {
-  assert.deepEqual(THEMES, ['deepseek', 'codex', 'anthropic'])
+test('1.0 Config：theme 默认 deepseek，四值可选（含黑白原色）；v5 档案字段有默认值', () => {
+  assert.deepEqual(THEMES, ['deepseek', 'codex', 'anthropic', 'neutral'])
   assert.equal(value(Config({}).theme), 'deepseek')
   assert.equal(value(Config({ theme: 'codex' }).theme), 'codex')
   assert.equal(value(Config({ theme: 'anthropic' }).theme), 'anthropic')
+  assert.equal(value(Config({ theme: 'neutral' }).theme), 'neutral')
   assert.equal(value(Config({ defaultEnabled: false }).defaultEnabled), false)
   assert.equal(value(Config({}).personaName), '蓝色大肥鱼')
   assert.equal(value(Config({}).personaSignature), '主人，再来一碗白米饭！！~')
@@ -21,7 +22,7 @@ test('1.0 Config：theme 默认 deepseek，三值可选；v5 档案字段有默�
 test('0.9.8 accent/status hue 分离：12 项通过（v5 统一蓝）', () => {
   const { results, failures } = checkHueSeparation()
   assert.equal(failures.length, 0, JSON.stringify(failures, null, 2))
-  assert.equal(results.length, 12)
+  assert.equal(results.length, 16)
 })
 
 test('0.9.8 Config：六个基础字段的默认值与显式值', () => {
@@ -111,8 +112,8 @@ test('v5 token：三主题统一为软面卡片 token，深色可读性达标', 
   assert.match(client, /color:var\(--dss-th-text\)!important/)
 })
 
-test('0.9.0 对比度：3×2 全组 60 项通过', () => {
+test('0.9.0 对比度：4×2 全组 80 项通过', () => {
   const { results, failures } = checkThemeContrast()
   assert.equal(failures.length, 0, JSON.stringify(failures, null, 2))
-  assert.equal(results.length, 60)
+  assert.equal(results.length, 80)
 })
