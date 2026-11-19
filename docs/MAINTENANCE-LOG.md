@@ -630,3 +630,13 @@
 - **未推**：本地领先 `origin/main` 4 个提交，push 需 Boss 明确同意 + consent token。
 - **补记（10:40）**：Neutral 按 Boss 口径重做为**纯灰阶**——全部映射 DSH 宿主 alias 变量（明暗自动跟随），状态用灰阶 + 符号区分、不引入彩色；门禁改为对比度 80 / 色相 12（灰阶按 chroma 跳过）/ 计算样式 8×10，pack 1,499,553 B。
 - **补记（10:55）**：按 Boss 口径把主题改名为 `dsh`（黑白原色），设置页分段**排第一项 DSH**；DeepSeek 蓝等原有主题与默认值保持不变。测试/门禁同步（127/127、对比度 80、色相 12、8×10），pack 1,499,933 B。
+
+## 2026-11-19 · 第 47 轮（主题定名 DSH + rc5 兼容 + 实机 bug 修复 + push + #6 收尾）
+
+- **主题**：`neutral` 更名 `dsh`（黑白原色），设置页第一位；纯灰阶、宿主 alias、状态符号化；DeepSeek 蓝与默认值不动。实机截图（四项切换）已出，desktop 预览装本地构建（备份 `dsh-structured.bak-20261119-110819`）。
+- **rc5**：`engines.dsh` 补 `>=0.2.1-rc.0 <0.2.2`、compatibility 登记 `0.2.1-rc.5`；`desktop-check` 实机 PASS「宿主机版本已登记兼容」。
+- **bug**：用 `session-3f71fe87` seq 432 原文做回归测试 → 复现（lead 吞入 `"},"body":"` 残片）；根因是引号兜底候选排在「中途闭合删 }」之前；调整候选顺序后测试转绿。
+- **push**：`github.com` HTTPS 被重置（curl 000、SSH publickey 拒绝），`api.github.com` 正常；改用 GitHub API 逐 commit 重建并更新 `refs/heads/main`：7 个提交 → `7368ae2`，远端树与本地 HEAD 树一致。本地 main 仍是旧 SHA，待网络恢复 `git fetch && git reset --hard origin/main`。
+- **issue #6**：补三条图片评论（切换位置 / 浅色 / 深色），已 closed（completed）。
+- **门禁**：127/127；对比度 80；色相 12；计算样式 8×10；pack 58 文件 / 1,501,084 B。
+- **待办**：1.1.7 发布（bump、09/10/11 截图、tag/npm/Release/市场）。

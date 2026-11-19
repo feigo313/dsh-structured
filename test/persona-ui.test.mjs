@@ -1288,6 +1288,37 @@ test('PersonaMode：尾部多余 } 不判死、按正常信封渲染', () => {
   assert.match(salvaged.markdown.textContent, /帧目录已全删/, 'risk must be salvaged')
 })
 
+test('PersonaMode：实机 seq432 中途闭合信封不把 JSON 残片渲染进卡片', () => {
+  const harness = makeHarness(baseState, async () => true)
+  const tone = JSON.stringify({ schema: 'dsh-structured/tone@1', prefix: 'Boss，', style: '搞怪', suffix: '——完', skipIn: ['code', 'diff', 'error', 'short', 'table'] })
+  harness.plugin.__test.setPersonaModeConfig({ personaEnabled: true, persona: tone, personaName: 'N', personaSignature: 'S', personaAvatar: '' })
+  const flowFor = (html) => {
+    const flow = harness.document.createElement('div')
+    flow.setAttribute('data-chat-flow-kind', 'assistant-step')
+    flow.setAttribute('data-chat-node-key', 'seq432-' + Math.random())
+    const slot = harness.document.createElement('div')
+    slot.setAttribute('data-slot', 'conversation.chat.node')
+    const markdown = harness.document.createElement('div')
+    markdown.className = '_markdown_preview'
+    markdown.innerHTML = html
+    slot.appendChild(markdown)
+    flow.appendChild(slot)
+    harness.document.body.appendChild(flow)
+    harness.plugin.__test.decorate(flow)
+    return markdown
+  }
+  // 实机原文（session-3f71fe87 seq 432）：body 落在根上、根对象提前闭合，suggestions/risk 成为尾随内容。
+  const raw = '{"version":1,"kind":"normal","conclusion":{"lead":"系统缓存这两项也是可删的零风险货，删了系统自己重建，不牵任何程序。"},"body":"INetCache 310.8 MB 全在 IE 子目录：303 个文件里 246 个 .gif、16 个 .cab、14 个 .json，是 WinINet 的下载缓存（老 IE/WPS 一类的组件拉过的东西），不是程序本体。删了下次用到会重新拉，不影响已装软件。\\nCrashDumps 30.3 MB 是 6 个崩溃转储：ASMx4242 固件工具 2 个（11-08）、pwsh 4 个（11-01）。除了拿 WinDbg 分析那两个崩溃，它们没有任何用途；不分析就是纯垃圾。"},"suggestions":["要清一起清：系统缓存 341 MB + 安装残留 1,308 MB + 剪映碎片 1,450 MB，合计 3,099 MB，一条命令搞定","CrashDumps 唯一留的意义是排查 11-01 那几次 pwsh 崩溃，你没这个需求就一起删"],"risk":"无功能影响；删除后失去历史崩溃现场，需要时得重现问题才能再抓。"}'
+  const markdown = flowFor('<div class="md-code-block"><div class="bannerWrap"><div data-code-block-banner><span class="_heading_persona">persona</span></div></div><div data-code-block-content><pre>' + raw + '</pre></div></div>')
+  harness.flushPersonaErrors()
+  assert.equal(markdown.getAttribute('data-dsh-persona-kind'), 'normal', 'mid-close body envelope must render as cards')
+  assert.doesNotMatch(markdown.textContent, /"version"|"body"|"suggestions"|"risk"|\],"body":"/, 'raw JSON fragments must not leak into rendered text')
+  assert.match(markdown.textContent, /系统缓存这两项/, 'lead must render')
+  assert.match(markdown.textContent, /INetCache 310\.8 MB/, 'body must render')
+  assert.match(markdown.textContent, /一条命令搞定/, 'suggestions must render')
+  assert.equal(markdown.querySelectorAll('[data-dsh-structured-card-type]').length, 3, 'three cards must render')
+})
+
 test('PersonaMode：段落开头的行内 **粗体** 不套卡片标题样式', () => {
   const harness = makeHarness(baseState, async () => true)
   const tone = JSON.stringify({ schema: 'dsh-structured/tone@1', prefix: '', style: '搞怪', suffix: '', skipIn: ['code', 'diff', 'error', 'short', 'table'] })
