@@ -22,7 +22,7 @@ test('1.0 Config：theme 默认 deepseek，四值可选（含黑白原色）；v
 test('0.9.8 accent/status hue 分离：12 项通过（v5 统一蓝）', () => {
   const { results, failures } = checkHueSeparation()
   assert.equal(failures.length, 0, JSON.stringify(failures, null, 2))
-  assert.equal(results.length, 16)
+  assert.equal(results.length, 12)
 })
 
 test('0.9.8 Config：六个基础字段的默认值与显式值', () => {

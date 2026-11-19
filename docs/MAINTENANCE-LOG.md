@@ -628,3 +628,4 @@
 - **预览**：`.tmp/neutral-light.png` / `neutral-dark.png`（真 CSS + headless Chromium，明暗各一张）。
 - **状态**：本地已实现、未发版（1.1.7 功能版）；主题截图（09/10）与 README 截图说明留到发版前补。
 - **未推**：本地领先 `origin/main` 4 个提交，push 需 Boss 明确同意 + consent token。
+- **补记（10:40）**：Neutral 按 Boss 口径重做为**纯灰阶**——全部映射 DSH 宿主 alias 变量（明暗自动跟随），状态用灰阶 + 符号区分、不引入彩色；门禁改为对比度 80 / 色相 12（灰阶按 chroma 跳过）/ 计算样式 8×10，pack 1,499,553 B。

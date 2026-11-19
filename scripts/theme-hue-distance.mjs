@@ -23,6 +23,11 @@ export function hue(hex) {
   return value < 0 ? value + 360 : value
 }
 
+export function chroma(hex) {
+  const [r, g, b] = rgb(hex)
+  return Math.max(r, g, b) - Math.min(r, g, b)
+}
+
 export function hueDistance(a, b) {
   const diff = Math.abs(hue(a) - hue(b)) % 360
   return diff > 180 ? 360 - diff : diff
@@ -34,6 +39,8 @@ export function checkHueSeparation() {
   for (const [theme, modes] of Object.entries(THEME_TOKENS)) {
     for (const [mode, token] of Object.entries(modes)) {
       for (const status of ['success', 'warn']) {
+        // 灰阶主题没有色相可言：任一端 chroma < 12 时跳过色相分离检查。
+        if (chroma(token.accent) < 12 || chroma(token[status]) < 12) continue
         const distance = hueDistance(token.accent, token[status])
         const row = { theme, mode, status, distance, threshold: HUE_THRESHOLD }
         results.push(row)

@@ -15,14 +15,14 @@ const V5_DARK = {
   codeBg: '#000000', codeText: '#C9D2E0',
 }
 const NEUTRAL_LIGHT = {
-  surface: '#FFFFFF', surface2: '#F7F7F8', text: '#111827', muted: '#6B7280',
-  border: '#E5E7EB', accent: '#4B5563', accentText: '#374151', success: '#047857', warn: '#B54708', error: '#B42318',
-  codeBg: '#F7F7F8', codeText: '#374151',
+  surface: '#FFFFFF', surface2: '#F5F5F5', text: '#171717', muted: '#6B6B6B',
+  border: '#E5E5E5', accent: '#171717', accentText: '#262626', success: '#3F3F46', warn: '#52525B', error: '#18181B',
+  codeBg: '#F5F5F5', codeText: '#3F3F46',
 }
 const NEUTRAL_DARK = {
-  surface: '#1A1A1C', surface2: '#222226', text: '#EDEDF0', muted: '#9CA3AF',
-  border: '#2E2E33', accent: '#9CA3AF', accentText: '#D1D5DB', success: '#34D399', warn: '#FBBF24', error: '#F87171',
-  codeBg: '#000000', codeText: '#D4D4D8',
+  surface: '#1F1F1F', surface2: '#262626', text: '#EDEDED', muted: '#A1A1A1',
+  border: '#303030', accent: '#EDEDED', accentText: '#D4D4D8', success: '#D4D4D8', warn: '#A1A1AA', error: '#FAFAFA',
+  codeBg: '#000000', codeText: '#C9C9C9',
 }
 const PRESET_TOKENS = Object.fromEntries(
   ['deepseek', 'codex', 'anthropic'].map((theme) => [theme, { light: { ...V5_LIGHT }, dark: { ...V5_DARK } }]),
