@@ -33,13 +33,14 @@
 
 ---
 
-## 3. 当前状态（2026-11-18 12:1x 实测 / 1.1.6 已发布，版本 1.1.6）
+## 3. 当前状态（2026-11-20 10:0x 实测 / 1.1.7 已发布，版本 1.1.7）
 
-- 仓库：`main` = `b5d470c`（1.1.6 发版提交）已推；工作区干净；tag `v1.1.6`（对象 `159796b`）已推；CI success。
-- npm：`latest = 1.1.6`（shasum `89718b2b…`；2026-11-18 12:18 CST 用 `?ts=` 确认 200，CDN tarball 仍在传播）；GitHub Release `v1.1.6`（资产 1,495,212 B）。
-- 市场（awesome-dsh-plugin）：PR **#16480 已 MERGED**（2026-11-19 01:04 CST），上游 listing tarball 已指向 `v1.1.6`；#16327（1.1.5）已 MERGED。
-- 桌面 profile（`C:\Users\MYCAIGC\.dsh\profiles\desktop`）：spec 与实装均为 **1.1.6**（12:21 CST 用 registry 完成 `pnpm add` 对齐，`lib/client.js` 与仓库构建逐字节一致；改前备份 `*.bak-20261118-115027`）。
-- 门禁（2026-11-18 发布复跑）：`npm test` 127/127；`desktop-check` 全 PASS；对比度 60/60；色相 12/12；计算样式 **6 主题块 × 10 项**全过；`npm pack` 58 文件 / **1,495,212 B** / unpacked 2,220,310 B。
+- 仓库：`main` = `597553f`（1.1.7 发版提交，GitHub API 推送）；tag `v1.1.7` 已推；CI success。
+- npm：`latest = 1.1.7`（shasum `b325cdd`；registry dist-tags 确认）；GitHub Release `v1.1.7`（资产 1,501,498 B）。
+- 市场（awesome-dsh-plugin）：PR **#17089 open**（listing tarball 指向 `v1.1.7`，待合并）。
+- 桌面 profile：仍为本地预览构建（版本号 1.1.6、代码为发版前构建；备份 `*.bak-20261119-153831`）；待 `pnpm add dsh-structured@1.1.7` 对齐。
+- 门禁（2026-11-20 发布复跑）：`npm test` 127/127；`desktop-check` 全 PASS；对比度 80/80；色相 12/12；计算样式 **8 主题块 × 10 项**全过；`npm pack` 58 文件 / **1,501,498 B** / unpacked 2,234,690 B。
+- 截图：09/10/11 仍为 1.1.6 版本，未重拍（待补）。
 - 定时任务：每日巡检「dsh-structured 项目巡检」已重建（每天 10:00 Asia/Shanghai，target=本会话）。
 
 ---

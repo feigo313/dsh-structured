@@ -647,3 +647,11 @@
 - **1.2.0 方案**：`docs/PLAN-1.2.0.md`（设置页两 tab 合并 + 侧边栏 + 自定义卡片色）；`docs/PLAN-CUSTOM-THEME.md` 定稿为「主色 / 副色 / 辅色」三色 + 强制轻量化（soft 10–14%、S≤65%、WCAG 校验）。
 - **状态**：本地已提交；github.com HTTPS 仍被重置，push 走 API（前一批已推 `b1df4e4`），本轮提交待推。
 - **待办**：1.1.7 发版（bump/截图/tag/npm/Release/市场）；1.2.0 开工。
+
+## 2026-11-20 · 第 51 轮（1.1.7 三端发布）
+
+- **GitHub**：`main` = `597553f`、tag `v1.1.7`、Release 资产 1,501,498 B；CI success。
+- **npm**：`dsh-structured@1.1.7` 已发布，dist-tags latest=1.1.7、tarball 200、shasum `b325cdd`。
+- **市场**：PR https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/17089（tarball 指向 v1.1.7，待合并）。
+- **内容**：DSH 黑白原色主题、rc5 兼容、persona 残片修复、中间步骤不挂身份头。
+- **未完成**：09/10/11 截图仍 1.1.6；桌面 profile 仍 1.1.6 预览构建。
