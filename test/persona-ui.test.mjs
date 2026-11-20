@@ -581,7 +581,7 @@ test('PersonaMode：缺块 legacy、非法块 error，不补卡、不回落；co
   assert.equal(missing.markdown.getAttribute('data-dsh-persona-pending'), null)
   assert.match(missing.markdown.textContent, /现在几点了/, 'legacy content must be preserved')
   assert.equal(missing.markdown.querySelectorAll('[data-dsh-structured-card-type]').length, 0, 'must not fabricate cards')
-  assert.equal(missing.flow.querySelectorAll('[data-dsh-persona-head]').length, 1)
+  assert.equal(missing.flow.querySelectorAll('[data-dsh-persona-head]').length, 0, 'no envelope → no identity header')
   harness.flushPersonaErrors()
   assert.equal(missing.markdown.getAttribute('data-dsh-persona-kind'), null)
   assert.equal(missing.markdown.getAttribute('data-dsh-persona-error'), null)
@@ -606,7 +606,7 @@ test('PersonaMode：缺块 legacy、非法块 error，不补卡、不回落；co
   const code = flowFor('<div class="md-code-block"><div class="bannerWrap"><div data-code-block-banner><span class="_heading_persona">js</span></div></div><div data-code-block-content><pre>const x = 1</pre></div></div>')
   assert.equal(code.markdown.getAttribute('data-dsh-persona-kind'), 'code')
   assert.equal(code.markdown.querySelectorAll('[data-dsh-structured-card-type]').length, 0)
-  assert.equal(code.flow.querySelectorAll('[data-dsh-persona-head]').length, 1)
+  assert.equal(code.flow.querySelectorAll('[data-dsh-persona-head]').length, 0, 'code without envelope → no identity header')
 
   const normal = flowFor(personaEnvelope({ version: 1, kind: 'normal', conclusion: { lead: 'L' }, suggestions: ['S'], risk: 'R' }))
   assert.ok(normal.markdown.querySelector('.dss-persona-prefix'))

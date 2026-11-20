@@ -108,7 +108,7 @@ node .tools/market-XXX.mjs     # fork 同步 → 改 tarball 行 → 提交 → 
 4. 已知未修：信封里字符串被截断的那类仍然降级（补引号会造假内容，刻意不修）；没有任何 persona 块的回复只能靠合同/提醒压概率。
 5. 长期项（`docs/ROADMAP.md`）：A = 用户头像落本地数据目录（不写进配置）；C = persona 抗漂移实测（12 类提示词产出率 ≥90%）。
 6. **发布物可复现**：工作区 CRLF 已于 2026-11-18 归一（README、`docs/1.0-3-RELEASE-CHECKPOINT.md`、`test/persona-ui.test.mjs` → LF）；发版打包前按 12.2 第 4 条先确认工作区 LF。
-7. **1.1.7 主题**：`dsh`（黑白原色）已实现并随 main 推送（远程 `7368ae2`）——纯灰阶、映射 DSH 宿主 alias、状态用符号；设置页第一项 `DSH`，DeepSeek 蓝与默认值不动；实机截图已入 issue #6（带图回复后已关闭）。搭车修复 persona 中途闭合残片泄漏（seq 432 原文回归）。待办：发布 1.1.7（bump + 截图 09/10/11 + tag/npm/Release/市场）；自定义配色后置。
+7. **1.1.7 主题**：`dsh`（黑白原色）已实现并随 main 推送（远程 `7368ae2`）——纯灰阶、映射 DSH 宿主 alias、状态用符号；设置页第一项 `DSH`，DeepSeek 蓝与默认值不动；实机截图已入 issue #6（带图回复后已关闭）。搭车修复 persona 中途闭合残片泄漏（seq 432 原文回归）与无信封中间消息误挂身份头。待办：发布 1.1.7（bump + 截图 09/10/11 + tag/npm/Release/市场）；自定义配色后置。
 
 ---
 

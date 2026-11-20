@@ -640,3 +640,10 @@
 - **issue #6**：补三条图片评论（切换位置 / 浅色 / 深色），已 closed（completed）。
 - **门禁**：127/127；对比度 80；色相 12；计算样式 8×10；pack 58 文件 / 1,501,084 B。
 - **待办**：1.1.7 发布（bump、09/10/11 截图、tag/npm/Release/市场）。
+
+## 2026-11-19 · 第 48 轮（人格头只属于 persona 回复 + 1.2.0 方案定稿）
+
+- **bug**：实机截图里工具步骤中间叙述（无 persona 信封）挂着身份头但没有卡片。修复：`decorate` 的 no-envelope 分支从 `mountPersonaHead` 改为 `dropPersonaHead`；测试改成「无信封 → 0 个头」；127/127、对比度 80、色相 12、8×10 全绿。
+- **1.2.0 方案**：`docs/PLAN-1.2.0.md`（设置页两 tab 合并 + 侧边栏 + 自定义卡片色）；`docs/PLAN-CUSTOM-THEME.md` 定稿为「主色 / 副色 / 辅色」三色 + 强制轻量化（soft 10–14%、S≤65%、WCAG 校验）。
+- **状态**：本地已提交；github.com HTTPS 仍被重置，push 走 API（前一批已推 `b1df4e4`），本轮提交待推。
+- **待办**：1.1.7 发版（bump/截图/tag/npm/Release/市场）；1.2.0 开工。
