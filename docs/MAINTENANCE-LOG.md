@@ -655,3 +655,27 @@
 - **市场**：PR https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/17089（tarball 指向 v1.1.7，待合并）。
 - **内容**：DSH 黑白原色主题、rc5 兼容、persona 残片修复、中间步骤不挂身份头。
 - **未完成**：09/10/11 截图仍 1.1.6；桌面 profile 仍 1.1.6 预览构建。
+
+## 2026-11-20 · 第 52 轮（每日巡检）
+
+- **issue 水位**：open issues 0、open PR 0（仓库）；市场 PR #17089 open（我方，待上游合并）。
+- **线上**：npm dist-tags latest=1.1.7；Release v1.1.7 资产 dsh-structured-1.1.7.tgz 1,501,498 B；CI 577c84f / 597553f success。
+- **动作**：无 issue/PR 需分诊复现；核对三端一致（main 577c84f、tag v1.1.7、npm 1.1.7、Release 资产、市场 PR 指向 v1.1.7）。
+- **下一步**：等市场 PR #17089 合并后校验 listing；补 09/10/11 截图与 desktop 1.1.7 对齐。
+
+## 2026-11-20 · 第 53 轮（手动触发巡检）
+
+- 触发方式：Boss 手动触发自动巡检任务；按 MAINTENANCE.md 走同一套零信任流程。
+- **issue 水位**：open issues 0、open PR 0；市场 PR #17089 open（待上游合并）。
+- **线上**：npm dist-tags latest=1.1.7；CI 577c84f / 597553f success；Release v1.1.7 资产 1,501,498 B。
+- **动作**：无 issue/PR 需分诊复现；三端状态与第 52 轮一致，无回归。
+
+## 2026-11-22 · 第 54 轮（自动巡检，断档 2 天后补跑）
+
+- **触发**：每日巡检定时消息 2026-11-22 10:00 已投递，但机器两天未开机；Boss 20:38 开机后要求补跑（「我两天没开电脑了」）。
+- **issue 水位**：open issues 0、open PR 0；仓库全部记录 6、5（issue）+ 3（PR），均为 closed；本轮无新 issue/PR，无需分诊复现。
+- **市场 PR #17089 已合并**：`merged_at 2026-11-20T17:26:27Z`，state=closed/merged=true；合并后 listing `data/plugins/feigo313__dsh-structured.yml` 已核验，`tarball` 指向 `releases/download/v1.1.7/dsh-structured-1.1.7.tgz`，分类 `session`、双语描述完整。三端（GitHub / npm / 市场）至此齐平。
+- **线上核对**：npm latest=1.1.7；Release v1.1.7 资产 `dsh-structured-1.1.7.tgz` 1,501,498 B、state=uploaded、非 draft/prerelease；CI 最近三次 577c84f / 597553f / b61850d 均 success。
+- **落后项（未变）**：09/10/11 截图仍为 1.1.6；桌面 profile 仍装 1.1.6 预览构建。
+- **本地 / 远端历史分叉（实测）**：远端 main 577c84f 与本机 main 1e199e0 **无共同祖先关系**（API 重建提交导致），本地 15 个提交远端没有、远端 11 个提交本地没有；但两侧树只差 4 个文档文件（AGENTS.md、HANDOFF.md、MAINTENANCE-LOG.md、PLAN-1.2.0.md），代码/构建产物一致。修复需先拿 Boss 同意，再按「远端为基 + 重放 4 文件差异」对齐，不做 force push。
+- **下一步**：无 issue 可修；把「市场已合并」从待办剔除，剩余为截图、桌面对齐、1.2.0 原型定稿。

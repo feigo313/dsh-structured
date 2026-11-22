@@ -505,6 +505,38 @@ test('PersonaMode：normal/table/short 由内容块固定渲染；无 Persona Ma
   assert.equal(short.markdown.querySelector('.dss-persona-suffix'), null, 'short has no suffix')
 })
 
+test('PersonaMode：conclusion.points 渲染字母要点；body 仅作历史兼容', () => {
+  const harness = makeHarness(baseState, async () => true)
+  const persona = { prefix: '', suffix: '' }
+  const tone = JSON.stringify({ schema: 'dsh-structured/tone@1', ...persona, style: '搞怪', skipIn: ['code', 'diff', 'error', 'short', 'table'] })
+  harness.plugin.__test.setPersonaModeConfig({ personaEnabled: true, persona: tone, personaName: 'N', personaSignature: 'S', personaAvatar: '' })
+  const flowFor = (html) => {
+    const flow = harness.document.createElement('div')
+    flow.setAttribute('data-chat-flow-kind', 'assistant-step')
+    flow.setAttribute('data-chat-node-key', 'points-' + Math.random())
+    const slot = harness.document.createElement('div')
+    slot.setAttribute('data-slot', 'conversation.chat.node')
+    const markdown = harness.document.createElement('div')
+    markdown.className = '_markdown_preview'
+    markdown.innerHTML = html
+    slot.appendChild(markdown)
+    flow.appendChild(slot)
+    harness.document.body.appendChild(flow)
+    harness.plugin.__test.decorate(flow)
+    return { flow, markdown }
+  }
+  const points = flowFor(personaEnvelope({ version: 1, kind: 'normal', conclusion: { lead: '能上', points: ['先灰度一周。', '回滚先验收。'] }, suggestions: ['跑一条真实链路'], risk: '回滚未演练' }))
+  const list = points.markdown.querySelector('.dss-card-conclusion ol.dss-points')
+  assert.ok(list, 'points must render as an ordered list')
+  assert.deepEqual([...list.querySelectorAll('li')].map((li) => li.textContent), ['先灰度一周。', '回滚先验收。'])
+  const api = harness.plugin.__test.cardCopyApi()
+  assert.equal(api.personaCardPlainText(points.markdown.querySelector('.dss-card-conclusion')), '能上\nA. 先灰度一周。\nB. 回滚先验收。')
+
+  const legacy = flowFor(personaEnvelope({ version: 1, kind: 'normal', conclusion: { lead: '旧格式', body: '先灰度' }, suggestions: ['S'], risk: 'R' }))
+  assert.equal(legacy.markdown.querySelectorAll('ol.dss-points').length, 0)
+  assert.match(legacy.markdown.textContent, /先灰度/)
+})
+
 test('PersonaMode：rc.2 fenceSeat 包裹的 persona 块照样出卡，不残留原始 JSON', () => {
   const harness = makeHarness(baseState, async () => true)
   const tone = JSON.stringify({ schema: 'dsh-structured/tone@1', prefix: 'Boss，', style: '搞怪', suffix: '——完', skipIn: ['code', 'diff', 'error', 'short', 'table'] })

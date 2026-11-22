@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.8 — 2026-11-22
+
+- **结论卡支持要点列表**：`conclusion.body` 那段大段散文换成 `points`（1–4 条，每条一个事实、≤32 字），渲染成 A/B/C 字母圆圈的要点行；`body` 只保留给历史消息兼容。合同同步写入 PersonaMode，模型改用要点而不是把内容揉成一段。
+- 建议卡编号从 `01/02/03` 改成 `1/2/3`；风险卡锁死单句，多条风险改走 `table`。两套编号分工：要点引用 A/B/C，建议引用 1/2/3。
+- 修复 `desktop-check` 的假 PASS：不再信任 `~/.dsh/tmp/desktop-runtime.json`（实测仍记 0.2.1-rc.5，真实宿主已是 0.2.2-rc.5），改为读 Windows 卸载注册表的 DisplayVersion，并支持 `--host-version` / `DSH_DESKTOP_VERSION` 显式指定；只拿到旧 json 时降级为 WARN。
+- `dsh.compatibility.dshReleases` 补登记 `0.2.2-rc.5`。
+- 回归：129/129 通过（新增 points 渲染 + 纯文本断言）。
+
 ## 1.1.7 — 2026-11-20
 
 - 修复 persona 信封中途闭合时把 JSON 残片渲染进卡片：真实会话原文（`session-3f71fe87` seq 432，body 落根 + 根对象提前闭合）回归通过；修复顺序改为先删错位 `}`、再走引号兜底。

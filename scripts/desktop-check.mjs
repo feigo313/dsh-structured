@@ -10,19 +10,23 @@
  *
  * 用法：
  *   node scripts/desktop-check.mjs
+ *   node scripts/desktop-check.mjs --host-version 0.2.2-rc.5
  *   node scripts/desktop-check.mjs --entry "C:\...\profiles\desktop\node_modules\dsh-structured"
  */
 
+import { execFileSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { isAbsolute, join, resolve } from 'node:path'
 
 const args = process.argv.slice(2)
 let entry = process.cwd()
+let explicitHostVersion = null
 for (let i = 0; i < args.length; i++) {
   if (args[i] === '--entry') entry = resolve(args[++i])
+  else if (args[i] === '--host-version') explicitHostVersion = args[++i]
   else if (args[i] === '--help' || args[i] === '-h') {
-    process.stdout.write('用法: node scripts/desktop-check.mjs [--entry <插件目录>]\n')
+    process.stdout.write('用法: node scripts/desktop-check.mjs [--entry <插件目录>] [--host-version <版本>]\n')
     process.exit(0)
   } else {
     process.stderr.write('desktop-check: 未知参数 ' + args[i] + '\n')
@@ -37,6 +41,40 @@ const check = (name, ok, detail = '') => rows.push({ name, ok, detail })
 
 function readJson(file) {
   return JSON.parse(readFileSync(file, 'utf8'))
+}
+
+// 真实宿主版本：Windows 卸载注册表里 DeepSeek Harness 的 DisplayVersion。
+// desktop-runtime.json 可能停留在旧版本（实测记 0.2.1-rc.5、实际 0.2.2-rc.5），不能当真相。
+function readWindowsHostVersion() {
+  if (process.platform !== 'win32') return null
+  const roots = [
+    'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall',
+    'HKLM\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall',
+  ]
+  for (const root of roots) {
+    let text = ''
+    try {
+      text = execFileSync('reg.exe', ['query', root, '/s'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
+    } catch {
+      continue
+    }
+    const entries = []
+    let row = {}
+    for (const raw of text.split(/\r?\n/)) {
+      const line = raw.trim()
+      if (!line || line.startsWith('HKEY_')) {
+        if (row.DisplayName || row.DisplayVersion) entries.push(row)
+        row = {}
+        continue
+      }
+      const match = /^(\S+)\s+REG_\w+\s+(.*)$/.exec(line)
+      if (match) row[match[1]] = match[2]
+    }
+    if (row.DisplayName || row.DisplayVersion) entries.push(row)
+    const hit = entries.find((item) => /DeepSeek Harness/i.test(item.DisplayName ?? ''))
+    if (hit?.DisplayVersion) return hit.DisplayVersion.trim()
+  }
+  return null
 }
 
 // 1. desktop profile 的 bundle 栈
@@ -120,15 +158,30 @@ check('没有 Electron 专有 API', !/electron|process\.versions\.electron/.test
 const nodeMajor = Number(process.versions.node.split('.')[0])
 check('Node >= 22', nodeMajor >= 22, process.versions.node)
 
-// 6. 本机 desktop 版本是否已登记兼容（无 desktop-runtime.json 时不判定，如 CI/headless）
-try {
-  const runtime = readJson(join(home, 'tmp', 'desktop-runtime.json'))
-  const hostVersion = runtime?.release?.version
-  if (hostVersion) {
-    const releases = pkg?.dsh?.compatibility?.dshReleases ?? {}
-    check('宿主机版本已登记兼容', releases[hostVersion] === 'compatible', hostVersion)
+// 6. 真实宿主版本是否已登记兼容。优先 --host-version / DSH_DESKTOP_VERSION / Windows 注册表；
+//    desktop-runtime.json 只作降级提示（可能是旧版本遗留），不当作 PASS。
+let hostVersion = explicitHostVersion
+let hostVersionSource = explicitHostVersion ? '--host-version' : ''
+if (!hostVersion && process.env.DSH_DESKTOP_VERSION) {
+  hostVersion = process.env.DSH_DESKTOP_VERSION.trim()
+  hostVersionSource = 'DSH_DESKTOP_VERSION'
+}
+if (!hostVersion) {
+  hostVersion = readWindowsHostVersion()
+  if (hostVersion) hostVersionSource = 'Windows 卸载注册表'
+}
+const releases = pkg?.dsh?.compatibility?.dshReleases ?? {}
+if (hostVersion) {
+  check('真实宿主版本已登记兼容', releases[hostVersion] === 'compatible', hostVersion + ' — ' + hostVersionSource)
+} else {
+  let recorded = null
+  try {
+    recorded = readJson(join(home, 'tmp', 'desktop-runtime.json'))?.release?.version ?? null
+  } catch {}
+  if (recorded) {
+    check('宿主版本未经真实校验', null, 'desktop-runtime.json 记录 ' + recorded + '；用 --host-version 指定真实版本')
   }
-} catch {}
+}
 
 function report() {
   for (const row of rows) {

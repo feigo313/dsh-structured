@@ -34,16 +34,16 @@ node scripts/desktop-check.mjs
 ### 方式二：npm
 
 ```powershell
-dsh plugin --profile <profile> add dsh-structured@1.1.5
+dsh plugin --profile <profile> add dsh-structured@1.1.8
 ```
 
-`dsh plugin add` 会转发给 profile 里的 pnpm；1.1.5 已在本机 desktop profile 用 registry 源安装实测（pnpm 会自动把新版本加进 `minimumReleaseAgeExclude`）。
+`dsh plugin add` 会转发给 profile 里的 pnpm；1.1.5 起已在本机 desktop profile 用 registry 源安装实测（pnpm 会自动把新版本加进 `minimumReleaseAgeExclude`）。
 
 desktop profile 由 Electron 独占，使用插件管理搜索/安装，不要跑 `--profile desktop`。
 
 ### 方式三：GitHub Release
 
-从 GitHub Releases 下载最新版的 `dsh-structured-<version>.tgz`（当前 0.9.1），在插件管理里选择本地包；不使用 npm 时，市场 YAML 的 `tarball` 指向该 release。
+从 GitHub Releases 下载最新版的 `dsh-structured-<version>.tgz`（当前 1.1.8），在插件管理里选择本地包；不使用 npm 时，市场 YAML 的 `tarball` 指向该 release。
 
 ### 开发方式：本地 tgz / 手工 pnpm（desktop profile）
 
@@ -78,12 +78,12 @@ pnpm add $tgz
 
 - 预检：`node scripts/desktop-check.mjs` 全部 PASS —— desktop profile 已初始化、bundle 栈含 `dsh-base`/`dsh-web-app`、`files` 含 `cordis.patch.yml`、`main`/`exports` 指向存在文件、`dsh.client.platform: web` 与 `exports["./client"]` 就位、`engines.dsh`/`dsh.compatibility.dshReleases` 已声明、运行时只 import `node:`、无 Electron 专有 API、无 profile 分支、状态走 `DSH_HOME`。
 - **desktop 是主目标，Web 只做兼容。** 本会话本身运行在 desktop profile，`systemPrompt` 与 `commands` 由 live host 的 Service 查询确认；`dsh.client.platform: web` 是 DSH 客户端模块的格式（desktop 的 Web UI 也加载它），不代表 Web 优先。
-- desktop 实装实测：desktop profile 已装 0.9.1（`dependencies`/`bundles` 各一处，见 `docs/MAINTENANCE-LOG.md` 2026-10-23 条目）；desktop 会话最新 `system/message` 命中注入（可用 `scripts/session-inspect.mjs` 复跑）。
+- desktop 实装实测：desktop profile 已装 1.1.7（`dependencies`/`bundles` 各一处，见 `docs/MAINTENANCE-LOG.md` 1.1.7 发布条目）；desktop 会话最新 `system/message` 命中注入（可用 `scripts/session-inspect.mjs` 复跑）。
 - 视觉层由 desktop 应用侧加载，验收以应用内实际渲染为准；不要求用户手动刷新。
 
 ### 兼容性门禁
 
-本包声明 `@deepseek-ai/schemastery` peer：`Config`（theme/visual/defaultEnabled/tailReminder/includeSubagents/genui + personaEnabled/persona/personaRevision/personaName/personaSignature/personaAvatar）用它生成设置表单；这是 host 提供的服务，不是门禁。真正门禁是 `engines.dsh`（`>=0.1.7-rc.2 <0.4.0-0 || >=0.2.1-rc.0 <0.2.2`，覆盖 0.3.x 与 0.2.1 预发布），`dsh-app-boot` 在有 `engines.dsh` 时读取它；`dsh.compatibility.dshReleases` 是 advisory。实测 DSH CLI `0.1.7-rc.2`、desktop `0.2.1-rc.2` 与 `0.2.1-rc.5`（2026-11-19，桌面加载 1.1.6：persona 卡 / 表格 / 主题渲染正常）；`0.2.1-rc.3` / `0.3.0-rc.1` 为声明性兼容（插件依赖的 systemPrompt / commands / configForms / plugins.bundle.config 均为宿主稳定服务面，未见破坏性变更公告）。
+本包声明 `@deepseek-ai/schemastery` peer：`Config`（theme/visual/defaultEnabled/tailReminder/includeSubagents/genui + personaEnabled/persona/personaRevision/personaName/personaSignature/personaAvatar）用它生成设置表单；这是 host 提供的服务，不是门禁。真正门禁是 `engines.dsh`（`>=0.1.7-rc.2 <0.4.0-0 || >=0.2.1-rc.0 <0.2.2`，覆盖 0.3.x 与 0.2.1 预发布），`dsh-app-boot` 在有 `engines.dsh` 时读取它；`dsh.compatibility.dshReleases` 是 advisory。实测 DSH CLI `0.1.7-rc.2`、desktop `0.2.1-rc.2`、`0.2.1-rc.5` 与 `0.2.2-rc.5`（2026-11-22，宿主 FileVersion 实读；桌面加载 1.1.7：persona 卡 / 表格 / 主题渲染正常）；`0.2.1-rc.3` / `0.3.0-rc.1` 为声明性兼容（插件依赖的 systemPrompt / commands / configForms / plugins.bundle.config 均为宿主稳定服务面，未见破坏性变更公告）。
 
 ## 使用
 
@@ -123,6 +123,7 @@ pnpm add $tgz
 
 - **列宽按内容分配**：`decorate` 逐列统计最大显示宽度（CJK / emoji 记 2、ASCII 记 1，含表头），≤12 单位的列贴内容（`data-dsh-structured-col="narrow"`，`width:1%;white-space:nowrap`），其余列交给 auto 布局；3 列以上且中间明显更长时尾列封顶 32%（`data-dsh-structured-tail="capped"`）。流式半截表不测量；`.dss-table-wrap` 允许横向滚动，窄窗（≤560px）表格保底 520px 宽。
 - **卡片级复制**（1.1.1）：结论 / 建议 / 风险 / 表格 / 整条回复五档一键复制，内容是净文本（不含卡标签、身份头、开场收尾），表格输出 TSV；按钮常驻半透明、hover / 键盘聚焦加深，触屏常显。
+- **结论卡要点列表**（1.1.8）：`conclusion.points` 收 1–4 条，每条只放一个事实（≤32 字），渲染成 A/B/C 字母圆圈；`conclusion.body` 只用于历史消息兼容。建议卡用 1/2/3 编号，风险卡固定一句话；确有多个风险时改用表格，不再往风险卡里堆句子。
 - **卡片正文的行内标记**（1.1.3）：`**粗体**` 与 `` `代码` `` 会渲染成真正的 `strong` / `code` 节点（此前会把星号原样显示），`textContent` 仍是不带标记的净文本，复制得到干净内容。
 
 `theme` 提供 `dsh`/`deepseek`（默认）/`codex`/`anthropic` 四个配置值。1.1.2 起三套彩色主题各有一套完整配色（DeepSeek 蓝调 / Codex 绿调 / Anthropic 土褐调），保持原样；1.1.7 新增 `dsh`（黑白原色）：面板 / 卡面 / 正文 / 边框全部映射 DSH 宿主 alias 变量，明暗随宿主切换；状态也用灰阶 + 符号区分，不引入彩色。设置页主题分段里 `DSH` 排在最前，默认仍是 DeepSeek。**卡面结构保持一套**——圆角、边框、阴影、底色结构完全一致，主题只通过配色表达；表头底色、表格左边条、表头文字、状态色、序号圆点、复制成功勾全部走主题变量，切主题时整组一起变。设置页的「样式预览」用同一份卡面材质展示普通 / 表格 / 代码三态。
