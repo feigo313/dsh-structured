@@ -22,9 +22,9 @@ test('pack：鲸鱼娘 JSON/许可/署名随包，1.0 草稿不随包', () => {
   assert.equal(files.length, 58, 'pack file count must match ACCEPTANCE-1.0.0.md')
   // 体积断言带 16 KB 容差：tar 条目的平台元数据（权限位等）让同一内容在
   // Linux CI 与本地 Windows 上相差 ~137 B，精确字节断言跨平台不稳定。
-  // 本地基线见 ACCEPTANCE-1.0.0.md；CI 以容差校验。
-  const PINNED_SIZE = 1504236
-  const PINNED_UNPACKED = 2246588
+  // 本地基线为 2026-11-22 截图改渲染图后的仓库 pack；CI 以容差校验。
+  const PINNED_SIZE = 1377795
+  const PINNED_UNPACKED = 2098890
   const TOLERANCE = 16384
   assert.ok(
     Math.abs(parsed[0].size - PINNED_SIZE) <= TOLERANCE,

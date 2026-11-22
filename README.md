@@ -34,7 +34,7 @@ node scripts/desktop-check.mjs
 ### 方式二：npm
 
 ```powershell
-dsh plugin --profile <profile> add dsh-structured@1.1.8
+dsh plugin --profile <profile> add dsh-structured@1.1.9
 ```
 
 `dsh plugin add` 会转发给 profile 里的 pnpm；1.1.5 起已在本机 desktop profile 用 registry 源安装实测（pnpm 会自动把新版本加进 `minimumReleaseAgeExclude`）。
@@ -43,7 +43,7 @@ desktop profile 由 Electron 独占，使用插件管理搜索/安装，不要�
 
 ### 方式三：GitHub Release
 
-从 GitHub Releases 下载最新版的 `dsh-structured-<version>.tgz`（当前 1.1.8），在插件管理里选择本地包；不使用 npm 时，市场 YAML 的 `tarball` 指向该 release。
+从 GitHub Releases 下载最新版的 `dsh-structured-<version>.tgz`（当前 1.1.9），在插件管理里选择本地包；不使用 npm 时，市场 YAML 的 `tarball` 指向该 release。
 
 ### 开发方式：本地 tgz / 手工 pnpm（desktop profile）
 
@@ -134,21 +134,28 @@ Phase 2 已落地 2.1–2.4：卡片类型（结论/判断/指标/风险/下一�
 
 ## Screenshots
 
-![人格普通回复](assets/screenshots/01-title-card.png)
+1.1.9 渲染示意：用插件真实 CSS 与默认头像复现卡片，不含任何会话内容。
 
-![人格表格回复](assets/screenshots/06-status-table.png)
+![结论卡要点列表](assets/screenshots/01-title-card.png)
 
-![人格短答回复](assets/screenshots/07-code-block.png)
+![明色主题与表格](assets/screenshots/09-theme-light.png)
 
-![人格明色主题](assets/screenshots/09-theme-light.png)
+![暗色主题](assets/screenshots/09-theme-dark.png)
 
-![人格暗色主题](assets/screenshots/09-theme-dark.png)
+![暗色主题下的多条风险表格](assets/screenshots/10-theme-dark.png)
 
-![人格暗色主题（对照）](assets/screenshots/10-theme-dark.png)
+<details>
+<summary>历史实机图（1.0.4 / 1.1.6）</summary>
 
-![语气风格设置页](assets/screenshots/11-config-page.png)
+![人格表格回复（1.1.6 实机）](assets/screenshots/06-status-table.png)
 
-`screenshots.json` 列出 7 张：06 / 09-theme-light / 09-theme-dark / 10-theme-dark 是 **1.1.6 实机截图**（本机 DSH Web GUI，装 1.1.6 后的真实会话）；01 / 07 / 11 为 1.0.4 实机图，不含表格，未受 1.1.6 列宽变更影响、暂不重拍。
+![代码块回复（1.0.4 实机）](assets/screenshots/07-code-block.png)
+
+![语气风格设置页（1.0.4 实机）](assets/screenshots/11-config-page.png)
+
+</details>
+
+`screenshots.json` 列出全部 7 张：前四张是 1.1.9 渲染示意图，后三张为历史实机图，保留作对照；渲染图不是实机截图，不宣称「本机实测」。
 
 ### 配置
 
