@@ -1,4 +1,4 @@
-# 交接：dsh-structured（2026-11-17 收尾，旧会话归档）
+# 交接：dsh-structured（2026-11-22 更新，1.1.8 已发布）
 
 > 这是**唯一可信起点**。旧会话因上下文过大归档；本文件把项目全量口径、当前状态、待办与踩坑一次写完。新会话请先读完本文件再动手。
 
@@ -12,7 +12,7 @@
 2. **人格模式（PersonaMode）**：模型只交一个 ` ```persona ` JSON 块，身份头 / 三卡（结论·建议·风险）/ 开场收尾由插件渲染；合同 + 专用尾部提醒都在 `src/index.js`。
 3. **视觉皮肤**：客户端半区 `src/client.js` 给对话 markdown 加卡片/表格/代码块样式，三套主题（deepseek 蓝 / codex 绿 / anthropic 土褐）× 明暗。
 
-宿主目标：DSH desktop（Electron）为主；desktop `0.2.1-rc.5` 于 2026-11-19 实测兼容（rc.3 起一路实测）；headless/CLI 不加载 client 半区。
+宿主目标：DSH desktop（Electron）为主；desktop `0.2.2-rc.5` 于 2026-11-22 实测兼容（rc.3 起一路实测）；headless/CLI 不加载 client 半区。
 
 ---
 
@@ -24,7 +24,7 @@
 | `src/client.js` | 客户端半区：CSS 皮肤 + DOM 装饰（卡片/表格/代码/人格头/复制按钮）+ 插件详情页配置区 |
 | `lib/` | 构建产物（`node scripts/build.mjs` 由 src 生成，**必须与 src 同步**） |
 | `scripts/` | `build.mjs`、`desktop-check.mjs`、`theme-contrast.mjs`、`theme-hue-distance.mjs`、`style-gate.mjs`、`measure-prose.mjs` 等门禁脚本 |
-| `test/` | node:test 套件（127 条断言，linkedom 真实 DOM + CSS 契约 + 语料回归辅助） |
+| `test/` | node:test 套件（129 条断言，linkedom 真实 DOM + CSS 契约 + 语料回归辅助） |
 | `docs/` | `MAINTENANCE.md`（手册，含 12.0 攒批规矩）、`MAINTENANCE-LOG.md`（逐轮记录）、`ACCEPTANCE-1.0.0.md`（逐版验收）、`ROADMAP.md`、`PLAN-1.2.0-ENTRIES.md`、`CARD-SYSTEM.md` 等 |
 | `locale/` | 中英文案 |
 | `assets/` | 截图（`screenshots.json` 索引） |
@@ -33,13 +33,14 @@
 
 ---
 
-## 3. 当前状态（2026-11-20 10:0x 实测 / 1.1.7 已发布，版本 1.1.7）
+## 3. 当前状态（2026-11-22 22:0x 实测 / 1.1.8 已发布，版本 1.1.8）
 
-- 仓库：`main` = `597553f`（1.1.7 发版提交，GitHub API 推送）；tag `v1.1.7` 已推；CI success。
-- npm：`latest = 1.1.7`（shasum `b325cdd`；registry dist-tags 确认）；GitHub Release `v1.1.7`（资产 1,501,498 B）。
-- 市场（awesome-dsh-plugin）：PR **#17089 open**（listing tarball 指向 `v1.1.7`，待合并）。
-- 桌面 profile：仍为本地预览构建（版本号 1.1.6、代码为发版前构建；备份 `*.bak-20261119-153831`）；待 `pnpm add dsh-structured@1.1.7` 对齐。
-- 门禁（2026-11-20 发布复跑）：`npm test` 127/127；`desktop-check` 全 PASS；对比度 80/80；色相 12/12；计算样式 **8 主题块 × 10 项**全过；`npm pack` 58 文件 / **1,501,498 B** / unpacked 2,234,690 B。
+- 仓库：远端 `main` = `972ab31`（1.1.8 发版提交，GitHub API 推送）；tag `v1.1.8` annotated（对象 `757314b2` → commit `972ab31`）；CI `45030561522` success。
+- 本机 `main` 在 `ad3bcba` 之上继续叠 docs 提交（与远端同树、不同 hash：API 建 commit 与本地 `commit-tree` 的字节编码不一致）；**本地不建 v1.1.8 tag，以远端 tag 为准**；旧历史备份分支 `backup/main-pre-1.1.8` = `c8bcc1e`。
+- npm：`latest = 1.1.8`（shasum `16095922f91f5446e5b47c09b1218c59a6737c2a`；registry dist-tags 确认）。
+- 市场（awesome-dsh-plugin）：PR **#17827 open**（listing tarball 指向 `v1.1.8`，待合并）。
+- 桌面 profile：仍装 1.1.7（应用运行中，未安装 1.1.8；需要时备份后 `pnpm add dsh-structured@1.1.8`）。
+- 门禁（2026-11-22 发布复跑）：`npm test` 129/129；`desktop-check` 全 PASS（真实宿主 0.2.2-rc.5）；对比度 80/80；色相 12/12；计算样式 **8 主题块 × 10 项**全过；`npm pack` 58 文件 / **1,504,236 B** / unpacked 2,246,588 B。
 - 截图：09/10/11 仍为 1.1.6 版本，未重拍（待补）。
 - 定时任务：每日巡检「dsh-structured 项目巡检」已重建（每天 10:00 Asia/Shanghai，target=本会话）。
 
@@ -65,7 +66,7 @@ node .tools/market-XXX.mjs     # fork 同步 → 改 tarball 行 → 提交 → 
 
 **判定发布成功只认**：`https://registry.npmjs.org/dsh-structured/<ver>?ts=<rand>` 返回 200 且 `dist-tags.latest` 已更新（CDN 传播 5–20 分钟；本地 `npm view` 走 npmmirror 会骗人）。
 
-**git 不通时兜底**：`.tools/push-head-via-api.mjs <远端sha>`、`.tools/push-tag-via-api.mjs`（gh git-data 逐对象重建，推完 `git fetch` 对齐本地，**不要 force push**）。
+**git 不通时兜底**：`.tools/push-head-via-api.mjs <远端sha>`（gh git-data 逐对象重建，本次 1.1.8 用它把本地树叠到远端 `577c84f` 上）；tag 用 `gh api git/tags` + `git/refs` 建 annotated tag；API 建出的 commit 与本地同树 commit 不保证同 hash，**以远端 sha 为准，不要 force push**。
 
 ---
 

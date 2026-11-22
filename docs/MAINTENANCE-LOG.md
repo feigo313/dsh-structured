@@ -679,3 +679,13 @@
 - **落后项（未变）**：09/10/11 截图仍为 1.1.6；桌面 profile 仍装 1.1.6 预览构建。
 - **本地 / 远端历史分叉（实测）**：远端 main 577c84f 与本机 main 1e199e0 **无共同祖先关系**（API 重建提交导致），本地 15 个提交远端没有、远端 11 个提交本地没有；但两侧树只差 4 个文档文件（AGENTS.md、HANDOFF.md、MAINTENANCE-LOG.md、PLAN-1.2.0.md），代码/构建产物一致。修复需先拿 Boss 同意，再按「远端为基 + 重放 4 文件差异」对齐，不做 force push。
 - **下一步**：无 issue 可修；把「市场已合并」从待办剔除，剩余为截图、桌面对齐、1.2.0 原型定稿。
+
+## 2026-11-22 · 第 55 轮（1.1.8 审计 + 三端发布）
+
+- **审计（发布前）**：与远端 `577c84f` 的差异共 13 个文件，全部为本版 intended（points A/B/C 渲染、建议 1/2/3、风险单句、desktop-check 真宿主、文档与 pins）；0 删除、无功能缺陷。修掉三处发布卫生：pack pins 仍是 1.1.7 基线、README 版本/兼容/points 缺失、ACCEPTANCE/HANDOFF 过期。
+- **GitHub**：main `972ab31`、tag `v1.1.8`（annotated `757314b2` → 972ab31）、Release 资产 `dsh-structured-1.1.8.tgz` 1,504,236 B（sha256 `09a12b…`）、CI `45030561522` success。
+- **npm**：`dsh-structured@1.1.8` 已发布，latest=1.1.8，shasum `16095922…`。**市场**：PR #17827 open（tarball 指向 v1.1.8）。
+- **门禁**：129/129；对比度 80；色相 12；计算样式 8 主题块 × 10 项；desktop-check 全 PASS（真实宿主 0.2.2-rc.5 — Windows 卸载注册表）；pack 58 文件 / 1,504,236 B / unpacked 2,246,588 B。
+- **历史说明**：本地 main（`ad3bcba` + docs 提交）与远端 `972ab31` 同树不同 hash（GitHub API commit 字节编码差异，非签名问题）；本地不建 tag，以远端 annotated tag 为准；备份分支 `backup/main-pre-1.1.8` = `c8bcc1e`。
+- **未完成**：09/10/11 截图仍为 1.1.6；桌面 profile 仍 1.1.7（未装 1.1.8）；市场 PR #17827 待上游合并。
+
