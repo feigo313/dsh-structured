@@ -689,3 +689,14 @@
 - **历史说明**：本地 main（`ad3bcba` + docs 提交）与远端 `972ab31` 同树不同 hash（GitHub API commit 字节编码差异，非签名问题）；本地不建 tag，以远端 annotated tag 为准；备份分支 `backup/main-pre-1.1.8` = `c8bcc1e`。
 - **未完成**：09/10/11 截图仍为 1.1.6；桌面 profile 仍 1.1.7（未装 1.1.8）；市场 PR #17827 待上游合并。
 
+
+
+## 2026-11-22 · 第 56 轮（1.1.9 截图三端发布）
+
+- **触发**：Boss 要求截图改渲染图并三端齐发；四张截图用插件真实 CSS + 默认头像重渲染为 1130×880，不含会话内容。
+- **文档**：README 前四张换渲染图，06 / 07 / 11 收进「历史实机图」折叠区；pack pins 更新为 1,377,795 / 2,098,890。
+- **GitHub**：main `13245f3`、tag `v1.1.9`（annotated `1695efeb`）、Release 资产 1,377,795 B（sha256 `f577ecd7…`）、CI `45032934658` success。
+- **npm**：`dsh-structured@1.1.9` 已发布，latest = 1.1.9（shasum `5d56b9d9`；registry 确认）。
+- **市场**：PR #17858 open（tarball 指向 v1.1.9）；旧 #17827（v1.1.8）已关闭，标注 superseded。
+- **门禁**：129/129、对比度 80、色相 12、计算样式 8×10、desktop-check 全 PASS。
+- **未完成**：市场 PR 待合并；桌面 profile 仍 1.1.7。

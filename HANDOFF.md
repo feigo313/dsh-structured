@@ -33,17 +33,16 @@
 
 ---
 
-## 3. 当前状态（2026-11-22 22:0x 实测 / 1.1.8 已发布，版本 1.1.8）
+## 3. 当前状态（2026-11-22 22:30 实测 / 1.1.9 已发布，版本 1.1.9）
 
-- 仓库：远端 `main` = `972ab31`（1.1.8 发版提交，GitHub API 推送）；tag `v1.1.8` annotated（对象 `757314b2` → commit `972ab31`）；CI `45030561522` success。
-- 本机 `main` 在 `ad3bcba` 之上继续叠 docs 提交（与远端同树、不同 hash：API 建 commit 与本地 `commit-tree` 的字节编码不一致）；**本地不建 v1.1.8 tag，以远端 tag 为准**；旧历史备份分支 `backup/main-pre-1.1.8` = `c8bcc1e`。
-- npm：`latest = 1.1.8`（shasum `16095922f91f5446e5b47c09b1218c59a6737c2a`；registry dist-tags 确认）。
-- 市场（awesome-dsh-plugin）：PR **#17827 open**（listing tarball 指向 `v1.1.8`，待合并）。
-- 桌面 profile：仍装 1.1.7（应用运行中，未安装 1.1.8；需要时备份后 `pnpm add dsh-structured@1.1.8`）。
-- 门禁（2026-11-22 发布复跑）：`npm test` 129/129；`desktop-check` 全 PASS（真实宿主 0.2.2-rc.5）；对比度 80/80；色相 12/12；计算样式 **8 主题块 × 10 项**全过；`npm pack` 58 文件 / **1,504,236 B** / unpacked 2,246,588 B。
-- 截图：09/10/11 仍为 1.1.6 版本，未重拍（待补）。
+- 仓库：远端 `main` = `13245f3`（1.1.9 发版提交，GitHub API 推送）；tag `v1.1.9` annotated（对象 `1695efeb` → commit `13245f3`）；CI `45032934658` success。
+- 本机 `main` = `854c95c`（1.1.9 发版提交，parent `ea3b8cb`；与远端同树、不同 hash：API 建 commit 与本地 commit 字节编码不一致）；**本地不建 v1.1.9 tag，以远端 tag 为准**；1.1.8 备份分支 `backup/main-pre-1.1.8` = `c8bcc1e`。
+- npm：`dsh-structured@1.1.9` 已发布，latest = 1.1.9（shasum `5d56b9d9`；registry 确认）。
+- 市场（awesome-dsh-plugin）：PR **#17858 open**（listing tarball 指向 `v1.1.9`；1.1.8 的 #17827 已关闭，标注 superseded）。
+- 桌面 profile：仍装 1.1.7（应用运行中，未安装 1.1.8 / 1.1.9；需要时备份后 `pnpm add dsh-structured@1.1.9`）。
+- 门禁（2026-11-22 发布复跑）：`npm test` 129/129；`desktop-check` 全 PASS（真实宿主 0.2.2-rc.5）；对比度 80/80；色相 12/12；计算样式 8 主题块 × 10 项全过；`npm pack` 58 文件 / **1,377,795 B** / unpacked 2,098,890 B。
+- 截图：01 / 09-theme-light / 09-theme-dark / 10-theme-dark 已改为 1.1.9 渲染示意（真实 CSS + 默认头像，不含会话内容）；06 / 07 / 11 保留为历史实机图，README 折叠展示。
 - 定时任务：每日巡检「dsh-structured 项目巡检」已重建（每天 10:00 Asia/Shanghai，target=本会话）。
-
 ---
 
 ## 4. 发布流程（照做，别自创）

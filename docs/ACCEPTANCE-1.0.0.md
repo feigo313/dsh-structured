@@ -1,4 +1,6 @@
-# dsh-structured 验收记录（最新：1.1.8 已发布 2026-11-22；1.2.0 开发中）
+# dsh-structured 验收记录（最新：1.1.9 已发布 2026-11-22；1.2.0 开发中）
+
+[1.1.9 · 截图改为渲染示意] 01 / 09-theme-light / 09-theme-dark / 10-theme-dark 四张改用插件真实 CSS 与默认头像渲染，不含任何会话内容；README 前四张换渲染图，06 / 07 / 11 折叠为「历史实机图」；screenshots.json 仍列 7 张。无运行时行为变更。门禁：129/129、对比度 80、色相 12、计算样式 8×10、desktop-check 全 PASS（真实宿主 0.2.2-rc.5）；pack 58 文件 / 1,377,795 B / unpacked 2,098,890 B。发布：2026-11-22，npm `dsh-structured@1.1.9`（shasum `5d56b9d9`）、tag `v1.1.9`（annotated `1695efeb` → `13245f3`）、Release 资产 1,377,795 B（sha256 `f577ecd7…`，CI `45032934658` success）、市场 PR #17858（待合并）。
 
 [1.1.8 · 结论卡要点列表 + desktop-check 真实宿主版本] 结论卡把 `conclusion.body` 的大段散文改为 `points`（1–4 条，每条一个事实、≤32 字），渲染为 A/B/C 字母圆圈；`body` 仅作历史消息兼容。建议卡编号改 `1/2/3`，风险卡锁死单句，多条风险改走 `table`。修复 `desktop-check` 假 PASS：不再信任 `~/.dsh/tmp/desktop-runtime.json`（仍记 0.2.1-rc.5），改读 Windows 卸载注册表 DisplayVersion，支持 `--host-version` / `DSH_DESKTOP_VERSION`，只拿到旧 json 时降级 WARN；`dsh.compatibility.dshReleases` 补 `0.2.2-rc.5`。门禁：129/129、对比度 80、色相 12、计算样式 8 主题块 × 10 项、desktop-check 全 PASS（真实宿主 0.2.2-rc.5）；pack 58 文件 / 1,504,236 B / unpacked 2,246,588 B（发布后同日截图改渲染图，仓库 pack 基线为 1,377,581 B / 2,098,449 B；npm 与 Release 资产仍是 1,504,236 B）。发布：2026-11-22，npm `dsh-structured@1.1.8`（shasum `16095922`）、tag `v1.1.8`（annotated，指向 `972ab31`）、Release 资产 1,504,236 B（CI `45030561522` success）、市场 PR #17827（待合并）。
 
