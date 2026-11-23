@@ -184,7 +184,7 @@ body[data-ds-dark-theme] .dss-scope {
   color:var(--dss-ink-2);counter-increment:dss-step;
 }
 .dss-scope .dss-card-next li::before{
-  content:counter(dss-step,decimal);position:absolute;left:0;top:0;
+  content:counter(dss-step,decimal);position:absolute;left:0;top:2px;
   display:grid;place-items:center;width:22px;height:22px;border-radius:50%;
   background:var(--dss-green-soft);color:var(--dss-green-text);font:600 11px/1 var(--dss-mono);
 }
@@ -195,10 +195,11 @@ body[data-ds-dark-theme] .dss-scope {
   color:var(--dss-ink-2);counter-increment:dss-point;
 }
 .dss-scope .dss-card-conclusion ol.dss-points li::before{
-  content:counter(dss-point,upper-alpha);position:absolute;left:0;top:0;
+  content:counter(dss-point,upper-alpha);position:absolute;left:0;top:2px;
   display:grid;place-items:center;width:22px;height:22px;border-radius:50%;
   background:var(--dss-blue-soft);color:var(--dss-blue-text);font:600 var(--dss-code-size,11px)/1 var(--dss-mono);
 }
+.dss-scope .dss-table tbody td[data-dss-row-index]::before{content:attr(data-dss-row-index);display:inline-block;min-width:1.1em;margin-right:6px;color:var(--dss-ink-3);font:600 calc(var(--dss-text-size) * 11 / 13.5)/1 var(--dss-mono);text-align:right;vertical-align:0}
 .dss-scope .dss-table{
   width:100%;margin:14px 0;border:1px solid var(--dss-line);border-left:3px solid var(--dss-blue);
   border-radius:12px;border-collapse:separate;border-spacing:0;overflow:hidden;
@@ -628,7 +629,7 @@ body[data-ds-dark-theme][data-dsh-structured-theme="dsh"] .dss-scope {
   color:var(--dss-ink-2);counter-increment:dss-step;
 }
 .dss-scope .dss-card-next li::before{
-  content:counter(dss-step,decimal);position:absolute;left:0;top:0;
+  content:counter(dss-step,decimal);position:absolute;left:0;top:2px;
   display:grid;place-items:center;width:22px;height:22px;border-radius:50%;
   background:var(--dss-green-soft);color:var(--dss-green-text);font:600 calc(var(--dss-text-size) * 11 / 13.5)/1 var(--dss-mono);
 }
@@ -639,10 +640,11 @@ body[data-ds-dark-theme][data-dsh-structured-theme="dsh"] .dss-scope {
   color:var(--dss-ink-2);counter-increment:dss-point;
 }
 .dss-scope .dss-card-conclusion ol.dss-points li::before{
-  content:counter(dss-point,upper-alpha);position:absolute;left:0;top:0;
+  content:counter(dss-point,upper-alpha);position:absolute;left:0;top:2px;
   display:grid;place-items:center;width:22px;height:22px;border-radius:50%;
   background:var(--dss-blue-soft);color:var(--dss-blue-text);font:600 var(--dss-code-size,11px)/1 var(--dss-mono);
 }
+.dss-scope .dss-table tbody td[data-dss-row-index]::before{content:attr(data-dss-row-index);display:inline-block;min-width:1.1em;margin-right:6px;color:var(--dss-ink-3);font:600 calc(var(--dss-text-size) * 11 / 13.5)/1 var(--dss-mono);text-align:right;vertical-align:0}
 .dss-scope .dss-table{
   width:100%;margin:14px 0;border:1px solid var(--dss-line);border-left:3px solid var(--dss-blue);
   border-radius:12px;border-collapse:separate;border-spacing:0;overflow:hidden;
@@ -1923,7 +1925,11 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
     const personaTableTsv = (table) => {
       const rows = []
       for (const tr of table.querySelectorAll?.('tr') ?? []) {
-        const cells = [...(tr.querySelectorAll?.('th,td') ?? [])].map((cell) => (cell.textContent ?? '').replace(/\s+/g, ' ').trim())
+        const cells = [...(tr.querySelectorAll?.('th,td') ?? [])].map((cell) => {
+          const text = (cell.textContent ?? '').replace(/\s+/g, ' ').trim()
+          const marker = cell.getAttribute?.('data-dss-row-index') ?? ''
+          return marker && text ? marker + ' ' + text : text
+        })
         rows.push(cells.join('\t'))
       }
       return rows.join('\n')
@@ -2012,9 +2018,13 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
           thead.appendChild(headRow)
           table.appendChild(thead)
           const tbody = makePersonaElement(doc, 'tbody')
-          for (const row of content.table.rows) {
+          for (const [rowIndex, row] of content.table.rows.entries()) {
             const tr = makePersonaElement(doc, 'tr')
-            for (const cell of row) tr.appendChild(fillPersonaText(doc, makePersonaElement(doc, 'td'), cell))
+            for (const [cellIndex, cell] of row.entries()) {
+              const td = fillPersonaText(doc, makePersonaElement(doc, 'td'), cell)
+              if (cellIndex === 0) td.setAttribute('data-dss-row-index', String.fromCharCode(97 + rowIndex))
+              tr.appendChild(td)
+            }
             tbody.appendChild(tr)
           }
           table.appendChild(tbody)

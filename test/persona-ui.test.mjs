@@ -537,6 +537,40 @@ test('PersonaMode：conclusion.points 渲染字母要点；body 仅作历史兼�
   assert.match(legacy.markdown.textContent, /先灰度/)
 })
 
+test('PersonaMode：表行小写索引与结论大写要点分层，TSV 复制带索引', () => {
+  const harness = makeHarness(baseState, async () => true)
+  const tone = JSON.stringify({ schema: 'dsh-structured/tone@1', prefix: '', style: '搞怪', suffix: '', skipIn: ['code', 'diff', 'error', 'short', 'table'] })
+  harness.plugin.__test.setPersonaModeConfig({ personaEnabled: true, persona: tone, personaName: 'N', personaSignature: 'S', personaAvatar: '' })
+  const flow = harness.document.createElement('div')
+  flow.setAttribute('data-chat-flow-kind', 'assistant-step')
+  flow.setAttribute('data-chat-node-key', 'layers-' + Math.random())
+  const slot = harness.document.createElement('div')
+  slot.setAttribute('data-slot', 'conversation.chat.node')
+  const markdown = harness.document.createElement('div')
+  markdown.className = '_markdown_preview'
+  markdown.innerHTML = personaEnvelope({
+    version: 1,
+    kind: 'table',
+    conclusion: { lead: '能上，先灰度', points: ['先灰度一周。', '回滚先验收。'] },
+    suggestions: ['跑通一条真实链路'],
+    risk: '自动更新跳过确认',
+    table: { head: ['模块', '状态'], rows: [['注入链路', '✅ 通过'], ['代码皮肤', '❌ 阻断']] },
+  })
+  slot.appendChild(markdown)
+  flow.appendChild(slot)
+  harness.document.body.appendChild(flow)
+  harness.plugin.__test.decorate(flow)
+
+  assert.equal(markdown.querySelectorAll('ol.dss-points li').length, 2)
+  const rows = [...markdown.querySelectorAll('.dss-table tbody tr')]
+  assert.deepEqual(rows.map((tr) => tr.querySelector('td')?.getAttribute('data-dss-row-index')), ['a', 'b'])
+  assert.equal(rows[0].querySelector('td').textContent, '注入链路', '索引不能污染单元格文本')
+  assert.equal(markdown.querySelector('.dss-table thead [data-dss-row-index]'), null, '表头不编号')
+  const api = harness.plugin.__test.cardCopyApi()
+  assert.equal(api.personaTableTsv(markdown.querySelector('table')), '模块\t状态\na 注入链路\t✅ 通过\nb 代码皮肤\t❌ 阻断')
+  assert.match(api.personaReplyPlainText(markdown), /a 注入链路/)
+})
+
 test('PersonaMode：rc.2 fenceSeat 包裹的 persona 块照样出卡，不残留原始 JSON', () => {
   const harness = makeHarness(baseState, async () => true)
   const tone = JSON.stringify({ schema: 'dsh-structured/tone@1', prefix: 'Boss，', style: '搞怪', suffix: '——完', skipIn: ['code', 'diff', 'error', 'short', 'table'] })
@@ -1708,7 +1742,7 @@ test('卡片级复制：五档按钮齐备、净内容、连续渲染幂等（v1
 
   // 表格：TSV 制表符分列。
   const table = markdown.querySelector('table')
-  assert.equal(api.personaTableTsv(table), '模块\t状态\n注入链路\t✅ 通过\n代码皮肤\t❌ 阻断')
+  assert.equal(api.personaTableTsv(table), '模块\t状态\na 注入链路\t✅ 通过\nb 代码皮肤\t❌ 阻断')
 
   // 整条回复：卡片 + 表格，仍不含标签与前后缀。
   const reply = api.personaReplyPlainText(markdown)

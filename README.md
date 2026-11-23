@@ -34,7 +34,7 @@ node scripts/desktop-check.mjs
 ### 方式二：npm
 
 ```powershell
-dsh plugin --profile <profile> add dsh-structured@1.1.9
+dsh plugin --profile <profile> add dsh-structured@1.1.10
 ```
 
 `dsh plugin add` 会转发给 profile 里的 pnpm；1.1.5 起已在本机 desktop profile 用 registry 源安装实测（pnpm 会自动把新版本加进 `minimumReleaseAgeExclude`）。
@@ -43,7 +43,7 @@ desktop profile 由 Electron 独占，使用插件管理搜索/安装，不要�
 
 ### 方式三：GitHub Release
 
-从 GitHub Releases 下载最新版的 `dsh-structured-<version>.tgz`（当前 1.1.9），在插件管理里选择本地包；不使用 npm 时，市场 YAML 的 `tarball` 指向该 release。
+从 GitHub Releases 下载最新版的 `dsh-structured-<version>.tgz`（当前 1.1.10），在插件管理里选择本地包；不使用 npm 时，市场 YAML 的 `tarball` 指向该 release。
 
 ### 开发方式：本地 tgz / 手工 pnpm（desktop profile）
 
@@ -134,9 +134,11 @@ Phase 2 已落地 2.1–2.4：卡片类型（结论/判断/指标/风险/下一�
 
 ## Screenshots
 
-1.1.9 渲染示意：用插件真实 CSS 与默认头像复现卡片，不含任何会话内容。
+1.1.10 渲染示意：用插件真实 CSS 与默认头像复现卡片，不含任何会话内容；表格编号图为 1.1.10 新效果。
 
 ![结论卡要点列表](assets/screenshots/01-title-card.png)
+
+![表格卡三层编号：结论 A/B、表行 a/b、建议 1/2](assets/screenshots/12-layered-index.png)
 
 ![明色主题与表格](assets/screenshots/09-theme-light.png)
 
@@ -155,7 +157,7 @@ Phase 2 已落地 2.1–2.4：卡片类型（结论/判断/指标/风险/下一�
 
 </details>
 
-`screenshots.json` 列出全部 7 张：前四张是 1.1.9 渲染示意图，后三张为历史实机图，保留作对照；渲染图不是实机截图，不宣称「本机实测」。
+`screenshots.json` 列出全部 8 张：前五张是插件真实 CSS 渲染示意图（表格编号图为 1.1.10 新效果），后三张为历史实机图，保留作对照；渲染图不是实机截图，不宣称「本机实测」。
 
 ### 配置
 

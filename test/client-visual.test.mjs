@@ -450,6 +450,19 @@ test('client：表格列宽按内容判定（窄列贴内容 / 尾列封顶）�
   assert.match(css, /@media \(max-width:560px\)\{[\s\S]{0,200}min-width:520px/)
 })
 
+test('client：编号徽标与表行索引按同一基线对齐', () => {
+  const dom = makeDom()
+  loadClient(dom).apply(makeContext(null))
+  const css = dom.styles.get('dsh-structured-skin-style')?.textContent ?? ''
+  assert.ok(css, 'skin style should be injected')
+  // 2026-11-23：伪元素 top:0 + li padding-top:2px 会让圆点比首行高 2px；
+  // 统一 top:2px 后圆心与正文首行中心对齐。表行索引是内联元素，vertical-align:0。
+  assert.match(css, /\.dss-card-next li::before\{[\s\S]*?top:2px/)
+  assert.match(css, /\.dss-card-conclusion ol\.dss-points li::before\{[\s\S]*?top:2px/)
+  assert.match(css, /\.dss-table tbody td\[data-dss-row-index\]::before\{[^}]*vertical-align:0/)
+  assert.match(css, /\.dss-table tbody td\[data-dss-row-index\]::before\{[^}]*font:600 calc\(var\(--dss-text-size\) \* 11 \/ 13\.5\)/)
+})
+
 test('client：状态单元格底色不被宿主 td 规则盖掉（计算样式回归）', () => {
   const dom = makeDom()
   loadClient(dom).apply(makeContext(null))

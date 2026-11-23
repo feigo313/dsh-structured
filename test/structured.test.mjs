@@ -139,6 +139,8 @@ test('内置规则覆盖首句结论、组件、清晰度三件事', () => {
 test('PersonaMode 合同上限：suggestions 1-5、table.rows 1-20、缺块 legacy', () => {
   assert.match(PERSONA_MODE_RULES, /`conclusion.points` 为 1-4 条/)
   assert.match(PERSONA_MODE_RULES, /A\/B\/C/)
+  assert.match(PERSONA_MODE_RULES, /表行用小写 a\/b\/c/)
+  assert.match(PERSONA_MODE_RULES, /Aa1/)
   assert.match(PERSONA_MODE_RULES, /`suggestions` 为 1-5 条/)
   assert.match(PERSONA_MODE_RULES, /`rows` 1-20 行/)
   assert.match(PERSONA_MODE_RULES, /缺块会降级成普通排版/)
