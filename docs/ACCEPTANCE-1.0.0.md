@@ -1,6 +1,6 @@
-# dsh-structured 验收记录（最新：1.1.10 待发布 2026-11-23；1.2.0 开发中）
+# dsh-structured 验收记录（最新：1.1.10 已发布 2026-11-23；下一版 1.2.0 待计划）
 
-[1.1.10 · 表格卡三层编号] 结论要点大写 A/B/C，表格首列行索引小写 a/b/c（插件按行序生成，表头不编号），建议 1/2/3，风险不编号；正文可组合引用 Aa1。行索引通过 `data-dss-row-index` 属性 + CSS `::before` 渲染，不写入单元格文本，复制表格 TSV 保留 `a 标签`。结论 / 建议圆点伪元素下移到 `top:2px`，表行索引与首列标签同基线。合同同步写入 PersonaMode。门禁：131/131；pack 59 文件 / 1,560,575 B / unpacked 2,293,215 B。发布：待发布。
+[1.1.10 · 表格卡三层编号] 结论要点大写 A/B/C，表格首列行索引小写 a/b/c（插件按行序生成，表头不编号），建议 1/2/3，风险不编号；正文可组合引用 Aa1。行索引通过 `data-dss-row-index` 属性 + CSS `::before` 渲染，不写入单元格文本，复制表格 TSV 保留 `a 标签`。结论 / 建议圆点伪元素下移到 `top:2px`，表行索引与首列标签同基线。合同同步写入 PersonaMode。门禁：131/131；pack 59 文件 / 1,560,575 B / unpacked 2,293,215 B。发布：2026-11-23，npm `dsh-structured@1.1.10`（shasum `e5e48579`）、tag `v1.1.10`（annotated `58ab1091` → `cb90b5f4`）、Release 资产 1,560,575 B（sha256 `436df378…`，databaseId 454958068，CI `45106928812` success）、市场 PR #18038（待合并）。
 
 [1.1.9 · 截图改为渲染示意] 01 / 09-theme-light / 09-theme-dark / 10-theme-dark 四张改用插件真实 CSS 与默认头像渲染，不含任何会话内容；README 前四张换渲染图，06 / 07 / 11 折叠为「历史实机图」；screenshots.json 仍列 7 张。无运行时行为变更。门禁：129/129、对比度 80、色相 12、计算样式 8×10、desktop-check 全 PASS（真实宿主 0.2.2-rc.5）；pack 58 文件 / 1,377,795 B / unpacked 2,098,890 B。发布：2026-11-22，npm `dsh-structured@1.1.9`（shasum `5d56b9d9`）、tag `v1.1.9`（annotated `1695efeb` → `13245f3`）、Release 资产 1,377,795 B（sha256 `f577ecd7…`，CI `45032934658` success）、市场 PR #17858（待合并）。
 
