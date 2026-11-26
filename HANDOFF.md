@@ -1,4 +1,4 @@
-# 交接：dsh-structured（2026-11-26 更新，1.2.0 已发布；三端已发）
+# 交接：dsh-structured（2026-11-27 更新，1.2.2 已发布；三端已发）
 
 > 这是**唯一可信起点**。旧会话因上下文过大归档；本文件把项目全量口径、当前状态、待办与踩坑一次写完。新会话请先读完本文件再动手。
 
@@ -24,8 +24,8 @@
 | `src/client.js` | 客户端半区：CSS 皮肤 + DOM 装饰（卡片/表格/代码/人格头/复制按钮）+ 插件详情页配置区 |
 | `lib/` | 构建产物（`node scripts/build.mjs` 由 src 生成，**必须与 src 同步**） |
 | `scripts/` | `build.mjs`、`desktop-check.mjs`、`theme-contrast.mjs`、`theme-hue-distance.mjs`、`style-gate.mjs`、`measure-prose.mjs` 等门禁脚本 |
-| `test/` | node:test 套件（150 条断言，linkedom 真实 DOM + CSS 契约 + 语料回归辅助） |
-| `docs/` | `MAINTENANCE.md`（手册，含 12.0 攒批规矩）、`MAINTENANCE-LOG.md`（逐轮记录）、`ACCEPTANCE-1.0.0.md`（逐版验收）、`ROADMAP.md`、`PLAN-1.2.0-ENTRIES.md`、`CARD-SYSTEM.md` 等 |
+| `test/` | node:test 套件（1.2.2 发布态 154 条断言，linkedom 真实 DOM + CSS 契约 + 语料回归辅助） |
+| `docs/` | `MAINTENANCE.md`（手册，含 12.0 攒批规矩）、`MAINTENANCE-LOG.md`（逐轮记录）、`ACCEPTANCE-1.2.2.md`（当前版验收）、`RELEASE-1.2.1.md` / `RELEASE-1.2.2.md`、`ROADMAP.md`、`PLAN-1.2.0-ENTRIES.md`、`CARD-SYSTEM.md` 等 |
 | `locale/` | 中英文案 |
 | `assets/` | 截图（`screenshots.json` 索引） |
 | `.tools/` | **一次性脚本，不进包**（gitignore）：apply-*.mjs、market-*.mjs、push-*.mjs、corpus-persona.mjs、computed-style-check.mjs、theme-preview.mjs 等 |
@@ -33,16 +33,17 @@
 
 ---
 
-## 3. 当前状态（2026-11-26 21:00 发布 / 1.2.0 已发布）
+## 3. 当前状态（2026-11-27 00:30 复核 / 1.2.2 已发布）
 
-- 仓库：远端 `main` = `4c6db80`（docs(1.2.0): record three-end release）；其下 `aa2a130` = release: dsh-structured 1.2.0（接在 1.1.10 记录 `3deec7f` 之上）；tag `v1.2.0`（annotated，对象 `3ec7eaef` → commit `aa2a130`）；Release 资产 `dsh-structured-1.2.0.tgz`（1,826,792 B / sha256 `8386c3b4…`）。`git push` 直连不可达，经 gh git-data API 写入。
-- 本机 `main` 与远端一致 = `4c6db80`；对齐前的 1.2.0 开发提交保留在分支 `local-pre-release-20261126`；重复的本地 1.1.x 历史已不留在 main 上。
-- npm：`dsh-structured@1.2.0` 已发布，latest = 1.2.0（61 文件 / 1,826,792 B / unpacked 2,716,890 B / shasum `c00af8c1…`）。
-- 市场（awesome-dsh-plugin）：PR **#19092 open**（listing tarball → v1.2.0，checks 进行中）；1.1.10 的 #18038 已于 2026-11-23T16:59:37Z MERGED。
-- 桌面 profile：依赖已切回 registry `1.2.0`，`lib/index.js` / `lib/client.js` 哈希与本地构建一致；重启 Desktop 后生效（备份 `package.json.bak-1.2.0-final-20261126`）。
-- 门禁（2026-11-26 发布复跑）：`npm test` 150/150；`desktop-check` 30 项 PASS（真实宿主 0.2.2-rc.5）；对比度 80；色相 12；计算样式 10 主题块 × 10 项；`style-gate` PASS（证据按 treeHash 绑定）；`npm pack` 61 文件 / **1,826,792 B** / unpacked 2,716,890 B。
-- 截图：新增 1.2.0 实机 `13-settings-1.2.0.png` / `14-color-picker-1.2.0.png`（已脱敏裁切）；`screenshots.json` 共 10 张。
-- 下一版：待定（1.2.x 观察期；市场 PR #19092 合并后再看反馈）。
+- 仓库：远端 `main` = `48468f9`（fix(ci): refresh pack baseline for 1.2.2）；其下 `26b44ed` = release: dsh-structured 1.2.2；tag `v1.2.2`（annotated，远端对象 `422e99de` → commit `26b44ed`；本机同名 tag 对象为 `75bde21f`，同指 `26b44ed`）；Release 资产 `dsh-structured-1.2.2.tgz`（1,830,526 B / sha256 `ce56db4e…`，2026-11-26T15:19:04Z）。
+- 本机 `main` 与远端一致 = `48468f9`；1.2.0 对齐前的开发提交仍保留在分支 `local-pre-release-20261126`。
+- 1.2.1（前一版）：`51d9964` + tag `v1.2.1`（annotated `efbd2ee1` → `51d9964`）+ npm `1.2.1` + Release 资产 1,828,942 B；CI run `45843670309` success（首发即绿，无返工）。
+- npm：`dsh-structured@1.2.2` 已发布，latest = 1.2.2（61 文件 / 1,830,526 B / unpacked 2,734,302 B / shasum `e2fec550…`）。
+- 市场（awesome-dsh-plugin）：PR **#19092 MERGED**（2026-11-26T16:30:39Z，标题 update tarball to v1.2.2）；listing `data/plugins/feigo313__dsh-structured.yml` 的 tarball 已核为 v1.2.2。1.1.10 的 #18038 已于 2026-11-23T16:59:37Z MERGED。
+- 桌面 profile：已装 registry `1.2.2`（profile 与 `node_modules/dsh-structured` 同版本）；重启 Desktop 后实机确认：5 条定时任务回到原会话、风格硬提醒已注入（人工观察，无日志留存）。
+- 门禁（2026-11-26 1.2.2 发布）：`npm test` 154/154（CI run `45849222112` 通过）；`desktop-check` 30 项 PASS（真实宿主 0.2.2-rc.5）；对比度 80；色相 12；计算样式 10 主题块 × 10 项；`npm pack` 61 文件 / **1,830,526 B** / unpacked 2,734,302 B。`style-gate` 未在 1.2.2 复跑（未验证）。
+- 截图：仍为 1.2.0 实机 `13-settings-1.2.0.png` / `14-color-picker-1.2.0.png`（已脱敏裁切）；`screenshots.json` 共 10 张；1.2.1 / 1.2.2 未新增截图。
+- 下一版：1.2.3 待定（1.2.x 观察期；市场已合并，等 issue / PR 反馈）。
 - 定时任务：原挂 `session-20a027e0` 的 6 个 active 任务已迁到本会话 `session-231e379d`：Issue 追踪轮询 / 每日插件更新检查 / dsh-structured 项目巡检 / H3 生态 / omp 巡检 / DSH 每周健康。
 ---
 
@@ -108,21 +109,21 @@ node .tools/market-XXX.mjs     # fork 同步 → 改 tarball 行 → 提交 → 
 
 ## 7. 待办队列
 
-1. **市场 PR #19092**：等 checks 过并合并，核验 listing tarball 指向 v1.2.0。
+1. **1.2.3 在研**：工作区快照（2026-11-27 00:35，随时可能变化）显示未提交改动——`package.json` 升 1.2.3、`CHANGELOG.md` 加 1.2.3 条目、`src/client.js` / `lib/client.js` 修「身份头关闭时 innerOs（💭）丢失」、`test/persona-ui.test.mjs` 加回归；**未发布，也未纳入 1.2.2 门禁**。
 2. **1.2.x 观察**：issue/PR 按零信任处理；攒批规矩见 `docs/MAINTENANCE.md` 12.0。
-3. **桌面**：profile 已是 registry 1.2.0；运行中的 Electron 需完全退出后重开才加载新 bundle。
-4. **文档**：HANDOFF / ACCEPTANCE / RELEASE / CHANGELOG 已与 1.2.0 发布一致；后续改动继续写 `docs/MAINTENANCE-LOG.md`。
+3. **桌面**：profile 已是 registry 1.2.2；运行中的 Electron 需完全退出后重开才加载新 bundle。
+4. **文档**：HANDOFF / `docs/ACCEPTANCE-1.2.2.md` / `docs/RELEASE-1.2.2.md` / CHANGELOG 已与 1.2.2 发布一致；后续改动继续写 `docs/MAINTENANCE-LOG.md`。
 5. **长期项**（`docs/ROADMAP.md`）：A = 用户头像落本地数据目录；C = persona 抗漂移实测。
-6. **已知限制**：信封字符串截断仍会降级；没有任何 persona 块的回复只能靠合同/提醒压概率（1.2.0 尾部提醒已固定开启）。
-7. **发布物可复现**：pack 基线在 `test/pack.test.mjs`（1.2.0：61 文件 / 1,826,792 B / unpacked 2,716,890 B）。
-8. **对齐历史**：远端 1.2.0 是单个 release 提交；如需细粒度提交，可从 `local-pre-release-20261126` replay。
+6. **已知限制**：信封字符串截断仍会降级；没有任何 persona 块的回复只能靠合同/提醒压概率（1.2.1 起尾部提醒追加风格硬约束与 innerOS 必填）。
+7. **发布物可复现**：pack 基线在 `test/pack.test.mjs`（1.2.2：61 文件 / 1,830,526 B / unpacked 2,734,302 B，±16 KB 容差）。发版前先 `npm pack --json --ignore-scripts` 对一遍。
+8. **style-gate**：1.2.2 改动后未复跑（`artifacts/style-gate/` 最新目录 2026-11-26T11-57-54-668Z 仍属 1.2.0 阶段）→ 下次发版前补跑留证。
 ---
 
 ## 8. 验证命令（缺一不可）
 
 ```bash
 cd /g/dsh-structured
-npm test                                   # 150/150（node:test + linkedom）
+npm test                                   # 154/154（node:test + linkedom）
 node scripts/desktop-check.mjs             # 全 PASS
 node scripts/theme-contrast.mjs            # 80/80
 node scripts/theme-hue-distance.mjs        # 12/12
@@ -154,8 +155,9 @@ npm pack --json --ignore-scripts           # 61 文件，体积基线在 test/pa
 | 文件 | 内容 |
 | --- | --- |
 | `docs/MAINTENANCE.md` | 手册：巡检流程、缺陷三态判定、发布门槛（9 节）、攒批规矩（12.0）、待发清单（12.1） |
-| `docs/MAINTENANCE-LOG.md` | 逐轮记录（最近：1.2.0 三端发布、门禁修复、身份头作用域修复） |
-| `docs/ACCEPTANCE-1.0.0.md` | 逐版验收记录与 pack 数字 |
+| `docs/MAINTENANCE-LOG.md` | 逐轮记录（顶部为发布条目：1.2.2、1.2.1、1.2.0） |
+| `docs/ACCEPTANCE-1.2.2.md` | 当前版验收与 pack 数字（0.8.x–1.2.0 的历史验收见同名 `ACCEPTANCE-*.md`） |
+| `docs/RELEASE-1.2.1.md` / `docs/RELEASE-1.2.2.md` | 各版发布记录（tag / CI / 资产 / 三端） |
 | `docs/ROADMAP.md` | 1.1/1.2 候选 |
-| `docs/PLAN-1.2.0-ENTRIES.md` | 侧边栏入口计划（待开工） |
-| `CHANGELOG.md` / `README.md` | 对外说明（README 已同步 1.1.x 实况） |
+| `docs/PLAN-1.2.0-ENTRIES.md` | 侧边栏入口计划（1.2.2 已实现开关） |
+| `CHANGELOG.md` / `README.md` | 对外说明（README 最近同步到 1.2.0；1.2.1 / 1.2.2 未改 README） |

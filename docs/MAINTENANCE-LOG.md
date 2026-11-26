@@ -2,6 +2,28 @@
 
 每轮巡检追加一条。格式见 [`MAINTENANCE.md`](MAINTENANCE.md)。
 
+## 2026-11-26 · 1.2.2 发布（三端）
+
+- **主题**：侧边栏入口可关闭 / 开启（`sidebarEntry`，默认开启）。
+- **实现**：关闭即时卸载 `sidebar.panellist` 入口与同名面板，插件板块设置页不受影响，再开即恢复；宿主不支持订阅时退化为下一次加载生效。
+- **GitHub**：commit `26b44ed`、tag `v1.2.2`（annotated，远端对象 `422e99de` → `26b44ed`）、Release 资产 `dsh-structured-1.2.2.tgz` 1,830,526 B（sha256 `ce56db4e…`，2026-11-26T15:19:04Z）。
+- **CI 失败与修复**：`26b44ed` 的 run `45847769853` **failure** —— `test/pack.test.mjs` 报 `pack unpackedSize 2734302 must stay within 16384 B of the local baseline 2716890`（差 17,412 B，超出 16 KB 容差）。`48468f9` 把 `PINNED_SIZE` 1,826,792 → 1,830,526、`PINNED_UNPACKED` 2,716,890 → 2,734,302；run `45849222112` **success**（13 s）。远端 main 现为 `48468f9`。
+- **npm**：`dsh-structured@1.2.2` 已发布，latest = 1.2.2（61 文件 / 1,830,526 B / unpacked 2,734,302 B / shasum `e2fec550…`）。
+- **市场**：PR #19092 **MERGED**（2026-11-26T16:30:39Z，标题 update tarball to v1.2.2）；listing `data/plugins/feigo313__dsh-structured.yml` 的 tarball 已核为 v1.2.2。
+- **desktop profile**：registry `1.2.2`；重启 Desktop 后实机确认 5 条定时任务回原会话、风格硬提醒已注入。
+- **门禁**：154/154 测试、对比度 80、色相 12、计算样式 10×10、desktop-check 30 PASS；pack 61 / 1,830,526 / 2,734,302。`style-gate` 未复跑（未验证）。
+- **文档**：新增 `docs/ACCEPTANCE-1.2.2.md`；`docs/RELEASE-1.2.2.md` 补 tag / main / CI 关系；HANDOFF 状态与待办同步。
+
+## 2026-11-26 · 1.2.1 发布（三端）
+
+- **主题**：修复 1.2.0「有卡无风格 / 有开关无 💭」。
+- **实现**：persona 启用且 tone 合法时，尾部提醒追加【本轮风格（硬提醒）】（风格原文 + 正文至少两处体现，表格 / 代码 / diff / 报错保持中性）；`personaInnerOsEnabled` 为真时 normal / table 必带 `innerOs`（≤30 字、第一人称）。
+- **GitHub**：commit `51d9964`、tag `v1.2.1`（annotated `efbd2ee1` → `51d9964`）、Release 资产 `dsh-structured-1.2.1.tgz` 1,828,942 B（sha256 `c3fec068…`，2026-11-26T14:54:29Z）；CI run `45843670309` success（首发即绿，无返工）。
+- **npm**：`dsh-structured@1.2.1` 已发布（61 文件 / unpacked 2,726,036 B / shasum `9a0e5517…`）。
+- **市场**：沿用 PR #19092 分支把标题改为 1.2.1；随后 1.2.2 在同分支更新并合并。
+- **门禁**：152/152 测试、对比度 80、色相 12、计算样式 10×10、desktop-check 30 PASS。
+- **注意**：1.2.1 的体积仍在 1.2.0 pack 基线的 ±16 KB 容差内（unpacked 差 9,146 B），所以 CI 首发即绿；1.2.2 差了 17,412 B 才触发 16 KB 门禁。
+
 ## 2026-11-26 · 1.2.0 发布（三端）
 
 - **npm**：`dsh-structured@1.2.0` 已发布（61 文件 / 1,826,792 B / tarball sha256 `8386c3b4…` / shasum `c00af8c1…`）；registry 缓存后 `dsh-structured@1.2.0` 可解析。
