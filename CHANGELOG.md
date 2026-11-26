@@ -12,7 +12,7 @@
 - **修复身份头样式失效**：活 CSS 的身份头规则写成 `.dss-scope .dss-persona-head …`，要求祖先带 `dss-scope`；但身份头自身才是 token 载体（`class="dss-scope dss-persona-head"`），真实聊天结构里这些规则全部落空——头像回落自然尺寸、名字回落 UA 700、间距丢失。改为 `.dss-scope.dss-persona-head …` 自持作用域后恢复 38px 头像 / 650 字重 / 10px 间距，并加静态门禁防回退。
 - **修复人工样式门禁失效**（自 1.1.0 起）：探针仍按 v5 标记取样（`.dss-status` 胶囊、`data-dsh-structured-card-type`），1.1.0 已改 class + `data-dsh-structured-status-cell`，ego worker 在 null 上取值直接崩。重写两份夹具（用 `lib/client.js` 真实出口生成）与探针取样，期望值全部重挂到 CSS token 关系；证据新鲜度从「工作树必须等于 HEAD」改为 treeHash 绑定（允许未提交工作树，STALE 判定不降）。
 - **文档与截图**：README 新增 1.2.0 单页设置页与自定义三色拾色器实机截图（真实 Desktop 界面，裁切到设置面板，不含会话 / 工作区信息）；`screenshots.json` 增至 10 张。
-- **回归**：150/150；对比度 80、色相 12、计算样式 8×10、desktop-check PASS。
+- **回归**：150/150；对比度 80、色相 12、计算样式 10×10、style-gate PASS、desktop-check 30 PASS。
 
 ## 1.1.10 — 2026-11-23
 

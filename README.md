@@ -78,7 +78,7 @@ pnpm add $tgz
 
 - 预检：`node scripts/desktop-check.mjs` 全部 PASS —— desktop profile 已初始化、bundle 栈含 `dsh-base`/`dsh-web-app`、`files` 含 `cordis.patch.yml`、`main`/`exports` 指向存在文件、`dsh.client.platform: web` 与 `exports["./client"]` 就位、`engines.dsh`/`dsh.compatibility.dshReleases` 已声明、运行时只 import `node:`、无 Electron 专有 API、无 profile 分支、状态走 `DSH_HOME`。
 - **desktop 是主目标，Web 只做兼容。** 本会话本身运行在 desktop profile，`systemPrompt` 与 `commands` 由 live host 的 Service 查询确认；`dsh.client.platform: web` 是 DSH 客户端模块的格式（desktop 的 Web UI 也加载它），不代表 Web 优先。
-- desktop 实装实测：desktop profile 已装 1.2.0 本地预览（`file:` 依赖，见 `docs/ACCEPTANCE-1.2.0.md`）；desktop 会话最新 `system/message` 命中注入（可用 `scripts/session-inspect.mjs` 复跑）。
+- desktop 实装实测：desktop profile 已切到 registry `1.2.0`（重启 Desktop 后生效，见 `docs/ACCEPTANCE-1.2.0.md`）；desktop 会话最新 `system/message` 命中注入（可用 `scripts/session-inspect.mjs` 复跑）。
 - 视觉层由 desktop 应用侧加载，验收以应用内实际渲染为准；不要求用户手动刷新。
 
 ### 兼容性门禁
