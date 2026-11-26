@@ -271,6 +271,7 @@ test('Config：visual 默认开启，且可显式关闭', () => {
   assert.equal(value(defaults.tailReminder), true)
   assert.equal(value(defaults.includeSubagents), false)
   assert.equal(value(defaults.genui), 'auto')
+  assert.equal(value(defaults.sidebarEntry), true)
   assert.equal(value(defaults.contentDepth), 'general')
   assert.equal(value(defaults.personaEnabled), DEFAULT_PERSONA_ENABLED)
   assert.equal(value(defaults.personaHeadEnabled), DEFAULT_PERSONA_HEAD_ENABLED)
@@ -282,6 +283,7 @@ test('Config：visual 默认开启，且可显式关闭', () => {
   assert.equal(value(Config({ contentDepth: 'expert' }).contentDepth), 'expert')
   assert.equal(value(Config({ personaEnabled: true }).personaEnabled), true)
   assert.equal(value(Config({ personaHeadEnabled: false }).personaHeadEnabled), false)
+  assert.equal(value(Config({ sidebarEntry: false }).sidebarEntry), false)
   assert.match(
     statusText({ sessionId: 'session-a', sessions: {}, defaultEnabled: true, visual: false }),
     /视觉层：已关闭/,

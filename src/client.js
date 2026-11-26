@@ -4321,6 +4321,13 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
               label: 'GenUI 联动',
               onChange: (next) => write('genui', next),
             })),
+            behaviorRow({ label: '侧边栏入口', hint: '在侧边栏显示「结构化输出」入口；关闭只隐藏入口，插件板块里的设置页仍可用' }, jsx(ui.Switch, {
+              id: 'dsh-structured-sidebar-entry',
+              checked: fieldValue(value, { field: 'sidebarEntry', fallback: true }) !== false,
+              disabled: !writable,
+              label: '侧边栏入口',
+              onChange: (next) => write('sidebarEntry', next === true),
+            })),
           ],
         })
         const depthSection = jsxs('section', {
@@ -4434,25 +4441,63 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
             )
             // 侧边栏双入口：入口行（sidebar.panellist）+ 同 key 的 main 面板；
             // 两个组件都拿到同一份 configFace，保存与预览共用同一份 form 状态。
-            sidebarRegistration.entry = registerSlot(SIDEBAR_ENTRY_SLOT, {
-              name: SIDEBAR_ENTRY_SLOT,
-              id: SIDEBAR_PANEL_ID,
-              order: 50,
-              label: () => '结构化输出',
-            }, SidebarPanelIcon)
-            sidebarRegistration.panel = registerSlot(MAIN_PANEL_SLOT, {
-              name: MAIN_PANEL_SLOT,
-              key: SIDEBAR_PANEL_ID,
-              inject: configFace,
-            }, StructuredConfigCard)
+            // 1.2.2 起受 sidebarEntry 控制：关闭时卸载两个 slot，详情页配置卡始终保留。
+            let sidebarMounted = false
+            let offSidebarEntry = null
+            const mountSidebar = () => {
+              if (sidebarMounted) return
+              sidebarMounted = true
+              sidebarRegistration.failed = sidebarRegistration.failed.filter((name) => name !== SIDEBAR_ENTRY_SLOT && name !== MAIN_PANEL_SLOT)
+              sidebarRegistration.entry = registerSlot(SIDEBAR_ENTRY_SLOT, {
+                name: SIDEBAR_ENTRY_SLOT,
+                id: SIDEBAR_PANEL_ID,
+                order: 50,
+                label: () => '结构化输出',
+              }, SidebarPanelIcon)
+              sidebarRegistration.panel = registerSlot(MAIN_PANEL_SLOT, {
+                name: MAIN_PANEL_SLOT,
+                key: SIDEBAR_PANEL_ID,
+                inject: configFace,
+              }, StructuredConfigCard)
+              // 宿主两个 slot 都没有时保持可重试，不把「已挂载」钉死。
+              if (sidebarRegistration.entry === null && sidebarRegistration.panel === null) sidebarMounted = false
+            }
+            const unmountSidebar = () => {
+              if (!sidebarMounted) return
+              sidebarMounted = false
+              try { sidebarRegistration.entry?.() } catch {}
+              try { sidebarRegistration.panel?.() } catch {}
+              sidebarRegistration.entry = null
+              sidebarRegistration.panel = null
+            }
+            const sidebarEntryEnabled = () => {
+              try {
+                return fieldValue(form.getSnapshot()?.value ?? {}, { field: 'sidebarEntry', fallback: true }) !== false
+              } catch {
+                return true
+              }
+            }
+            const syncSidebarEntry = () => {
+              if (sidebarEntryEnabled()) mountSidebar()
+              else unmountSidebar()
+            }
+            syncSidebarEntry()
+            if (typeof form.subscribe === 'function') {
+              try {
+                const off = form.subscribe(syncSidebarEntry)
+                if (typeof off === 'function') offSidebarEntry = off
+              } catch {
+                // 宿主不支持订阅时退回「改动后下一次加载生效」：初始值已按上一步处理。
+              }
+            }
             return () => {
+              try { offSidebarEntry?.() } catch {}
+              unmountSidebar()
               try {
                 offSlot?.()
               } catch {
                 // slot 撤销失败交由宿主清理。
               }
-              try { sidebarRegistration.entry?.() } catch {}
-              try { sidebarRegistration.panel?.() } catch {}
               removeStyle()
             }
           }),

@@ -376,8 +376,8 @@ test('config page：插件未就绪与只读态的降级渲染', () => {
   }
   walk(readonly)
   const switches = flat.filter((element) => element.type?.name === 'Switch')
-  // 尾部提醒不再是开关：只读页保留总开关 + 行为区两个开关（人格编辑器是函数组件，不在 flatten 的树里）。
-  assert.deepEqual(switches.map((element) => element.props.label), ['插件总开关', '新会话默认开启', '子代理注入'])
+  // 尾部提醒不再是开关：只读页保留总开关 + 行为区三个开关（人格编辑器是函数组件，不在 flatten 的树里）。
+  assert.deepEqual(switches.map((element) => element.props.label), ['插件总开关', '新会话默认开启', '子代理注入', '侧边栏入口'])
   assert.equal(switches.some((element) => element.props.label === '尾部提醒'), false)
   for (const element of switches) assert.equal(element.props.disabled, true)
 })
@@ -603,4 +603,65 @@ test('sidebar：宿主不声明 main slot 时退回详情页，不抛错', () =>
   const status = module.__test.personaApi().sidebarRegistration
   assert.equal(JSON.stringify(status.failed), JSON.stringify(['main']))
   assert.equal(status.panel, null)
+})
+
+test('sidebar：sidebarEntry=false 时不注册侧边栏入口，详情页仍注册', () => {
+  served = true
+  const { require: fakeRequire } = fakeRuntime()
+  const module = loadClient(makeDom(), fakeRequire)
+  const snapshot = { status: 'ready', writable: true, value: { sidebarEntry: false } }
+  const form = {
+    set() { return Promise.resolve(true) },
+    getSnapshot() { return snapshot },
+    subscribe() { return () => {} },
+  }
+  const { slots, injections, registrations } = collectRegistration()
+  module.__test.setupConfigPage(makeChild(form, slots), form)
+  assert.equal(JSON.stringify(injections), JSON.stringify(['plugins.bundle.config']))
+  assert.ok(registrations.some((item) => item.options.name === 'plugins.bundle.config'), 'detail page must stay registered')
+  assert.equal(registrations.some((item) => item.options.name === 'sidebar.panellist'), false)
+  assert.equal(registrations.some((item) => item.options.name === 'main'), false)
+  const status = module.__test.personaApi().sidebarRegistration
+  assert.equal(status.entry, null)
+  assert.equal(status.panel, null)
+})
+
+test('sidebar：sidebarEntry 切换时即时卸载 / 重新注册入口', () => {
+  served = true
+  const { require: fakeRequire } = fakeRuntime()
+  const module = loadClient(makeDom(), fakeRequire)
+  const snapshot = { status: 'ready', writable: true, value: {} }
+  const listeners = new Set()
+  const form = {
+    set() { return Promise.resolve(true) },
+    getSnapshot() { return snapshot },
+    subscribe(listener) {
+      listeners.add(listener)
+      return () => listeners.delete(listener)
+    },
+  }
+  const removed = []
+  const registrations = []
+  const slots = {
+    inject(_name, factory) { return factory() },
+    register(options) {
+      registrations.push(options)
+      return () => removed.push(options.name)
+    },
+  }
+  module.__test.setupConfigPage(makeChild(form, slots), form)
+  assert.ok(registrations.some((options) => options.name === 'sidebar.panellist'))
+  assert.ok(registrations.some((options) => options.name === 'main'))
+
+  snapshot.value = { sidebarEntry: false }
+  for (const listener of [...listeners]) listener()
+  assert.equal(JSON.stringify(removed), JSON.stringify(['sidebar.panellist', 'main']))
+  assert.equal(module.__test.personaApi().sidebarRegistration.entry, null)
+  assert.equal(module.__test.personaApi().sidebarRegistration.panel, null)
+
+  snapshot.value = { sidebarEntry: true }
+  for (const listener of [...listeners]) listener()
+  assert.equal(registrations.filter((options) => options.name === 'sidebar.panellist').length, 2)
+  assert.equal(registrations.filter((options) => options.name === 'main').length, 2)
+  assert.equal(JSON.stringify(removed), JSON.stringify(['sidebar.panellist', 'main']))
 })
