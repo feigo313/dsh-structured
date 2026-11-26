@@ -2,6 +2,15 @@
 
 每轮巡检追加一条。格式见 [`MAINTENANCE.md`](MAINTENANCE.md)。
 
+## 2026-11-26 · 1.2.0 发布（三端）
+
+- **npm**：`dsh-structured@1.2.0` 已发布（61 文件 / 1,826,792 B / tarball sha256 `8386c3b4…` / shasum `c00af8c1…`）；registry 缓存后 `dsh-structured@1.2.0` 可解析。
+- **GitHub**：main 对齐并前移到 `aa2a130`（`release: dsh-structured 1.2.0`，接在 origin/main `3deec7f` 之上；本机 git HTTPS 直连不可达，经 git-data API 写入）；tag `v1.2.0`；Release 资产 `dsh-structured-1.2.0.tgz`。
+- **市场**：PR [awesome-dsh-plugin#19092](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/19092)，listing `tarball` 指向 v1.2.0。
+- **desktop profile**：依赖由本地 `file:...tgz` 切回 registry `1.2.0`，`lib/index.js` / `lib/client.js` 哈希与本地构建一致；重启 Desktop 后生效。
+- **门禁**：150/150 测试、对比度 80、色相 12、计算样式 10×10、style-gate PASS、desktop-check 30 PASS。
+- **历史**：对齐前的本地 1.2.0 开发提交保留在分支 `local-pre-release-20261126`。
+
 ## 2026-10-21 · 第 1 轮（上线当日）
 
 - **issue 水位**：0 open / 0 closed（`gh issue list --state all` 与 `gh api .../issues?state=all` 均为空）；PR 0。

@@ -1,6 +1,6 @@
 # dsh-structured 1.2.0 验收记录
 
-状态：本地预览通过；发布准备完成，未 push / 未 publish / 未开市场 PR（等授权）。
+状态：**已发布（2026-11-26，三端）**。npm `dsh-structured@1.2.0`；GitHub main `aa2a130` + tag `v1.2.0` + Release 资产；市场 PR awesome-dsh-plugin#19092。
 基线：`2c3bcd4`（门禁修复 / 身份头修正 / 文档；本地未发布）。
 
 ## 门禁
@@ -31,4 +31,4 @@
 
 - 分支：本地 main 领先 42 / 落后 6；发布前需 rebase / merge 到 origin 并复核树。
 - profile：已装本地 `file:G:/dsh-structured/dsh-structured-1.2.0.tgz`（lib 哈希与 HEAD 构建一致，2026-11-26 20:15）；需重启 Desktop 生效；npm 发布 1.2.0 后切回 registry 版本。
-- 未执行：git push、tag/Release、npm publish、市场 PR。
+- 发布记录见 `docs/MAINTENANCE-LOG.md`（2026-11-26 · 1.2.0 发布）与 `docs/RELEASE-1.2.0.md`。

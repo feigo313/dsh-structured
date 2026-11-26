@@ -1,10 +1,16 @@
-# 1.2.0 发布准备（未执行）
+# 1.2.0 发布记录（2026-11-26 已执行）
+
+- GitHub Release：https://github.com/feigo313/dsh-structured/releases/tag/v1.2.0
+- main：`aa2a130`（接在 origin/main 之上）；tag：`v1.2.0`
+- npm：`dsh-structured@1.2.0`
+- 市场：awesome-dsh-plugin#19092（listing tarball → v1.2.0）
+- desktop profile：已切回 registry `1.2.0`，重启生效
 
 ## 工件
 
-- tarball：`dsh-structured-1.2.0.tgz`（59 文件 / 1,613,764 B / unpacked 2,497,009 B）
-- sha256：`0b2c7ecfc91fc7e24c969a1ab6701a97943769fd3bc8cc2dfa5dc0653f1167a3`
-- npm shasum：`69f068cd5a2bd68e692168600c148fbd0e1a1d3f`
+- tarball：`dsh-structured-1.2.0.tgz`（61 文件 / 1,826,792 B / unpacked 2,716,890 B）
+- sha256：`8386c3b4628f23c9c87bffad3882e6bfd728e55207c6f8c9098fd4279e5d7119`
+- npm shasum：`c00af8c1ed7635f644c2f666176333dc581d1e13`
 - 当前 npm latest：1.1.10；GitHub latest：v1.1.10。
 - 门禁：150/150、对比度 80、色相 12、计算样式 10×10、style-gate PASS、desktop-check 30 PASS。
 
