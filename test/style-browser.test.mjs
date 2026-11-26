@@ -18,3 +18,16 @@ test('0.9.6 style：源码静态防护（真实浏览器改为手动 gate）', (
   assert.match(gate, /STYLE_GATE_STALE/)
   assert.match(gate, /codeTreeMatches/)
 })
+
+test('1.2.0 身份头：活 CSS 规则必须自持作用域（.dss-scope.dss-persona-head）', () => {
+  const source = readFileSync(new URL('../src/client.js', import.meta.url), 'utf8')
+  const start = source.indexOf('const CSS = `')
+  assert.ok(start > 0, 'active CSS block must exist')
+  const body = source.slice(start + 'const CSS = `'.length)
+  const css = body.slice(0, body.indexOf('\n`\n'))
+  assert.match(css, /\.dss-scope\.dss-persona-head\{/)
+  assert.match(css, /\.dss-scope\.dss-persona-head \.dss-chat-avatar\{/)
+  // 回退信号：要求祖先带 dss-scope 的旧写法在真实聊天结构里必然落空。
+  assert.doesNotMatch(css, /\.dss-scope \.dss-persona-head[ ,{:]/)
+})
+

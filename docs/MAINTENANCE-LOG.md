@@ -700,3 +700,62 @@
 - **市场**：PR #17858 open（tarball 指向 v1.1.9）；旧 #17827（v1.1.8）已关闭，标注 superseded。
 - **门禁**：129/129、对比度 80、色相 12、计算样式 8×10、desktop-check 全 PASS。
 - **未完成**：市场 PR 待合并；桌面 profile 仍 1.1.7。
+
+## 2026-11-22 · 第 57 轮（1.1.x 收口）
+
+- **1.1.9 三端完成**：npm latest=1.1.9（shasum `5d56b9d9`）、Release 1,377,795 B、tag `v1.1.9`、市场 PR #17858 open；docs 提交后远端 main `ad08e48`，docs CI `45033233161` success。
+- **版本线**：Boss 定 1.1.x 收口，下一版直接 **1.2.0**；1.2.0 旧计划稿待按 settings-final7 重写，代码未开工。
+- **剩余**：市场 PR #17858 合并后核 listing；桌面 profile 仍 1.1.7；06/07/11 历史截图留到 1.2.0 按需重拍。
+
+## 2026-11-23 · 第 58 轮（每日巡检）
+
+- **issue 水位**：open issue 0、open repo PR 0；issue #2/#5/#6 全部 CLOSED，repo PR #3 已 MERGED；无新 issue/PR 需分诊。
+- **发布状态**：npm latest = 1.1.9（shasum `5d56b9d9`）；tag v1.1.9；Release 资产 1,377,795 B（sha256 `f577ecd7…`）；CI `45033233161`（head `ad08e48`）success。
+- **市场**：PR #17858 已 MERGED（2026-11-22T20:11:39Z，merge commit `4320d7e`）；listing `data/plugins/feigo313__dsh-structured.yml` tarball 已核为 v1.1.9。
+- **代码/本地**：工作区干净；本地 main `af7a0bd`（1.1.9 文档提交）比远端 `ad08e48` 多 4 个文档，`origin/main` ref 停在 `577c84f` 导致 ahead 6；按 Boss 口径不推本地日志。
+- **验证**：`npm test` 129/129 pass（2692.6671ms）；`desktop-check` 全 PASS，真实宿主 0.2.2-rc.5（Windows 卸载注册表）。
+- **桌面 profile**：磁盘已装 1.1.9（此前 HANDOFF 写 1.1.7 已纠正）；若进程仍载旧 client，重开 Desktop 生效。
+- **本轮动作**：更新 HANDOFF 状态/待办；本地提交本轮文档；无代码变更，不 push / 不 tag / 不发布 / 不重开市场 PR。
+- **下一步**：1.2.0 计划按 settings-final7 重写，等 Boss 明确说开始；11 号设置页截图随 1.2.0 重拍。
+
+## 2026-11-23 · 第 59 轮（1.1.10 表格三层编号三端发布）
+
+- **触发**：Boss 认可 `table-layers-final` 样张（结论 A/B、表行 a–e、建议 1/2、组合引用 Aa1），定版本 **v1.1.10**，明确「不开 1.2」。
+- **实现**：结论卡 `points` 保持大写 A/B/C；表格首列用 `data-dss-row-index` + CSS `::before` 生成小写 a/b/c（表头不编号，不写入单元格文本，TSV 保留索引）；建议 1/2/3；风险不编号。结论 / 建议圆点下移到 `top:2px`，表行索引 `vertical-align:0`，与首行正文同基线。合同补三层编号规则与 `Aa1` 组合引用。
+- **文档**：新增 `assets/screenshots/12-layered-index.png`（904×848）；README / `screenshots.json` 扩到 8 张；CHANGELOG、ACCEPTANCE、pack 基线同步。
+- **GitHub**：main `cb90b5f4`（release: 1.1.10，tree `97fc4da1`）、annotated tag `v1.1.10`（对象 `58ab1091` → `cb90b5f4`）、Release 资产 `dsh-structured-1.1.10.tgz` 1,560,575 B（sha256 `436df378…`、databaseId 454958068）、CI `45106928812` success。
+- **npm**：`dsh-structured@1.1.10` 已发布，latest = 1.1.10（shasum `e5e48579`；59 文件 / 1,560,575 B / unpacked 2,293,215 B）。
+- **市场**：PR **#18038 open / MERGEABLE**（listing tarball → v1.1.10；分支在 fork `feigo313/awesome-dsh-plugin`，upstream 对本账号 push=false）；#17858（1.1.9）已 MERGED。
+- **门禁**：`npm test` 131/131；对比度 80/80；色相 12/12；计算样式 8 主题块 × 10 项；desktop-check 全 PASS（真实宿主 0.2.2-rc.5）；pack 59 / 1,560,575 / 2,293,215。
+- **桌面 profile**：仍装 1.1.9；Boss 定等市场 PR #18038 合并后统一升 1.1.10，便于观察问题。
+- **待办**：市场 PR #18038 等上游合并后核 listing，并统一升桌面 1.1.10；ACCEPTANCE 发布回填已推远端 `3deec7fe`（docs CI `45107393518` success）；1.2.0 未开工。
+
+## 2026-11-24 · 第 60 轮（每日巡检）
+
+- **issue 水位**：open issue 0、open repo PR 0；issue #2/#5/#6 全部 CLOSED，repo PR #3 MERGED；无新 issue/PR 需分诊。
+- **线上**：npm latest = 1.1.10（shasum `e5e48579…`）；tag v1.1.10（对象 `58ab1091`）；Release 资产 `dsh-structured-1.1.10.tgz` 1,560,575 B（sha256 `436df378…`）；CI 最近 `45107393518`（head `3deec7fe`）success。
+- **市场**：PR #18038 已 MERGED（2026-11-23T16:59:37Z）；listing `data/plugins/feigo313__dsh-structured.yml` 的 tarball 已核为 v1.1.10。
+- **代码/本地**：工作区含已挂起的 1.2.0 讲解卡原型（8 文件未提交）；本地 main `f8a0975` 与远端 `3deec7fe` 树只差 4 个文档（HANDOFF、MAINTENANCE-LOG、MAINTENANCE.md、PLAN-1.2.0.md），代码/构建产物一致。
+- **验证**：`npm test` 133/133 pass（工作区含原型；发布态 1.1.10 未变）；`desktop-check` 全 PASS（真实宿主 0.2.2-rc.5）；`npm pack --dry-run` 59 文件 / 1,564,657 B / unpacked 2,311,071 B（含原型；发布态 1,560,575 / 2,293,215）。
+
+## 2026-11-25 · 第 61 轮（每日巡检）
+
+- **issue 水位**：open issue 0、open repo PR 0；issue #2/#5/#6 全部 CLOSED，repo PR #3 MERGED；无新 issue/PR 需分诊。
+- **线上**：npm latest = 1.1.10（shasum `e5e48579…`）；tag v1.1.10（对象 `58ab1091`）；Release 资产 `dsh-structured-1.1.10.tgz` 1,560,575 B（sha256 `436df378…`）；CI 最近 `45107393518`（head `3deec7fe`）success。
+- **市场**：PR #18038 已 MERGED（2026-11-23T16:59:37Z）；listing tarball v1.1.10。
+- **代码/本地**：工作区含 1.2.0 讲解卡原型 + persona 合同修正（8 文件未提交）；本地 main `96b2739`，远端 `3deec7f` 不变；未 push。
+- **验证**：`npm test` 133/133 pass（工作区含原型；发布态 1.1.10 未变）；`desktop-check` 全 PASS（真实宿主 0.2.2-rc.5）；`npm pack --dry-run` 59 文件 / 1,564,960 B / unpacked 2,312,069 B（含原型；发布态 1,560,575 / 2,293,215）。
+- **本轮动作**：无 issue 可修；核对三端与市场 listing；追加日志并本地提交（仅日志）。不 push / 不 tag / 不发布 / 不开市场 PR。
+- **下一步**：1.2.0 计划按 settings-final7 重写，等 Boss 明确说开始；讲解卡原型继续挂起；persona 合同修正待随 1.2.0 处理。
+- **桌面 profile**：磁盘已装 1.1.10（package.json 与 node_modules 同版本）；进程若早于安装启动，重开 Desktop 后生效。
+- **本轮动作**：无 issue 可修；核对三端与市场 listing；记录并本地提交日志。不 push / 不 tag / 不发布 / 不开市场 PR。
+- **下一步**：1.2.0 计划按 settings-final7 重写，等 Boss 明确说开始；讲解卡原型继续挂起。
+
+## 2026-11-26 · 第 62 轮（每日巡检）
+
+- **issue 水位**：open issue 0、open repo PR 0；issue #2/#5/#6 全部 CLOSED，repo PR #3 MERGED；无新 issue/PR 需分诊。
+- **线上**：npm latest = 1.1.10（shasum `e5e48579…`，unpacked 2,293,215）；tag v1.1.10；Release 资产 `dsh-structured-1.1.10.tgz` 1,560,575 B（sha256 `436df378…`）；CI 最近 `45107393518`（head `3deec7fe`）success，其后无新 run。
+- **代码/本地**：工作区仍是 1.2.0 讲解卡原型 + persona 合同修正（9 文件未提交）；本地 main `1d0a39b`，`origin/main` 仍 `3deec7f`，ahead 11 / behind 6 属历史重复提交（release 三笔经 API 写入远端），树差仅文档；未 push。
+- **验证**：`npm test` 133/133 pass（2,508.6 ms）；`desktop-check` 全 PASS（真实宿主 0.2.2-rc.5）；`npm pack --dry-run` 59 文件 / 1,565,437 B / unpacked 2,315,346（含原型；发布态 1,560,575 / 2,293,215）。
+- **本轮动作**：无 issue 可修；核对三端、Release 资产与 CI；追加日志并本地提交（仅日志）。不 push / 不 tag / 不发布 / 不开市场 PR。
+- **下一步**：1.2.0 等 Boss 明确说开始；讲解卡原型继续挂起。

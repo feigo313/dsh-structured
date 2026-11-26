@@ -10,10 +10,18 @@ import vm from 'node:vm'
 function makeDom() {
   const element = () => ({
     children: [],
+    attrs: {},
     appendChild() {},
     remove() {},
-    setAttribute() {},
-    removeAttribute() {},
+    setAttribute(name, value) {
+      this.attrs[name] = String(value)
+    },
+    removeAttribute(name) {
+      delete this.attrs[name]
+    },
+    getAttribute(name) {
+      return this.attrs[name] ?? null
+    },
     querySelectorAll() {
       return []
     },
@@ -130,18 +138,42 @@ function makeChild(form, slots) {
 let served = true
 
 function collectRegistration() {
-  let registered = null
+  const injections = []
+  const registrations = []
   const slots = {
     inject(name, factory) {
-      assert.equal(name, 'plugins.bundle.config')
+      injections.push(name)
       return factory()
     },
     register(options, component) {
-      registered = { options, component }
+      registrations.push({ options, component })
       return () => {}
     },
   }
-  return { slots, get: () => registered }
+  return {
+    slots,
+    injections,
+    registrations,
+    get: () => registrations.find((item) => item.options?.name === 'plugins.bundle.config') ?? null,
+  }
+}
+
+function textOf(children) {
+  if (Array.isArray(children)) return children.map(textOf).join('')
+  if (children && typeof children === 'object') return textOf(children.props?.children)
+  return children == null ? '' : String(children)
+}
+
+function flatten(tree) {
+  const flat = []
+  const walk = (value) => {
+    if (!value || typeof value !== 'object') return
+    flat.push(value)
+    if (Array.isArray(value.props?.children)) value.props.children.forEach((child) => walk(child))
+    else walk(value.props?.children)
+  }
+  walk(tree)
+  return flat
 }
 
 test('config page：宿主服务 describe 命名空间时注册 bundle 配置页', () => {
@@ -206,7 +238,7 @@ test('config page：primitives 或 require 缺失时静默跳过', () => {
   assert.equal(get(), null)
 })
 
-test('config page：卡片渲染六字段，switch/segmented 值来自快照', () => {
+test('config page：卡片渲染七字段，switch/segmented 值来自快照', () => {
   served = true
   const { require: fakeRequire, node } = fakeRuntime()
   const module = loadClient(makeDom(), fakeRequire)
@@ -244,30 +276,68 @@ test('config page：卡片渲染六字段，switch/segmented 值来自快照', (
   })
   assert.equal(tree.props['data-dsh-structured-config'], '1')
 
-  const flat = []
-  const walk = (value) => {
-    if (!value || typeof value !== 'object') return
-    flat.push(value)
-    if (Array.isArray(value.props?.children)) value.props.children.forEach((child) => walk(child))
-    else walk(value.props?.children)
-  }
-  walk(tree)
+  const flat = flatten(tree)
+
+  // 单页：没有 tab；区块顺序 外观 → 行为 → 人格 → 输出深度 → 预览。
+  assert.equal(flat.filter((element) => element.props?.role === 'tablist').length, 0, 'single page must not render tabs')
+  const sections = flat.filter((element) => element.props?.['data-dss-section']).map((element) => element.props['data-dss-section'])
+  assert.equal(JSON.stringify(sections), JSON.stringify(['appearance', 'behavior', 'persona', 'depth', 'preview']))
+
+  const status = flat.find((element) => element.props?.['data-dss-status'] === '1')
+  assert.ok(status, 'status line must stay at the top')
+  assert.match(textOf(status.props.children), /插件 已开启 · 人格 已开启 · 身份头 已开 · 深度 普通/)
 
   const switches = flat.filter((element) => element.type?.name === 'Switch')
-  const segmented = flat.filter((element) => element.type?.name === 'SegmentedControl')
-  assert.equal(switches.length, 4)
-  assert.equal(segmented.length, 2)
+  const master = switches.find((element) => element.props.label === '插件总开关')
+  assert.ok(master, 'master switch sits in the title row')
+  assert.equal(master.props.checked, true)
 
-  const visual = switches.find((element) => element.props.label.includes('视觉层'))
-  assert.equal(visual.props.checked, false)
-  const includeSubagents = switches.find((element) => element.props.label.includes('子代理'))
+  // 行为区保留既有字段：defaultEnabled / includeSubagents / GenUI；尾部提醒固定开启，不给开关。
+  assert.ok(switches.some((element) => element.props.label === '新会话默认开启'))
+  assert.equal(switches.some((element) => element.props.label === '尾部提醒'), false)
+  assert.equal(switches.some((element) => element.props.label === '视觉层'), false, 'visual layer switch is gone')
+  const includeSubagents = switches.find((element) => element.props.label === '子代理注入')
   assert.equal(includeSubagents.props.checked, false)
-  const theme = segmented.find((element) => element.props.id === 'dsh-structured-theme')
-  assert.equal(theme.props.value, 'codex')
-  // 卡片在 vm 沙箱里构建：数组跨 realm，序列化后比较。
-  assert.equal(JSON.stringify(theme.props.options.map((option) => option.value)), JSON.stringify(['dsh', 'deepseek', 'codex', 'anthropic']))
-  const genui = segmented.find((element) => element.props.id === 'dsh-structured-genui')
+  const genui = flat.find((element) => element.props?.id === 'dsh-structured-genui')
   assert.equal(genui.props.value, 'auto')
+
+  // 外观：4 套预设 + 自定义三色。
+  const tiles = flat.filter((element) => String(element.props?.id ?? '').startsWith('dss-theme-tile-')).map((element) => element.props.id)
+  assert.equal(JSON.stringify(tiles), JSON.stringify(['dss-theme-tile-dsh', 'dss-theme-tile-deepseek', 'dss-theme-tile-codex', 'dss-theme-tile-anthropic', 'dss-theme-tile-custom']))
+  assert.equal(flat.find((element) => element.props?.id === 'dss-theme-tile-codex').props['aria-pressed'], 'true')
+  for (const key of ['primary', 'secondary', 'tertiary']) {
+    const swatch = flat.find((element) => element.props?.id === 'dss-color-' + key)
+    assert.ok(swatch, 'custom colors stay visible')
+    assert.equal(swatch.props.disabled, true, 'preset theme disables custom colors')
+  }
+  // 顶部一行只放四套默认主题；自定义单独一行，选中后才显示三色。
+  const themeRows = flat.filter((element) => String(element.props?.className ?? '').includes('dss-theme-tiles'))
+  assert.equal(themeRows.length, 2)
+  const firstRow = Array.isArray(themeRows[0].props.children) ? themeRows[0].props.children : [themeRows[0].props.children]
+  assert.equal(
+    JSON.stringify(firstRow.map((child) => child.props.id)),
+    JSON.stringify(['dss-theme-tile-dsh', 'dss-theme-tile-deepseek', 'dss-theme-tile-codex', 'dss-theme-tile-anthropic']),
+  )
+  assert.match(String(themeRows[1].props.className), /dss-custom-row/)
+  const secondRow = Array.isArray(themeRows[1].props.children) ? themeRows[1].props.children : [themeRows[1].props.children]
+  assert.equal(secondRow[0].props.id, 'dss-theme-tile-custom')
+  snapshot.value = { ...snapshot.value, theme: 'custom', themeCustom: '' }
+  const customFlat = flatten(component({ view: 'page', useStructuredConfig: (selector) => selector(snapshot), setField: () => {} }))
+  for (const key of ['primary', 'secondary', 'tertiary']) {
+    const swatch = customFlat.find((element) => element.props?.id === 'dss-color-' + key)
+    assert.ok(swatch, 'missing color ' + key)
+    assert.equal(swatch.props.disabled, false, 'custom theme enables color picker')
+  }
+
+  // 输出深度：三档、默认普通、没有关闭。
+  const depthIds = flat.filter((element) => String(element.props?.id ?? '').startsWith('dss-depth-')).map((element) => element.props.id)
+  assert.equal(JSON.stringify(depthIds), JSON.stringify(['dss-depth-beginner', 'dss-depth-general', 'dss-depth-expert']))
+  assert.equal(flat.find((element) => element.props?.id === 'dss-depth-general').props['aria-pressed'], 'true')
+  const depthText = textOf(flat.filter((element) => String(element.props?.id ?? '').startsWith('dss-depth-')).map((element) => element.props.children))
+  assert.match(depthText, /入门/)
+  assert.match(depthText, /普通/)
+  assert.match(depthText, /专业/)
+  assert.doesNotMatch(depthText, /关闭/)
 })
 
 test('config page：插件未就绪与只读态的降级渲染', () => {
@@ -306,7 +376,9 @@ test('config page：插件未就绪与只读态的降级渲染', () => {
   }
   walk(readonly)
   const switches = flat.filter((element) => element.type?.name === 'Switch')
-  assert.equal(switches.length, 4)
+  // 尾部提醒不再是开关：只读页保留总开关 + 行为区两个开关（人格编辑器是函数组件，不在 flatten 的树里）。
+  assert.deepEqual(switches.map((element) => element.props.label), ['插件总开关', '新会话默认开启', '子代理注入'])
+  assert.equal(switches.some((element) => element.props.label === '尾部提醒'), false)
   for (const element of switches) assert.equal(element.props.disabled, true)
 })
 
@@ -409,7 +481,7 @@ test('config page：tone flags 覆盖 invalid/readonly/saving/download', () => {
   assert.equal(flags({ status: 'failed' }).canSave, true)
 })
 
-test('config page：结构化 tab 下 PersonaEditor 仍挂载，跨 tab 不丢草稿', () => {
+test('config page：人格编辑器嵌在同一页，不再有跨 tab 草稿问题', () => {
   served = true
   const { require: fakeRequire } = fakeRuntime()
   const module = loadClient(makeDom(), fakeRequire)
@@ -423,13 +495,112 @@ test('config page：结构化 tab 下 PersonaEditor 仍挂载，跨 tab 不丢�
   module.__test.setupConfigPage(makeChild(form, slots), form)
   const { component } = get()
   const tree = component({ view: 'page', useStructuredConfig: (selector) => selector(snapshot), setField: () => {} })
-  const flat = []
-  const walk = (value) => {
-    if (!value || typeof value !== 'object') return
-    flat.push(value)
-    if (Array.isArray(value.props?.children)) value.props.children.forEach((child) => walk(child))
-    else walk(value.props?.children)
+  const flat = flatten(tree)
+  assert.ok(flat.some((element) => typeof element.type === 'function' && element.type.name === 'PersonaEditor'), 'PersonaEditor must stay mounted on the single page')
+  assert.ok(flat.some((element) => element.props?.['data-dss-section'] === 'persona'), 'persona editor lives in its own page section')
+})
+
+test('sidebar：注册 panellist 入口 + main 面板 + 详情页，共用同一 configFace', () => {
+  served = true
+  const { require: fakeRequire } = fakeRuntime()
+  const module = loadClient(makeDom(), fakeRequire)
+  const calls = []
+  const snapshot = { status: 'ready', writable: true, value: {} }
+  const form = {
+    set(field, value) { calls.push([field, value]); return Promise.resolve(true) },
+    mutate() { return Promise.resolve(true) },
+    getSnapshot() { return snapshot },
+    subscribe() { return () => {} },
   }
-  walk(tree)
-  assert.ok(flat.some((element) => typeof element.type === 'function' && element.type.name === 'PersonaEditor'), 'PersonaEditor must stay mounted while structured tab is active')
+  const { slots, injections, registrations } = collectRegistration()
+  module.__test.setupConfigPage(makeChild(form, slots), form)
+  assert.equal(JSON.stringify(injections), JSON.stringify(['plugins.bundle.config', 'sidebar.panellist', 'main']))
+
+  const entry = registrations.find((item) => item.options.name === 'sidebar.panellist')
+  assert.ok(entry, 'sidebar.panellist entry must be registered')
+  assert.equal(entry.options.id, 'dsh-structured')
+  assert.equal(entry.options.label(), '结构化输出')
+  const icon = entry.component({ size: 20 })
+  assert.equal(icon.props.width, 20)
+  assert.equal(icon.props.height, 20)
+
+  const panel = registrations.find((item) => item.options.name === 'main')
+  assert.ok(panel, 'main panel must be registered')
+  assert.equal(panel.options.key, 'dsh-structured')
+  const face = panel.options.inject()
+  assert.equal(face.hooks.structuredConfig, form)
+  face.setField('tailReminder', false)
+  assert.equal(JSON.stringify(calls[0]), JSON.stringify(['tailReminder', false]))
+  assert.equal(typeof face.mutateFields, 'function')
+  assert.equal(typeof face.readFields, 'function')
+
+  // 详情页与侧边栏面板读同一份 form 快照。
+  const configFace = registrations.find((item) => item.options.name === 'plugins.bundle.config').options.inject()
+  assert.equal(configFace.readFields(), face.readFields())
+})
+
+test('custom theme：theme=custom + themeCustom 注入明暗两段样式，切回预设即移除', () => {
+  served = true
+  const { require: fakeRequire } = fakeRuntime()
+  const dom = makeDom()
+  const module = loadClient(dom, fakeRequire)
+  const snapshot = {
+    status: 'ready',
+    writable: true,
+    value: {
+      theme: 'custom',
+      themeCustom: JSON.stringify({ schema: 'dsh-structured/palette@1', primary: '#2563EB', secondary: '#047857', tertiary: '#B45309' }),
+      visual: true,
+    },
+  }
+  const form = { set() { return Promise.resolve(true) }, getSnapshot() { return snapshot }, subscribe() { return () => {} } }
+  const slots = { inject(_name, factory) { return factory() }, register() { return () => {} } }
+  const child = { configForms: { get() { return form }, whileServed(_namespaces, register) { register(); return () => {} } }, slots, effect(fn) { return fn() } }
+  module.apply({
+    inject(_services, callback) { callback(child) },
+    effect(fn) { return fn() },
+  })
+  assert.equal(dom.body.attrs['data-dsh-structured-theme'], 'custom')
+  const style = dom.getElementById('dsh-structured-custom-theme')
+  assert.ok(style, 'custom theme style must be injected')
+  assert.match(style.textContent, /data-dsh-structured-theme="custom"/)
+  assert.match(style.textContent, /--dss-blue:#2563EB/)
+  assert.match(style.textContent, /data-ds-dark-theme/)
+  // 讲解卡跟随自定义三色：explain 由主色 / 副色派生，明暗两段都有，不残留预设紫。
+  assert.match(style.textContent, /--dss-explain:#156EA1/)
+  assert.match(style.textContent, /--dss-explain-text:/)
+  assert.match(style.textContent, /--dss-explain-soft:/)
+  assert.doesNotMatch(style.textContent, /7c3aed/i)
+
+  snapshot.value = { theme: 'deepseek', themeCustom: '', visual: true }
+  module.apply({
+    inject(_services, callback) { callback(child) },
+    effect(fn) { return fn() },
+  })
+  assert.equal(dom.body.attrs['data-dsh-structured-theme'], 'deepseek')
+  assert.equal(dom.getElementById('dsh-structured-custom-theme'), null, 'custom style must be removed when switching back')
+})
+
+test('sidebar：宿主不声明 main slot 时退回详情页，不抛错', () => {
+  served = true
+  const { require: fakeRequire } = fakeRuntime()
+  const module = loadClient(makeDom(), fakeRequire)
+  const form = {
+    set() { return Promise.resolve(true) },
+    getSnapshot() { return { status: 'ready', writable: true, value: {} } },
+    subscribe() { return () => {} },
+  }
+  const registrations = []
+  const slots = {
+    inject(name, factory) {
+      if (name === 'main') throw new Error('slot not declared')
+      return factory()
+    },
+    register(options, component) { registrations.push({ options, component }); return () => {} },
+  }
+  module.__test.setupConfigPage(makeChild(form, slots), form)
+  assert.ok(registrations.some((item) => item.options.name === 'plugins.bundle.config'), 'detail page must stay registered')
+  const status = module.__test.personaApi().sidebarRegistration
+  assert.equal(JSON.stringify(status.failed), JSON.stringify(['main']))
+  assert.equal(status.panel, null)
 })

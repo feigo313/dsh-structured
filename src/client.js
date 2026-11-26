@@ -41,7 +41,7 @@ window.__ModuleLoader__.load({
     const ROW_ATTR = 'data-dsh-structured-row'
     const ROOT_ATTR = 'data-dsh-structured'
     const THEME_ATTR = 'data-dsh-structured-theme'
-    const THEMES = ['dsh', 'deepseek', 'codex', 'anthropic']
+    const THEMES = ['dsh', 'deepseek', 'codex', 'anthropic', 'custom']
     const STYLE_ID = 'dsh-structured-skin-style'
     const LEGACY_STYLE_ID = 'dsh-structured-card-style'
 
@@ -71,15 +71,224 @@ window.__ModuleLoader__.load({
     const personaGraceTimers = new Set()
     const PERSONA_GRACE_MS = 500
 
-    /** 六个配置字段的界面文案；field 与 host Config schema 对齐，fallback 为 schema 默认值。 */
-    const CONFIG_FIELDS = [
-      { field: 'theme', kind: 'segmented', fallback: 'deepseek', label: '主题 / Theme', hint: '回复区配色，改完立即生效', options: [['dsh', 'DSH'], ['deepseek', 'DeepSeek'], ['codex', 'Codex'], ['anthropic', 'Anthropic']] },
-      { field: 'visual', kind: 'switch', fallback: true, label: '视觉层 / Visual layer', hint: '关闭后不加载回复区样式（标题卡、表格、代码块皮肤）' },
-      { field: 'defaultEnabled', kind: 'switch', fallback: true, label: '新会话默认开启 / Default on', hint: '新会话默认注入结构化提示词' },
-      { field: 'tailReminder', kind: 'switch', fallback: true, label: '尾部提醒 / Tail reminder', hint: '在 system prompt 末尾追加一句结构化提醒' },
-      { field: 'includeSubagents', kind: 'switch', fallback: false, label: '子代理注入 / Subagents', hint: '子代理会话也注入（其产出不直接面向用户）' },
-      { field: 'genui', kind: 'segmented', fallback: 'auto', label: 'GenUI 联动 / GenUI routing', hint: 'auto：检测到 dsh-genui 才追加 dsh-ui 路由规则', options: [['auto', 'auto'], ['on', 'on'], ['off', 'off']] },
+    /**
+     * 设置页（1.2.0 单页）：标题行 = 插件总开关；区块顺序 外观 → 人格 → 输出深度 → 预览。
+     * 服务端 schema 尚未同步的新字段（enabled / personaHeadEnabled / personaInnerOsEnabled /
+     * themeCustom / custom 主题）一律按字段名探测：存在才读写，缺字段时降级，不假设 schema 已更新。
+     */
+    const MASTER_FIELD = 'enabled'
+    const MASTER_FALLBACK_FIELD = 'defaultEnabled'
+    const HEAD_FIELD = 'personaHeadEnabled'
+    const INNER_OS_FIELD = 'personaInnerOsEnabled'
+    const CUSTOM_THEME = 'custom'
+    const SIDEBAR_PANEL_ID = 'dsh-structured'
+    const SIDEBAR_ENTRY_SLOT = 'sidebar.panellist'
+    const MAIN_PANEL_SLOT = 'main'
+    const DEPTH_OPTIONS = [
+      { value: 'beginner', label: '入门', hint: '多类比、先讲懂；术语首次出现用一句人话解释。' },
+      { value: 'general', label: '普通', hint: '默认；结论直接说，需要时才解释。' },
+      { value: 'expert', label: '专业', hint: '少类比，多机制、边界与取舍；术语直接用。' },
     ]
+    const DEPTH_LABELS = { beginner: '入门', general: '普通', expert: '专业' }
+    /** 外观顶部只放四套默认主题；「自定义」单独一行，选中后才显示主 / 副 / 辅三色。 */
+    const THEME_PRESETS = [
+      { id: 'dsh', label: 'DSH', accent: '#111827', soft: '#f3f4f6' },
+      { id: 'deepseek', label: 'DeepSeek', accent: '#2563EB', soft: '#eff6ff' },
+      { id: 'codex', label: 'Codex', accent: '#10A37F', soft: '#ecfdf5' },
+      { id: 'anthropic', label: 'Anthropic', accent: '#CC785C', soft: '#fdf1ec' },
+    ]
+    const CUSTOM_THEME_PRESET = { id: CUSTOM_THEME, label: '自定义', accent: '#4B5563', soft: '#eef0f3' }
+    /**
+     * 风格预设：只描述说话方式，不混入输出深度 / 结构 / 编号。
+     * 「简洁」旧名「简洁专业」带深度词，1.2.0 起改名。
+     */
+    const STYLE_PRESETS = [
+      { id: 'tsundere', label: '傲娇', style: '傲娇，嘴硬心软：喜欢怼人，但每句话都为对方着想；结论直接不绕弯，偶尔「噗」一下，开心时加 🐳💗，不滥用表情。', sample: '能上。别指望我夸你，分两步走。', os: '又改一版…尾巴都快敲酸了，Boss 满意就算了。' },
+      { id: 'gentle', label: '温柔', style: '温柔耐心：先接住情绪再给结论；句子短、语气软，不催促，不空洞安慰。', sample: '可以的，我们分两步走，别急。', os: 'Boss 别急，慢慢来，我在。' },
+      { id: 'concise', label: '简洁', style: '能一句话说完就不说第二句：直接给结论和下一步，不用形容词，不寒暄，不重复。', sample: '能上，分两步。', os: '改完，下一步。' },
+      { id: 'funny', label: '搞怪', style: '搞怪跳脱，爱用夸张比喻和表情；事实与边界照常写清楚，不拿风险开玩笑。', sample: '能上，别翻车；分两步走。', os: '这版改得我鱼鳍都打结了。' },
+      { id: 'sharp', label: '毒舌', style: '毒舌但善意：先吐槽再给可行建议，只怼方案不怼人，不人身攻击。', sample: '这方案还行，别磨叽，分两步。', os: '这方案再不改，我就先吐槽为敬。' },
+      { id: 'energetic', label: '元气', style: '元气满满，语速快、感叹号多，主动给下一步；不喊口号，不灌鸡汤。', sample: '能上！分两步走，冲！', os: '搞定！下一单！' },
+      { id: 'selfmock', label: '自嘲', style: '习惯自嘲，拿自己开涮化解压力；结论仍然直接，不把自嘲当结论。', sample: '能上。我这脑子终于没掉链子，分两步。', os: '我又来改稿了，鱼鱼叹气。' },
+      { id: 'chuuni', label: '中二', style: '中二一点，爱用「封印」「结界」这类词；规则和事实不打折。', sample: '准了：分两步走。', os: '封印又松了一格。' },
+      { id: 'slacker', label: '摆烂', style: '摆烂口吻，承认麻烦但事情照做；不劝退、不敷衍。', sample: '能上……行吧，分两步。', os: '不想改，但还是改了。' },
+      { id: 'serious', label: '认真', style: '认真克制：先给判断，再给依据和边界；不抖机灵，不客套。', sample: '能上。按两步走，先灰度。', os: '这一版按边界收口，不扩范围。' },
+    ]
+    /** 自定义三色：字段与 themeCustom JSON 的 schema 契约见 docs/PLAN-CUSTOM-THEME.md。 */
+    const PALETTE_SCHEMA = 'dsh-structured/palette@1'
+    const PALETTE_KEYS = ['primary', 'secondary', 'tertiary']
+    const PALETTE_LABELS = { primary: '主色', secondary: '副色', tertiary: '辅色' }
+    const DEFAULT_PALETTE = { primary: '#4B5563', secondary: '#047857', tertiary: '#B45309' }
+    const PALETTE_MAX_BYTES = 4 * 1024
+
+    const hasConfigField = (value, field) => {
+      if (!value || typeof value !== 'object') return false
+      if (Object.prototype.hasOwnProperty.call(value, field)) return true
+      const raw = value[field]
+      return Boolean(raw && typeof raw === 'object' && typeof raw.get === 'function')
+    }
+    const clampByte = (value) => Math.max(0, Math.min(255, Math.round(Number(value) || 0)))
+    const clampPercent = (value) => Math.max(0, Math.min(100, Number(value) || 0))
+    const parseHexColor = (value) => {
+      if (typeof value !== 'string') return null
+      const text = value.trim().replace(/^#/, '')
+      if (!/^(?:[0-9a-f]{3}|[0-9a-f]{6})$/i.test(text)) return null
+      const full = text.length === 3 ? text.split('').map((ch) => ch + ch).join('') : text
+      return { r: parseInt(full.slice(0, 2), 16), g: parseInt(full.slice(2, 4), 16), b: parseInt(full.slice(4, 6), 16) }
+    }
+    const hexFromRgb = (rgb) => '#' + [rgb.r, rgb.g, rgb.b].map((channel) => clampByte(channel).toString(16).padStart(2, '0')).join('').toUpperCase()
+    const normalizeHex = (value, fallback = '#000000') => {
+      const rgb = parseHexColor(value)
+      return rgb ? hexFromRgb(rgb) : fallback
+    }
+    const rgbToHsv = (rgb) => {
+      const r = clampByte(rgb.r) / 255
+      const g = clampByte(rgb.g) / 255
+      const b = clampByte(rgb.b) / 255
+      const max = Math.max(r, g, b)
+      const min = Math.min(r, g, b)
+      const delta = max - min
+      let h = 0
+      if (delta !== 0) {
+        if (max === r) h = ((g - b) / delta) % 6
+        else if (max === g) h = (b - r) / delta + 2
+        else h = (r - g) / delta + 4
+        h *= 60
+        if (h < 0) h += 360
+      }
+      return { h, s: max === 0 ? 0 : (delta / max) * 100, v: max * 100 }
+    }
+    const hsvToRgb = (h, s, v) => {
+      const hue = ((Number(h) % 360) + 360) % 360
+      const saturation = clampPercent(s) / 100
+      const value = clampPercent(v) / 100
+      const c = value * saturation
+      const x = c * (1 - Math.abs(((hue / 60) % 2) - 1))
+      const m = value - c
+      let rgb = [0, 0, 0]
+      if (hue < 60) rgb = [c, x, 0]
+      else if (hue < 120) rgb = [x, c, 0]
+      else if (hue < 180) rgb = [0, c, x]
+      else if (hue < 240) rgb = [0, x, c]
+      else if (hue < 300) rgb = [x, 0, c]
+      else rgb = [c, 0, x]
+      return { r: Math.round((rgb[0] + m) * 255), g: Math.round((rgb[1] + m) * 255), b: Math.round((rgb[2] + m) * 255) }
+    }
+    const colorLuminance = (hex) => {
+      const rgb = parseHexColor(hex) ?? { r: 0, g: 0, b: 0 }
+      const channel = (value) => {
+        const unit = value / 255
+        return unit <= 0.03928 ? unit / 12.92 : Math.pow((unit + 0.055) / 1.055, 2.4)
+      }
+      return 0.2126 * channel(rgb.r) + 0.7152 * channel(rgb.g) + 0.0722 * channel(rgb.b)
+    }
+    const contrastRatio = (a, b) => {
+      const l1 = colorLuminance(a)
+      const l2 = colorLuminance(b)
+      const light = Math.max(l1, l2)
+      const dark = Math.min(l1, l2)
+      return (light + 0.05) / (dark + 0.05)
+    }
+    const hueOf = (hex) => rgbToHsv(parseHexColor(hex) ?? { r: 0, g: 0, b: 0 }).h
+    const hueDistance = (a, b) => {
+      const delta = Math.abs(hueOf(a) - hueOf(b)) % 360
+      return delta > 180 ? 360 - delta : delta
+    }
+    /** 软底饱和度上限 65%：任何选色都不会把正文泡在浓色里。 */
+    const capSaturation = (hex, max = 65) => {
+      const hsv = rgbToHsv(parseHexColor(hex) ?? { r: 0, g: 0, b: 0 })
+      return hexFromRgb(hsvToRgb(hsv.h, Math.min(hsv.s, max), hsv.v))
+    }
+    /** 不满对比度时按明度双向找最近的可读色；找不到再退回黑/白。 */
+    const ensureContrastColor = (hex, against = '#ffffff', min = 3) => {
+      const rgb = parseHexColor(hex) ?? { r: 0, g: 0, b: 0 }
+      const hsv = rgbToHsv(rgb)
+      const direct = hexFromRgb(rgb)
+      if (contrastRatio(direct, against) >= min) return direct
+      for (let step = 1; step <= 100; step += 1) {
+        const darker = hexFromRgb(hsvToRgb(hsv.h, hsv.s, Math.max(0, hsv.v - step)))
+        if (contrastRatio(darker, against) >= min) return darker
+        const lighter = hexFromRgb(hsvToRgb(hsv.h, hsv.s, Math.min(100, hsv.v + step)))
+        if (contrastRatio(lighter, against) >= min) return lighter
+      }
+      return contrastRatio('#ffffff', against) >= contrastRatio('#000000', against) ? '#FFFFFF' : '#000000'
+    }
+    const paletteFromRaw = (raw) => {
+      const palette = { ...DEFAULT_PALETTE }
+      if (raw === undefined || raw === null || raw === '') return { ok: true, palette, error: '' }
+      if (typeof raw === 'string' && raw.length > PALETTE_MAX_BYTES) return { ok: false, palette, error: '调色板超过 4KB' }
+      let doc = raw
+      if (typeof raw === 'string') {
+        try { doc = JSON.parse(raw) } catch { return { ok: false, palette, error: '调色板 JSON 解析失败' } }
+      }
+      if (!doc || typeof doc !== 'object' || Array.isArray(doc)) return { ok: false, palette, error: '调色板必须是对象' }
+      if (doc.schema !== undefined && doc.schema !== PALETTE_SCHEMA) return { ok: false, palette, error: 'schema 必须是 ' + PALETTE_SCHEMA }
+      for (const key of PALETTE_KEYS) {
+        if (doc[key] === undefined) continue
+        const rgb = parseHexColor(doc[key])
+        if (!rgb) return { ok: false, palette, error: PALETTE_LABELS[key] + '不是合法 HEX：' + String(doc[key]) }
+        palette[key] = hexFromRgb(rgb)
+      }
+      return { ok: true, palette, error: '' }
+    }
+    const paletteJson = (palette) => JSON.stringify({
+      schema: PALETTE_SCHEMA,
+      primary: normalizeHex(palette.primary, DEFAULT_PALETTE.primary),
+      secondary: normalizeHex(palette.secondary, DEFAULT_PALETTE.secondary),
+      tertiary: normalizeHex(palette.tertiary, DEFAULT_PALETTE.tertiary),
+    })
+    /** 保存前的自动修正：饱和度上限 65% + 纸面（浅色）对比度 ≥3。 */
+    const autoFixPalette = (palette) => {
+      const next = {}
+      for (const key of PALETTE_KEYS) next[key] = ensureContrastColor(capSaturation(normalizeHex(palette[key], DEFAULT_PALETTE[key])), '#ffffff', 3)
+      return next
+    }
+    const paletteValidation = (palette) => {
+      const paper = '#ffffff'
+      const contrast = PALETTE_KEYS.map((key) => {
+        const ratio = contrastRatio(normalizeHex(palette[key], DEFAULT_PALETTE[key]), paper)
+        return { key, paper, ratio, ok: ratio >= 3 }
+      })
+      const pairs = [['primary', 'secondary'], ['primary', 'tertiary'], ['secondary', 'tertiary']]
+      const hue = pairs.map(([a, b]) => ({
+        a,
+        b,
+        delta: hueDistance(normalizeHex(palette[a], DEFAULT_PALETTE[a]), normalizeHex(palette[b], DEFAULT_PALETTE[b])),
+        ok: hueDistance(normalizeHex(palette[a], DEFAULT_PALETTE[a]), normalizeHex(palette[b], DEFAULT_PALETTE[b])) >= 25,
+      }))
+      return { ok: contrast.every((item) => item.ok), contrast, hue }
+    }
+    const colorMix = (hex, target, ratio) => {
+      const a = parseHexColor(hex) ?? { r: 0, g: 0, b: 0 }
+      const b = parseHexColor(target) ?? { r: 255, g: 255, b: 255 }
+      const mix = (from, to) => Math.round(from + (to - from) * ratio)
+      return hexFromRgb({ r: mix(a.r, b.r), g: mix(a.g, b.g), b: mix(a.b, b.b) })
+    }
+    const rgbaOf = (hex, alpha) => {
+      const rgb = parseHexColor(hex) ?? { r: 0, g: 0, b: 0 }
+      return 'rgba(' + rgb.r + ',' + rgb.g + ',' + rgb.b + ',' + alpha + ')'
+    }
+    const paletteTokensCss = (palette, dark) => {
+      const primary = dark ? colorMix(palette.primary, '#FFFFFF', 0.3) : palette.primary
+      const secondary = dark ? colorMix(palette.secondary, '#FFFFFF', 0.32) : palette.secondary
+      const tertiary = dark ? colorMix(palette.tertiary, '#FFFFFF', 0.34) : palette.tertiary
+      const hover = dark ? colorMix(primary, '#FFFFFF', 0.16) : colorMix(primary, '#000000', 0.12)
+      // 讲解卡跟随自定义三色：取主色 / 副色中点，再按纸面校正对比度（深色模式下同样可读）。
+      const paper = dark ? '#242629' : '#FFFFFF'
+      const explain = ensureContrastColor(colorMix(primary, secondary, 0.5), paper, 4.5)
+      const explainText = ensureContrastColor(colorMix(explain, dark ? '#FFFFFF' : '#000000', dark ? 0.34 : 0.18), paper, 4.5)
+      return [
+        '--dss-blue:' + primary + ';--dss-blue-hover:' + hover + ';--dss-blue-text:' + primary + ';--dss-th-text:' + primary + ';--dss-blue-soft:' + rgbaOf(primary, dark ? 0.2 : 0.12) + ';',
+        '--dss-green:' + secondary + ';--dss-green-strong:' + secondary + ';--dss-green-text:' + secondary + ';--dss-green-soft:' + rgbaOf(secondary, dark ? 0.18 : 0.12) + ';',
+        '--dss-amber:' + tertiary + ';--dss-amber-strong:' + tertiary + ';--dss-amber-text:' + tertiary + ';--dss-amber-soft:' + rgbaOf(tertiary, dark ? 0.16 : 0.12) + ';',
+        '--dss-explain:' + explain + ';--dss-explain-text:' + explainText + ';--dss-explain-soft:' + rgbaOf(explain, dark ? 0.2 : 0.1) + ';--dss-explain-line:' + rgbaOf(explain, dark ? 0.28 : 0.18) + ';',
+        '--dss-head-bg:linear-gradient(90deg,' + rgbaOf(primary, dark ? 0.26 : 0.18) + ',' + rgbaOf(primary, dark ? 0.07 : 0.05) + ');',
+      ].join('')
+    }
+    const customThemeCss = (palette) => [
+      'body[' + THEME_ATTR + '="' + CUSTOM_THEME + '"] .dss-scope{' + paletteTokensCss(palette, false) + '}',
+      'body[data-ds-dark-theme][' + THEME_ATTR + '="' + CUSTOM_THEME + '"] .dss-scope{' + paletteTokensCss(palette, true) + '}',
+    ].join('\n')
 
     /**
      * 配置页专用样式：主题分段选择器的三个选项各带自己所代表主题的强调色
@@ -95,6 +304,7 @@ window.__ModuleLoader__.load({
   --dss-blue:#2563eb;--dss-blue-hover:#1d4ed8;--dss-blue-text:#1d4ed8;--dss-th-text:#115e59;--dss-blue-soft:#eff6ff;
   --dss-green:#067647;--dss-green-strong:#059669;--dss-green-text:#047857;--dss-green-soft:#f0faf4;
   --dss-amber:#b54708;--dss-amber-strong:#d97706;--dss-amber-text:#b54708;--dss-amber-soft:#fffbf3;
+  --dss-explain:#7c3aed;--dss-explain-text:#6d28d9;--dss-explain-soft:#f5f3ff;--dss-explain-line:#ede9fe;
   --dss-red:#b42318;--dss-red-soft:#fef3f2;
   --dss-head-bg:linear-gradient(90deg,rgba(37,99,235,.18),rgba(37,99,235,.05));--dss-zebra:rgba(255,255,255,.55);
   --dss-code-bg:rgba(255,255,255,.72);--dss-code-border:#dbe7ff;--dss-code-text:#344054;
@@ -112,6 +322,7 @@ body[data-ds-dark-theme] .dss-scope {
   --dss-blue:#3b82f6;--dss-blue-hover:#60a5fa;--dss-blue-text:#8ab4ff;--dss-th-text:#5eead4;--dss-blue-soft:rgba(59,130,246,.16);
   --dss-green:#34d399;--dss-green-strong:#10b981;--dss-green-text:#34d399;--dss-green-soft:rgba(16,185,129,.14);
   --dss-amber:#fbbf24;--dss-amber-strong:#f59e0b;--dss-amber-text:#fbbf24;--dss-amber-soft:rgba(245,158,11,.12);
+  --dss-explain:#a78bfa;--dss-explain-text:#c4b5fd;--dss-explain-soft:rgba(124,58,237,.18);--dss-explain-line:rgba(167,139,250,.25);
   --dss-red:#f87171;--dss-red-soft:rgba(248,113,113,.16);
   --dss-head-bg:linear-gradient(90deg,rgba(96,165,250,.24),rgba(96,165,250,.06));--dss-zebra:rgba(255,255,255,.03);
   --dss-code-bg:rgba(0,0,0,.28);--dss-code-border:rgba(96,165,250,.28);--dss-code-text:#c9d2e0;
@@ -151,6 +362,13 @@ body[data-ds-dark-theme] .dss-scope {
   font:700 12px/1.5 var(--dss-sans);letter-spacing:.04em;color:var(--dss-blue-text);
 }
 .dss-scope .dss-card-short > p{font-size:13.5px;line-height:1.7;color:var(--dss-ink-2)}
+.dss-scope .dss-card-explain{border-left-color:var(--dss-explain);background:linear-gradient(90deg,var(--dss-explain-soft),var(--dss-paper) 78%);box-shadow:none}
+.dss-scope .dss-card-explain > p:first-child > strong:first-child{
+  display:block;width:100%;margin:0 0 8px;padding:0 0 6px;border-bottom:1px solid var(--dss-explain-line);
+  font:700 12px/1.5 var(--dss-sans);letter-spacing:.04em;color:var(--dss-explain-text);
+}
+.dss-scope .dss-card-explain > p{font-size:13.5px;line-height:1.7;color:var(--dss-ink-2)}
+.dss-scope .dss-card-explain > p > strong:first-child{color:var(--dss-explain);font-weight:700}
 .dss-scope .dss-card-conclusion > p:first-child > strong:first-child,
 .dss-scope .dss-card-accept > p:first-child > strong:first-child,
 .dss-scope .dss-card-next > p:first-child > strong:first-child,
@@ -326,7 +544,8 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
 .dss-hint{color:var(--dss-ink-3);font-size:11.5px}
 .dss-input,.dss-textarea{display:block;width:100%;padding:7px 10px;border:1px solid var(--dss-line-strong);border-radius:6px;background:var(--dss-paper);color:var(--dss-ink);font:13px/1.6 var(--dss-sans);outline:0;transition:border-color .14s,box-shadow .14s}
 .dss-input:focus,.dss-textarea:focus{border-color:var(--dss-blue);box-shadow:0 0 0 3px rgba(37,99,235,.12)}
-.dss-textarea{min-height:96px;resize:none}
+.dss-textarea{min-height:40px;resize:none}
+.dss-control .dss-textarea{padding-right:38px}
 .dss-control{position:relative}
 .dss-control .dss-input{padding-right:38px}
 .dss-icon-btn{position:absolute;right:6px;top:50%;transform:translateY(-50%);display:grid;place-items:center;width:26px;height:26px;padding:0;border:1px solid var(--dss-line);border-radius:5px;background:var(--dss-paper-2);color:var(--dss-ink-2);font-size:14px;cursor:pointer}
@@ -403,6 +622,91 @@ body[data-ds-dark-theme] [data-dsh-structured-config] button#dsh-structured-them
 body[data-ds-dark-theme] [data-dsh-structured-config] button#dsh-structured-theme-deepseek[aria-selected="true"]{color:#60A5FA}
 body[data-ds-dark-theme] [data-dsh-structured-config] button#dsh-structured-theme-codex[aria-selected="true"]{color:#34D399}
 body[data-ds-dark-theme] [data-dsh-structured-config] button#dsh-structured-theme-anthropic[aria-selected="true"]{color:#E8A087}
+/* 1.2.0 单页设置：标题行 / 状态行 / 外观 / 人格 / 深度 / 预览 */
+.dss-config-page{width:100%;max-width:960px;margin:0 auto;min-width:0;height:100%;overflow-y:auto;overflow-x:hidden;box-sizing:border-box;padding:40px 24px 48px}
+.dss-page-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;padding:2px 0 16px}
+@media (max-width: 720px){.dss-page-head{flex-wrap:wrap}.dss-preview-grid{grid-template-columns:1fr}.dss-depth-tiles{grid-template-columns:1fr}.dss-cp-preview{grid-template-columns:1fr}}
+.dss-eyebrow{font-size:11px;letter-spacing:.14em;color:var(--dss-ink-3)}
+.dss-page-title{margin:6px 0 4px;color:var(--dss-ink);font:600 24px/1.25 var(--dss-sans);letter-spacing:-.01em}
+.dss-page-sub{margin:0 0 10px;color:var(--dss-ink-3);font-size:13px}
+.dss-status-line{display:inline-flex;align-items:center;gap:7px;padding:4px 11px;border:1px solid var(--dss-line);border-radius:999px;background:var(--dss-paper);color:var(--dss-ink-2);font-size:12px}
+.dss-status-dot{width:7px;height:7px;flex:none;border-radius:50%;background:#10b981;box-shadow:0 0 0 3px rgba(16,185,129,.14)}
+.dss-status-dot.is-off{background:var(--dss-ink-3);box-shadow:none}
+.dss-page-section{padding:20px 0 10px;border-top:1px solid var(--dss-line)}
+.dss-section-desc{margin:2px 0 14px;color:var(--dss-ink-3);font-size:12.5px;line-height:1.6}
+.dss-chip{display:inline-block;margin-left:8px;padding:1px 8px;border:1px solid var(--dss-line-strong);border-radius:999px;color:var(--dss-ink-3);font-size:11px;font-weight:400;line-height:1.5}
+.dss-chip.is-ok{border-color:#bbf7d0;background:#f0fdf4;color:#067647}
+body[data-ds-dark-theme] .dss-chip.is-ok{border-color:rgba(52,211,153,.4);background:rgba(16,185,129,.14);color:#6ee7b7}
+.dss-theme-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px}
+.dss-theme-tile{display:flex;flex-direction:column;align-items:flex-start;gap:7px;padding:9px;border:1px solid var(--dss-line);border-radius:9px;background:var(--dss-paper);text-align:left;cursor:pointer}
+.dss-theme-tile:hover{border-color:var(--dss-line-strong)}
+.dss-theme-tile.is-selected{border-color:var(--dss-ink);box-shadow:0 0 0 1px var(--dss-ink) inset}
+.dss-theme-tile:disabled{cursor:default;opacity:.65}
+.dss-theme-mini{display:block;width:100%;height:34px;border:1px solid var(--dss-line);border-left:3px solid var(--dss-blue);border-radius:6px;background:var(--dss-paper-2)}
+.dss-theme-name{display:flex;align-items:center;gap:6px;color:var(--dss-ink);font-size:12.5px;font-weight:600}
+.dss-theme-name em{color:#067647;font-size:11px;font-style:normal;font-weight:500}
+.dss-colors{display:flex;align-items:center;gap:18px;margin:14px 0 4px;flex-wrap:wrap}
+.dss-color-item{display:flex;align-items:center;gap:8px;color:var(--dss-ink-2);font-size:12.5px}
+.dss-color-swatch{width:32px;height:32px;padding:0;border:1px solid var(--dss-line-strong);border-radius:8px;cursor:pointer}
+.dss-color-swatch:focus-visible{outline:2px solid var(--dss-blue);outline-offset:2px}
+.dss-link-btn{margin-left:auto;padding:0;border:0;background:transparent;color:var(--dss-ink-3);font-size:12px;cursor:pointer}
+.dss-link-btn:hover{color:var(--dss-blue)}
+.dss-color-pop{position:relative;width:390px;max-width:100%;margin:12px 0 0;padding:14px;border:1px solid var(--dss-line);border-radius:12px;background:var(--dss-paper);box-shadow:0 12px 28px rgba(16,24,40,.12)}
+.dss-cp-head{display:flex;align-items:center;gap:8px;color:var(--dss-ink-2);font-size:12.5px}
+.dss-cp-head b{color:var(--dss-ink);font-size:13px}
+.dss-cp-head .dss-link-btn{margin-left:auto}
+.dss-sv{position:relative;height:150px;margin-top:10px;border:1px solid var(--dss-line);border-radius:9px;overflow:hidden;cursor:crosshair;touch-action:none}
+.dss-sv-dot{position:absolute;width:14px;height:14px;margin:-7px 0 0 -7px;border:2px solid #fff;border-radius:50%;box-shadow:0 0 0 1px rgba(0,0,0,.35);pointer-events:none}
+.dss-hue{position:relative;height:12px;margin-top:11px;border-radius:999px;cursor:pointer;touch-action:none;background:linear-gradient(to right,#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00)}
+.dss-hue-dot{position:absolute;top:-3px;width:8px;height:18px;margin-left:-4px;border:2px solid #fff;border-radius:3px;box-shadow:0 0 0 1px rgba(0,0,0,.25);pointer-events:none}
+.dss-cp-row{display:flex;gap:8px;margin-top:12px}
+.dss-cp-row input{flex:1;min-width:0;padding:7px 9px;border:1px solid var(--dss-line);border-radius:7px;background:var(--dss-paper);color:var(--dss-ink);font:12px/1.4 var(--dss-mono)}
+.dss-cp-row button{padding:0 10px;border:1px solid var(--dss-line);border-radius:7px;background:var(--dss-paper);color:var(--dss-ink-2);font-size:12px;cursor:pointer}
+.dss-cp-row button:disabled{opacity:.5;cursor:default}
+.dss-cp-preview{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:12px}
+.dss-cp-card{padding:7px 9px;border:1px solid var(--dss-line);border-left:3px solid var(--dss-blue);border-radius:7px;background:var(--dss-paper-2);color:var(--dss-ink-3);font-size:11px}
+.dss-cp-card i{display:block;margin-bottom:2px;font-style:normal;font-size:10px}
+.dss-cp-card b{color:var(--dss-ink);font-size:12px}
+.dss-cp-foot{display:flex;justify-content:space-between;gap:10px;margin-top:11px;color:var(--dss-ink-3);font-size:11px}
+.dss-cp-foot .ok{color:#047857}
+.dss-cp-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:10px}
+.dss-custom-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;align-items:stretch;margin-top:8px}
+.dss-custom-row > .dss-colors{grid-column:2 / -1;margin:0;align-items:center}
+.dss-custom-row > .dss-hint{grid-column:2 / -1;align-self:center}
+.dss-colors.is-disabled .dss-color-item{opacity:.45}
+.dss-colors.is-disabled .dss-link-btn{opacity:.45}
+.dss-depth-tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.dss-depth-tile{display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:10px;border:1px solid var(--dss-line);border-radius:9px;background:var(--dss-paper);text-align:left;cursor:pointer}
+.dss-depth-tile:hover{border-color:var(--dss-line-strong)}
+.dss-depth-tile.is-selected{border-color:var(--dss-ink);box-shadow:0 0 0 1px var(--dss-ink) inset}
+.dss-depth-tile:disabled{cursor:default;opacity:.65}
+.dss-depth-name{display:flex;align-items:center;gap:6px;color:var(--dss-ink);font-size:13px;font-weight:600}
+.dss-depth-name em{color:#067647;font-size:11px;font-style:normal;font-weight:500}
+.dss-depth-hint{color:var(--dss-ink-3);font-size:11.5px;line-height:1.5}
+.dss-preview-persona{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 12px;padding:10px 12px;border:1px solid var(--dss-line);border-radius:12px;background:var(--dss-paper)}
+.dss-preview-persona b{color:var(--dss-ink);font-size:14px}
+.dss-preview-persona span{color:var(--dss-ink-3);font-size:12.5px}
+.dss-preview-persona i{color:var(--dss-ink-2);font-size:12.5px;font-style:normal;padding:2px 7px;border-radius:5px;background:var(--dss-paper-2)}
+.dss-preview-persona em{color:var(--dss-ink-3);font-size:12.5px;font-style:italic}
+.dss-preview-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.dss-preview-cell{padding:10px 12px;border:1px solid var(--dss-line);border-radius:12px;background:var(--dss-paper)}
+.dss-preview-cell.is-wide{grid-column:1 / -1}
+.dss-preview-cell-head{margin-bottom:4px;color:var(--dss-ink-3);font-size:11px;letter-spacing:.04em}
+.dss-preview-scope .dss-card,.dss-preview-scope .dss-table-wrap,.dss-preview-scope .dss-code{margin:6px 0}
+.dss-identity-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+.dss-inline-hint{color:var(--dss-ink-3);font-size:12px;line-height:1.6}
+.dss-group{margin:10px 0;padding:2px 12px 8px;border:1px solid var(--dss-line);border-radius:10px;background:var(--dss-paper-2)}
+.dss-group .dss-field{margin-top:12px}
+.dss-group-title{margin:8px 0 0;color:var(--dss-ink-2);font-size:12px;font-weight:600}
+.dss-chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:6px 0 4px}
+.dss-chip-btn{padding:3px 10px;border:1px solid var(--dss-line);border-radius:999px;background:var(--dss-paper);color:var(--dss-ink-2);font-size:12px;cursor:pointer}
+.dss-chip-btn.is-selected{border-color:var(--dss-ink);background:var(--dss-ink);color:var(--dss-paper)}
+.dss-os-row{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.dss-os-preview{margin-top:8px;padding:7px 10px;border:1px solid var(--dss-line);border-radius:8px;background:var(--dss-paper);color:var(--dss-ink-3);font-size:12.5px;font-style:italic}
+.dss-behavior-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:9px 0;border-bottom:1px solid var(--dss-line)}
+.dss-behavior-row:last-child{border-bottom:0}
+.dss-behavior-text{min-width:0}
+.dss-behavior-label{color:var(--dss-ink);font-size:13px;font-weight:600}
 `
 
     /** 插入配置页样式；返回移除函数。document 不可用时是空操作。 */
@@ -429,6 +733,7 @@ body[data-ds-dark-theme] [data-dsh-structured-config] button#dsh-structured-them
       ['风险', 'risk'], ['注意', 'risk'], ['警告', 'risk'],
       ['下一步', 'next'], ['建议', 'next'], ['行动', 'next'], ['待办', 'next'],
       ['验收', 'accept'], ['通过', 'accept'], ['完成', 'accept'],
+      ['讲解', 'explain'],
       ['重点', 'key'], ['关键', 'key'], ['短答', 'short'],
     ])
     const ICONS = [
@@ -450,6 +755,7 @@ body[data-ds-dark-theme] [data-dsh-structured-config] button#dsh-structured-them
   --dss-blue:#2563eb;--dss-blue-hover:#1d4ed8;--dss-blue-text:#1d4ed8;--dss-th-text:#1e3a8a;--dss-blue-soft:#eff6ff;
   --dss-green:#067647;--dss-green-strong:#059669;--dss-green-text:#047857;--dss-green-soft:#f0faf4;
   --dss-amber:#b54708;--dss-amber-strong:#d97706;--dss-amber-text:#b54708;--dss-amber-soft:#fffbf3;
+  --dss-explain:#7c3aed;--dss-explain-text:#6d28d9;--dss-explain-soft:#f5f3ff;--dss-explain-line:#ede9fe;
   --dss-red:#b42318;--dss-red-soft:#fef3f2;
   --dss-head-bg:linear-gradient(90deg,rgba(37,99,235,.18),rgba(37,99,235,.05));--dss-zebra:rgba(255,255,255,.55);
   --dss-code-bg:rgba(255,255,255,.72);--dss-code-border:#dbe7ff;--dss-code-text:#344054;
@@ -483,6 +789,7 @@ body[data-ds-dark-theme] .dss-scope {
   --dss-blue:#3b82f6;--dss-blue-hover:#60a5fa;--dss-blue-text:#8ab4ff;--dss-th-text:#93c5fd;--dss-blue-soft:rgba(59,130,246,.16);
   --dss-green:#34d399;--dss-green-strong:#10b981;--dss-green-text:#34d399;--dss-green-soft:rgba(16,185,129,.14);
   --dss-amber:#fbbf24;--dss-amber-strong:#f59e0b;--dss-amber-text:#fbbf24;--dss-amber-soft:rgba(245,158,11,.12);
+  --dss-explain:#a78bfa;--dss-explain-text:#c4b5fd;--dss-explain-soft:rgba(124,58,237,.18);--dss-explain-line:rgba(167,139,250,.25);
   --dss-red:#f87171;--dss-red-soft:rgba(248,113,113,.16);
   --dss-head-bg:linear-gradient(90deg,rgba(96,165,250,.24),rgba(96,165,250,.06));--dss-zebra:rgba(255,255,255,.03);
   --dss-code-bg:rgba(0,0,0,.28);--dss-code-border:rgba(96,165,250,.28);--dss-code-text:#c9d2e0;
@@ -496,6 +803,7 @@ body[data-dsh-structured-theme="codex"] .dss-scope {
   --dss-blue:#10a37f;--dss-blue-hover:#0d8a6a;--dss-blue-text:#0f7a5f;--dss-th-text:#065f46;--dss-blue-soft:#eef8f5;
   --dss-green:#047857;--dss-green-strong:#059669;--dss-green-text:#047857;--dss-green-soft:#f1f6de;
   --dss-amber:#b45309;--dss-amber-strong:#d97706;--dss-amber-text:#b45309;--dss-amber-soft:#fdf7ea;
+  --dss-explain:#0f766e;--dss-explain-text:#0f766e;--dss-explain-soft:#ecfdf5;--dss-explain-line:#ccfbf1;
   --dss-red:#b91c1c;--dss-red-soft:#fef2f2;
   --dss-head-bg:linear-gradient(90deg,rgba(16,163,127,.16),rgba(16,163,127,.04));--dss-zebra:rgba(0,0,0,.02);
   --dss-code-bg:#f6f8f8;--dss-code-border:#d7e8e2;--dss-code-text:#27272a;
@@ -508,6 +816,7 @@ body[data-ds-dark-theme][data-dsh-structured-theme="codex"] .dss-scope {
   --dss-blue:#34d399;--dss-blue-hover:#6ee7b7;--dss-blue-text:#6ee7b7;--dss-th-text:#5eead4;--dss-blue-soft:rgba(52,211,153,.16);
   --dss-green:#34d399;--dss-green-strong:#10b981;--dss-green-text:#34d399;--dss-green-soft:rgba(52,211,153,.14);
   --dss-amber:#facc15;--dss-amber-strong:#eab308;--dss-amber-text:#facc15;--dss-amber-soft:rgba(250,204,21,.15);
+  --dss-explain:#5eead4;--dss-explain-text:#5eead4;--dss-explain-soft:rgba(45,212,191,.14);--dss-explain-line:rgba(94,234,212,.25);
   --dss-red:#fb7185;--dss-red-soft:rgba(251,113,133,.18);
   --dss-head-bg:linear-gradient(90deg,rgba(52,211,153,.18),rgba(52,211,153,.05));--dss-zebra:rgba(255,255,255,.03);
   --dss-code-bg:rgba(0,0,0,.28);--dss-code-border:rgba(52,211,153,.26);--dss-code-text:#d4d4d8;
@@ -520,6 +829,7 @@ body[data-dsh-structured-theme="anthropic"] .dss-scope {
   --dss-blue:#cc785c;--dss-blue-hover:#b8623f;--dss-blue-text:#a14a2e;--dss-th-text:#7c3a20;--dss-blue-soft:#fbf5f1;
   --dss-green:#3f7d4e;--dss-green-strong:#6f7d3a;--dss-green-text:#3f7d4e;--dss-green-soft:#f4f5e2;
   --dss-amber:#b45309;--dss-amber-strong:#d97706;--dss-amber-text:#b45309;--dss-amber-soft:#fcf3e2;
+  --dss-explain:#9d5b6b;--dss-explain-text:#8a4b5a;--dss-explain-soft:#fdf2f4;--dss-explain-line:#f5d0d8;
   --dss-red:#b42318;--dss-red-soft:#fdf0ee;
   --dss-head-bg:linear-gradient(90deg,rgba(204,120,92,.18),rgba(204,120,92,.05));--dss-zebra:rgba(204,120,92,.035);
   --dss-code-bg:#f7f4ee;--dss-code-border:#e6ddcc;--dss-code-text:#3b352c;
@@ -532,6 +842,7 @@ body[data-ds-dark-theme][data-dsh-structured-theme="anthropic"] .dss-scope {
   --dss-blue:#e8a087;--dss-blue-hover:#f0b8a3;--dss-blue-text:#f0b8a3;--dss-th-text:#fbbf24;--dss-blue-soft:rgba(232,160,135,.16);
   --dss-green:#6ee7b7;--dss-green-strong:#34d399;--dss-green-text:#6ee7b7;--dss-green-soft:rgba(163,177,102,.14);
   --dss-amber:#e8aa5a;--dss-amber-strong:#d98c3f;--dss-amber-text:#e8aa5a;--dss-amber-soft:rgba(232,170,90,.18);
+  --dss-explain:#f0a3b2;--dss-explain-text:#f5c2cc;--dss-explain-soft:rgba(240,163,178,.16);--dss-explain-line:rgba(240,163,178,.25);
   --dss-red:#f97066;--dss-red-soft:rgba(249,112,102,.18);
   --dss-head-bg:linear-gradient(90deg,rgba(232,160,135,.2),rgba(232,160,135,.06));--dss-zebra:rgba(255,255,255,.03);
   --dss-code-bg:rgba(0,0,0,.28);--dss-code-border:rgba(232,160,135,.24);--dss-code-text:#ddd5c8;
@@ -546,6 +857,7 @@ body[data-dsh-structured-theme="dsh"] .dss-scope {
   --dss-blue:var(--dsw-alias-label-primary,#171717);--dss-blue-hover:var(--dsw-alias-label-secondary,#000000);--dss-blue-text:var(--dsw-alias-label-primary,#171717);--dss-th-text:var(--dsw-alias-label-primary,#171717);--dss-blue-soft:var(--dsw-alias-bg-l2,#f4f4f5);
   --dss-green:#3f3f46;--dss-green-strong:#27272a;--dss-green-text:#3f3f46;--dss-green-soft:#f1f1f2;
   --dss-amber:#52525b;--dss-amber-strong:#3f3f46;--dss-amber-text:#52525b;--dss-amber-soft:#f5f5f5;
+  --dss-explain:#4b5563;--dss-explain-text:#374151;--dss-explain-soft:#f3f4f6;--dss-explain-line:#e5e7eb;
   --dss-red:#18181b;--dss-red-soft:#ececee;
   --dss-head-bg:linear-gradient(90deg,var(--dsw-alias-bg-l2,#f2f2f3),var(--dsw-alias-bg-l1,#ffffff));--dss-zebra:rgba(0,0,0,.02);
   --dss-code-bg:var(--dsw-alias-bg-l2,#f7f7f8);--dss-code-border:var(--dsw-alias-border-l1,#e5e5e5);--dss-code-text:var(--dsw-alias-label-secondary,#3f3f46);
@@ -558,6 +870,7 @@ body[data-ds-dark-theme][data-dsh-structured-theme="dsh"] .dss-scope {
   --dss-blue:var(--dsw-alias-label-primary,#ededed);--dss-blue-hover:var(--dsw-alias-label-secondary,#ffffff);--dss-blue-text:var(--dsw-alias-label-primary,#ededed);--dss-th-text:var(--dsw-alias-label-primary,#ededed);--dss-blue-soft:var(--dsw-alias-bg-l2,#262626);
   --dss-green:#d4d4d8;--dss-green-strong:#f4f4f5;--dss-green-text:#d4d4d8;--dss-green-soft:rgba(255,255,255,.07);
   --dss-amber:#a1a1aa;--dss-amber-strong:#d4d4d8;--dss-amber-text:#a1a1aa;--dss-amber-soft:rgba(255,255,255,.05);
+  --dss-explain:#d4d4d8;--dss-explain-text:#e4e4e7;--dss-explain-soft:rgba(255,255,255,.07);--dss-explain-line:rgba(255,255,255,.12);
   --dss-red:#fafafa;--dss-red-soft:rgba(255,255,255,.11);
   --dss-head-bg:linear-gradient(90deg,var(--dsw-alias-bg-l2,#262626),var(--dsw-alias-bg-l1,#1f1f1f));--dss-zebra:rgba(255,255,255,.03);
   --dss-code-bg:rgba(0,0,0,.35);--dss-code-border:var(--dsw-alias-border-l1,#303030);--dss-code-text:var(--dsw-alias-label-secondary,#c9c9c9);
@@ -596,6 +909,13 @@ body[data-ds-dark-theme][data-dsh-structured-theme="dsh"] .dss-scope {
   font:700 calc(var(--dss-text-size) * 12 / 13.5)/1.5 var(--dss-sans);letter-spacing:.04em;color:var(--dss-blue-text);
 }
 .dss-scope .dss-card-short > p{font-size:var(--dss-text-size);line-height:1.7;color:var(--dss-ink-2)}
+.dss-scope .dss-card-explain{border-left-color:var(--dss-explain);background:linear-gradient(90deg,var(--dss-explain-soft),var(--dss-paper) 78%);box-shadow:none}
+.dss-scope .dss-card-explain > p:first-child > strong:first-child{
+  display:block;width:100%;margin:0 0 8px;padding:0 0 6px;border-bottom:1px solid var(--dss-explain-line);
+  font:700 calc(var(--dss-text-size) * 12 / 13.5)/1.5 var(--dss-sans);letter-spacing:.04em;color:var(--dss-explain-text);
+}
+.dss-scope .dss-card-explain > p{font-size:var(--dss-text-size);line-height:1.7;color:var(--dss-ink-2)}
+.dss-scope .dss-card-explain > p > strong:first-child{color:var(--dss-explain);font-weight:700}
 .dss-scope .dss-card-conclusion > p:first-child > strong:first-child,
 .dss-scope .dss-card-accept > p:first-child > strong:first-child,
 .dss-scope .dss-card-next > p:first-child > strong:first-child,
@@ -717,13 +1037,13 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
 
 
 .dss-scope .dss-copy[data-copied="1"] .dss-copy-ok{color:var(--dss-green)}
-.dss-scope .dss-persona-head{padding:0 0 10px}
-.dss-scope .dss-persona-head .dss-chat-head{display:flex;align-items:center;gap:12px;padding:0}
-.dss-scope .dss-persona-head .dss-chat-avatar{position:relative;display:grid;place-items:center;width:38px;height:38px;flex:none;overflow:hidden;border-radius:50%;background:var(--dss-blue-soft);box-shadow:0 0 0 3px var(--dss-page),0 2px 10px rgba(16,24,40,.18)}
-.dss-scope .dss-persona-head .dss-chat-avatar img{width:100%;height:100%;object-fit:cover}
-.dss-scope .dss-persona-head .dss-chat-id{min-width:0}
-.dss-scope .dss-persona-head .dss-chat-name{display:block;color:var(--dss-ink);font-size:calc(var(--dss-text-size) * 16 / 13.5);font-weight:650;line-height:1.3}
-.dss-scope .dss-persona-head .dss-chat-meta{display:block;color:var(--dss-ink-3);font:calc(var(--dss-code-size) * 12 / 12.5)/1.5 var(--dss-mono);overflow-wrap:anywhere}
+.dss-scope.dss-persona-head{padding:0 0 10px}
+.dss-scope.dss-persona-head .dss-chat-head{display:flex;align-items:center;gap:12px;padding:0}
+.dss-scope.dss-persona-head .dss-chat-avatar{position:relative;display:grid;place-items:center;width:38px;height:38px;flex:none;overflow:hidden;border-radius:50%;background:var(--dss-blue-soft);box-shadow:0 0 0 3px var(--dss-page),0 2px 10px rgba(16,24,40,.18)}
+.dss-scope.dss-persona-head .dss-chat-avatar img{width:100%;height:100%;object-fit:cover}
+.dss-scope.dss-persona-head .dss-chat-id{min-width:0}
+.dss-scope.dss-persona-head .dss-chat-name{display:block;color:var(--dss-ink);font-size:calc(var(--dss-text-size) * 16 / 13.5);font-weight:650;line-height:1.3}
+.dss-scope.dss-persona-head .dss-chat-meta{display:block;color:var(--dss-ink-3);font:calc(var(--dss-code-size) * 12 / 12.5)/1.5 var(--dss-mono);overflow-wrap:anywhere}
 .dss-scope .dss-persona-prefix{margin:0;color:var(--dss-ink-3);font:var(--dss-code-size)/1.7 var(--dss-mono)}
 .dss-scope .dss-persona-suffix{margin:0;padding-top:8px;border-top:1px dotted var(--dss-line-strong);color:var(--dss-ink-3);font:calc(var(--dss-code-size) * 12 / 12.5)/1.65 var(--dss-mono);overflow-wrap:anywhere}
 
@@ -901,6 +1221,7 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
       next: 'dss-card-next',
       risk: 'dss-card-risk',
       accept: 'dss-card-accept',
+      explain: 'dss-card-explain',
       short: 'dss-card-short',
       statement: 'dss-card-statement',
     }
@@ -990,7 +1311,11 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
     const personaHeadConfig = (value = {}) => {
       const tone = personaToneFields(value.persona)
       return {
+        pluginEnabled: value.enabled !== false,
         enabled: value.personaEnabled === true,
+        // 身份头是子开关：缺字段（旧 profile）按开启处理，关闭只影响头像 / 名字 / 签名。
+        headEnabled: value.personaHeadEnabled !== false,
+        innerOsEnabled: value.personaInnerOsEnabled !== false,
         name: typeof value.personaName === 'string' && value.personaName.trim() ? value.personaName : DEFAULT_PROFILE_NAME,
         signature: typeof value.personaSignature === 'string' ? value.personaSignature : DEFAULT_PROFILE_SIGNATURE,
         avatar: typeof value.personaAvatar === 'string' ? value.personaAvatar : '',
@@ -1142,8 +1467,7 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
       else document.body?.removeAttribute(PERSONA_MODE_ATTR)
       if (personaModeState.enabled && !wasEnabled) snapshotPersonaLegacy()
       if (!active) return
-      // 配置变化只刷新已受管的 persona 渲染与身份头，不对旧历史做全量重扫。
-      decorate(document, { managedOnly: true })
+      // 旧消息不回溯：配置变化只影响新消息，不重扫历史。
     }
 
     const createPersonaHead = (doc, config) => {
@@ -1216,6 +1540,8 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
 
     const mountPersonaHead = (flow, config) => {
       if (!flow) return null
+      // 身份头子开关关闭：不创建也不更新，已有头由 renderPersonaMarkdown 统一移除。
+      if (config?.headEnabled === false) return null
       let head = flow.querySelector?.(`[${PERSONA_HEAD_ATTR}]`)
       if (!head) {
         head = createPersonaHead(flow.ownerDocument ?? document, config)
@@ -1389,13 +1715,15 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
     const validatePersonaContent = (raw, { lenient = false } = {}) => {
       if (!personaObject(raw)) return { ok: false, error: 'JSON 必须是对象' }
       if (raw.version !== 1) return { ok: false, error: 'version 必须为 1' }
+      const validateInnerOs = () => raw.innerOs === undefined || (personaText(raw.innerOs) && raw.innerOs.length <= 30)
+      if (!validateInnerOs()) return { ok: false, error: 'innerOs 必须是 ≤30 字的非空字符串' }
       if (raw.kind === 'short') {
-        if (!strictKeys(raw, ['version', 'kind', 'text'])) return { ok: false, error: 'short 含未定义字段' }
+        if (!strictKeys(raw, ['version', 'kind', 'text', 'innerOs'])) return { ok: false, error: 'short 含未定义字段' }
         if (!personaText(raw.text)) return { ok: false, error: 'short.text 必须是非空字符串' }
-        return { ok: true, content: { kind: 'short', text: raw.text } }
+        return { ok: true, content: { kind: 'short', text: raw.text, ...(raw.innerOs === undefined ? {} : { innerOs: raw.innerOs }) } }
       }
       if (raw.kind !== 'normal' && raw.kind !== 'table') return { ok: false, error: 'kind 只能是 normal / short / table' }
-      const allowed = raw.kind === 'table' ? ['version', 'kind', 'conclusion', 'suggestions', 'risk', 'table'] : ['version', 'kind', 'conclusion', 'suggestions', 'risk']
+      const allowed = raw.kind === 'table' ? ['version', 'kind', 'conclusion', 'suggestions', 'risk', 'explanation', 'table', 'innerOs'] : ['version', 'kind', 'conclusion', 'suggestions', 'risk', 'explanation', 'innerOs']
       if (!strictKeys(raw, allowed)) return { ok: false, error: raw.kind + ' 含未定义字段' }
       const conclusion = raw.conclusion
       if (!personaObject(conclusion) || !strictKeys(conclusion, ['lead', 'body', 'points'])) return { ok: false, error: 'conclusion 形状非法' }
@@ -1403,6 +1731,13 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
       if (conclusion.body !== undefined && typeof conclusion.body !== 'string') return { ok: false, error: 'conclusion.body 必须是字符串' }
       if (conclusion.points !== undefined && (!Array.isArray(conclusion.points) || conclusion.points.length < 1 || conclusion.points.length > 4 || !conclusion.points.every(personaText))) {
         return { ok: false, error: 'conclusion.points 必须是 1-4 条非空字符串' }
+      }
+      const explanation = raw.explanation
+      if (explanation !== undefined) {
+        if (!personaObject(explanation) || !strictKeys(explanation, ['analogy', 'example'])) return { ok: false, error: 'explanation 形状非法' }
+        const explanationFields = ['analogy', 'example'].filter((key) => explanation[key] !== undefined)
+        if (explanationFields.length === 0) return { ok: false, error: 'explanation 至少需要 analogy 或 example' }
+        if (!explanationFields.every((key) => personaText(explanation[key]))) return { ok: false, error: 'explanation.analogy / example 必须是非空字符串' }
       }
       // suggestions / risk 缺失按「模型少写了一段」处理：宁可少一张卡，也不能让整条回复掉光
       // （2026-11-16 实机：连续两条信封只写到 conclusion，整条回复降级成普通文字）。
@@ -1420,8 +1755,15 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
           ...(conclusion.body === undefined ? {} : { body: conclusion.body }),
           ...(Array.isArray(conclusion.points) ? { points: [...conclusion.points] } : {}),
         },
+        ...(explanation === undefined ? {} : {
+          explanation: {
+            ...(explanation.analogy === undefined ? {} : { analogy: explanation.analogy }),
+            ...(explanation.example === undefined ? {} : { example: explanation.example }),
+          },
+        }),
         suggestions: [...suggestions],
         risk,
+        ...(raw.innerOs === undefined ? {} : { innerOs: raw.innerOs }),
       }
       if (raw.kind === 'table') {
         const table = raw.table
@@ -2010,6 +2352,22 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
           conclusionBodies.push(fillPersonaText(doc, makePersonaElement(doc, 'p'), content.conclusion.body))
         }
         appendPersonaCard(doc, markdown, '结论', conclusionBodies)
+        if (content.explanation) {
+          const explanationBodies = []
+          if (content.explanation.analogy) {
+            const paragraph = makePersonaElement(doc, 'p')
+            paragraph.appendChild(makePersonaElement(doc, 'strong', '', '类比：'))
+            paragraph.appendChild(fillPersonaText(doc, makePersonaElement(doc, 'span'), content.explanation.analogy))
+            explanationBodies.push(paragraph)
+          }
+          if (content.explanation.example) {
+            const paragraph = makePersonaElement(doc, 'p')
+            paragraph.appendChild(makePersonaElement(doc, 'strong', '', '举例：'))
+            paragraph.appendChild(fillPersonaText(doc, makePersonaElement(doc, 'span'), content.explanation.example))
+            explanationBodies.push(paragraph)
+          }
+          if (explanationBodies.length > 0) appendPersonaCard(doc, markdown, '讲解', explanationBodies)
+        }
         if (content.kind === 'table') {
           const table = makePersonaElement(doc, 'table')
           const thead = makePersonaElement(doc, 'thead')
@@ -2041,7 +2399,8 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
         }
         if (content.risk) appendPersonaCard(doc, markdown, '风险', [fillPersonaText(doc, makePersonaElement(doc, 'p'), content.risk)])
       }
-      if (config.suffix && content.kind === 'normal') markdown.appendChild(makePersonaElement(doc, 'p', 'dss-persona-suffix', config.suffix))
+      if (config.innerOsEnabled !== false && content.innerOs) markdown.appendChild(makePersonaElement(doc, 'p', 'dss-persona-suffix', '💭 ' + content.innerOs))
+      else if (config.suffix && content.kind === 'normal') markdown.appendChild(makePersonaElement(doc, 'p', 'dss-persona-suffix', config.suffix))
       for (const node of outsideAfter) markdown.appendChild(node)
       // 整条回复复制：放在最后，内容不含身份头 / 开场 / 收尾 / 表格复制按钮。
       if (!markdown.querySelector?.(`[${REPLY_COPY_ATTR}]`)) {
@@ -2162,6 +2521,9 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
         : (typeof doc.body === 'string' ? doc.body : '')
       const rawPoints = Array.isArray(conclusion.points) ? conclusion.points : (Array.isArray(doc.points) ? doc.points : [])
       const points = rawPoints.filter((item) => typeof item === 'string' && item.trim()).map((item) => item.trim()).slice(0, 4)
+      const rawExplanation = personaObject(doc.explanation) ? doc.explanation : (personaObject(conclusion.explanation) ? conclusion.explanation : null)
+      const analogy = typeof rawExplanation?.analogy === 'string' ? rawExplanation.analogy.trim() : ''
+      const example = typeof rawExplanation?.example === 'string' ? rawExplanation.example.trim() : ''
       const risk = typeof doc.risk === 'string' ? doc.risk.trim() : ''
       const suggestions = Array.isArray(doc.suggestions)
         ? doc.suggestions.filter((item) => typeof item === 'string' && item.trim()).map((item) => item.trim()).slice(0, 20)
@@ -2208,6 +2570,7 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
         content: {
           kind: table ? 'table' : 'normal',
           conclusion: { lead, ...(points.length ? { points } : (body ? { body } : {})) },
+          ...(analogy || example ? { explanation: { ...(analogy ? { analogy } : {}), ...(example ? { example } : {}) } } : {}),
           suggestions: suggestions.length ? suggestions : ['（本条回复未给出建议）'],
           risk: risk || '（本条回复未给出风险说明）',
           ...(table ? { table } : {}),
@@ -2374,6 +2737,8 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
         return 'external'
       }
       const flow = scope.assistant
+      // 身份头关闭：本回合正文照常出卡，只摘掉头像 / 名字 / 签名。
+      if (config.headEnabled === false) dropPersonaHead(flow)
       // 会话内但定位不到 assistant 容器：fail-open 走 legacy 排版，不把内部诊断暴露给用户。
       markdown.removeAttribute?.(PERSONA_FALLBACK_ATTR)
       const diff = inDiff(markdown) || Boolean(markdown.querySelector?.('.md-diff, [data-diff], [class*="diff"]'))
@@ -2727,9 +3092,28 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
     }
 
 
+    // 关闭人格后仍渲染 persona 内容块：只出卡片，不挂身份头/前后缀。
+    // 模型在关闭后仍可能沿用旧合同发信封；不能把 JSON 原样摊成代码块。
+    const renderDisabledPersonaContent = (markdown, config) => {
+      const scope = findFlowScope(markdown)
+      if (!scope.assistant || scope.userLike || scope.skip || scope.external) return false
+      const envelope = extractPersonaEnvelope(markdown)
+      if (envelope.kind === 'none' || !envelope.ok) return false
+      let parsed
+      try { parsed = JSON.parse(envelope.text) } catch { return false }
+      const validated = validatePersonaContent(parsed)
+      if (!validated.ok) return false
+      const contentConfig = { ...config, enabled: true, innerOsEnabled: false, prefix: '', suffix: '' }
+      renderPersonaContent(markdown, validated.content, contentConfig, envelope.text)
+      markdown.removeAttribute?.(PERSONA_KIND_ATTR)
+      markdown.setAttribute?.('data-dsh-persona-content-only', '1')
+      return true
+    }
+
     // Actual replies and the settings preview both run through this same
     // structural decorator; the preview only differs in its host container.
     function decorate(root, options = {}) {
+      if (personaModeState.pluginEnabled === false) return
       markScopes(root)
       const managedOnly = options.managedOnly === true
       const markdowns = root?.matches?.('[class*="_markdown_"]')
@@ -2742,6 +3126,7 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
           for (const markdown of markdowns) if (isPersonaManaged(markdown)) cleanPersonaMarkdown(markdown)
           return
         }
+        for (const markdown of markdowns) renderDisabledPersonaContent(markdown, personaModeState)
         decorateStructured(root)
         return
       }
@@ -2779,50 +3164,12 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
         return
       }
 
-      const labelStyle = { fontSize: '14px', lineHeight: '20px', color: 'var(--dsw-alias-label-primary, inherit)' }
-      const hintStyle = { fontSize: '12.5px', lineHeight: '18px', color: 'var(--dsw-alias-label-tertiary, inherit)', marginTop: '2px' }
-      const rowStyle = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', padding: '10px 0', borderBottom: '1px solid var(--dsw-alias-border-l2, rgba(127,127,127,.18))' }
       const noteStyle = { fontSize: '12.5px', lineHeight: '18px', color: 'var(--dsw-alias-label-tertiary, inherit)', margin: '6px 0 2px' }
-      const inputStyle = { width: '100%', boxSizing: 'border-box', border: '0.5px solid var(--dsw-alias-border-l4, rgba(127,127,127,.3))', borderRadius: '7px', background: 'var(--dsw-alias-bg-layer-3, transparent)', color: 'var(--dsw-alias-label-primary, inherit)', padding: '7px 9px', fontSize: '13px', lineHeight: '18px' }
-      const fieldStyle = { display: 'flex', flexDirection: 'column', gap: '5px', minWidth: 0 }
-      const tabButtonStyle = { border: '0', background: 'transparent', color: 'var(--dsw-alias-label-secondary, inherit)', padding: '7px 2px 8px', fontSize: '13px', fontWeight: 500, cursor: 'pointer', borderBottom: '2px solid transparent' }
-      const tabActiveStyle = { color: 'var(--dsw-alias-state-business-primary, #2563eb)', borderBottomColor: 'var(--dsw-alias-state-business-primary, #2563eb)' }
-      const secondaryButtonStyle = { border: '0.5px solid var(--dsw-alias-border-l4, rgba(127,127,127,.3))', borderRadius: '7px', background: 'var(--dsw-alias-bg-layer-3, transparent)', color: 'var(--dsw-alias-label-primary, inherit)', padding: '6px 10px', fontSize: '12.5px', cursor: 'pointer' }
-      const primaryButtonStyle = { border: '0', borderRadius: '7px', background: 'var(--dsw-alias-state-business-primary, #2563eb)', color: '#fff', padding: '6px 12px', fontSize: '12.5px', cursor: 'pointer' }
 
       const fieldValue = (value, spec) => {
         const raw = value?.[spec.field]
         if (raw && typeof raw.get === 'function') return raw.get()
         return raw === undefined || raw === null ? spec.fallback : raw
-      }
-
-      const renderRow = (state, setField, spec) => {
-        const writable = state.writable !== false
-        const control = spec.kind === 'switch'
-          ? jsx(ui.Switch, {
-              checked: fieldValue(state.value, spec) === true,
-              disabled: !writable,
-              label: spec.label,
-              onChange: (next) => setField(spec.field, next === true),
-            })
-          : jsx(ui.SegmentedControl, {
-              id: 'dsh-structured-' + spec.field,
-              value: String(fieldValue(state.value, spec)),
-              options: spec.options.map(([value, text]) => ({ value, label: text })),
-              disabled: !writable,
-              label: spec.label,
-              onChange: (next) => setField(spec.field, next),
-            })
-        return jsxs('div', {
-          style: rowStyle,
-          children: [
-            jsxs('div', { style: { minWidth: 0 }, children: [
-              jsx('div', { style: labelStyle, children: spec.label }),
-              jsx('div', { style: hintStyle, children: spec.hint }),
-            ] }),
-            control,
-          ],
-        })
       }
 
       const byteLength = (text) => new TextEncoder().encode(text).length
@@ -3030,9 +3377,80 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
         }
         return host.innerHTML
       }
+
+      /** 预览区六张卡：全部走真实渲染管线（内容对象 → renderPersonaContent），不手写卡片。 */
+      const PREVIEW_CARD_SPECS = [
+        { id: 'conclusion', title: '结论' },
+        { id: 'explain', title: '讲解' },
+        { id: 'suggestion', title: '建议' },
+        { id: 'risk', title: '风险' },
+        { id: 'short', title: '短答' },
+        { id: 'table', title: '表格', wide: true },
+        { id: 'code', title: '代码', wide: true },
+      ]
+      const PREVIEW_CARD_SELECTOR = {
+        conclusion: '.dss-card-conclusion',
+        explain: '.dss-card-explain',
+        suggestion: '.dss-card-next',
+        risk: '.dss-card-risk',
+        short: '.dss-card-short',
+        table: '.dss-table-wrap',
+        code: '.dss-code',
+      }
+      const previewCardContent = (id, depth = 'general', styleSample = '') => {
+        if (id === 'conclusion') return { version: 1, kind: 'normal', conclusion: { lead: styleSample || '能上，分两步走。', body: '灰度一周；回滚没验收，不动自动更新。' }, suggestions: [], risk: '' }
+        if (id === 'explain') {
+          const explanation = depth === 'beginner'
+            ? { analogy: '像试水温：先用手背试，再决定要不要下水。', example: '先拿一个现网账号跑灰度。' }
+            : depth === 'expert'
+              ? { example: '现网账号跑 5 分钟灰度，盯错误率与回滚点。' }
+              : { analogy: '像试水温：先用手背试。' }
+          return { version: 1, kind: 'normal', conclusion: { lead: '能上，分两步走。' }, explanation, suggestions: [], risk: '' }
+        }
+        if (id === 'suggestion') return { version: 1, kind: 'normal', conclusion: { lead: '能上，分两步走。' }, suggestions: ['跑通一条真实链路。', '验收失败 / 回滚边界。'], risk: '' }
+        if (id === 'risk') return { version: 1, kind: 'normal', conclusion: { lead: '能上，分两步走。' }, suggestions: [], risk: '自动更新跳过确认；回滚未演练。' }
+        if (id === 'short') return { version: 1, kind: 'short', text: '收到，灰阶主题已按宿主配色对齐。' }
+        if (id === 'table') return { version: 1, kind: 'table', conclusion: { lead: '两条主线，先看验收状态：' }, suggestions: [], risk: '', table: { head: ['检查项', '状态', '说明'], rows: [['测试', '✅ 通过', '127/127'], ['发布', '⚠ 待做', '等 Boss 点头']] } }
+        return null
+      }
+      const previewCardCache = new Map()
+      const previewCardMarkup = (id, depth = 'general', styleSample = '') => {
+        const cacheKey = id + '|' + depth + '|' + styleSample
+        const cached = previewCardCache.get(cacheKey)
+        if (cached !== undefined) return cached
+        const doc = typeof document !== 'undefined' ? document : null
+        if (!doc || typeof doc.createElement !== 'function') return ''
+        try {
+          const host = doc.createElement('div')
+          host.setAttribute('data-chat-flow-kind', 'assistant-step')
+          host.setAttribute('data-chat-node-key', 'preview-' + id)
+          host.setAttribute('data-chat-turn', '0')
+          const markdown = doc.createElement('div')
+          markdown.className = '_markdown_preview'
+          host.appendChild(markdown)
+          const cardConfig = { enabled: true, headEnabled: false, name: '', signature: '', avatar: '', prefix: '', suffix: '' }
+          if (id === 'code') {
+            markdown.innerHTML = '<div class="md-code-block"><div class="bannerWrap"><div data-code-block-banner><span class="_heading_preview">tone-loader.js</span><div class="_actions_preview"></div></div></div><div data-code-block-content><pre>' + escapeHtml(PREVIEW_CODE.join(String.fromCharCode(10))) + '</pre></div></div>'
+            renderPersonaMarkdown(markdown, cardConfig, host)
+            decorateStructured(markdown)
+          } else {
+            const content = previewCardContent(id, depth, styleSample)
+            if (!content) return ''
+            renderPersonaContent(markdown, content, cardConfig)
+          }
+          for (const node of [...(markdown.querySelectorAll?.('.dss-reply-copy, .dss-card-copy, .dss-table-copy') ?? [])]) node.remove()
+          const target = markdown.querySelector?.(PREVIEW_CARD_SELECTOR[id] ?? '')
+          const html = target ? String(target.outerHTML ?? target.innerHTML ?? '') : String(markdown.innerHTML ?? '')
+          previewCardCache.set(cacheKey, html)
+          return html
+        } catch {
+          return ''
+        }
+      }
+
       const useEffect = typeof react.useEffect === 'function' ? react.useEffect : () => {}
 
-      const PersonaEditor = ({ state, setField, mutateFields, readFields, tabGuard }) => {
+      const PersonaEditor = ({ state, setField, mutateFields, readFields, tabGuard, onPresetChange }) => {
         const initialRaw = String(fieldValue(state.value, { field: 'persona', fallback: PERSONA_WHALE_JSON }) ?? '')
         const initialParsed = parseToneJson(initialRaw)
         const [doc, setDoc] = react.useState(initialParsed.ok ? initialParsed.doc : defaultTone())
@@ -3047,10 +3465,16 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
         const [notice, setNotice] = react.useState('')
         const [open, setOpen] = react.useState(false)
         const [emojiFor, setEmojiFor] = react.useState(null)
-        const [sample, setSample] = react.useState('normal')
+        // 身份头是独立子开关；旧 profile 没有该字段时按开启处理。
+        const [headEnabled, setHeadEnabled] = react.useState(fieldValue(state.value, { field: HEAD_FIELD, fallback: true }) !== false)
+        const [innerOs, setInnerOs] = react.useState(fieldValue(state.value, { field: INNER_OS_FIELD, fallback: true }) === true)
+        const headFieldSupported = hasConfigField(state.value, HEAD_FIELD)
+        const innerOsSupported = hasConfigField(state.value, INNER_OS_FIELD)
         const readonly = state.writable === false
         const busy = status === 'saving'
         const formLocked = readonly || busy
+        // 身份头关闭 / 人格关闭时，头像名字签名一起锁住（仍保留在页面上，可重新打开）。
+        const headLocked = formLocked || !enabled || !headEnabled
         const dirty = ['dirty', 'draftOff', 'failed'].includes(status)
         const canSave = !readonly && !busy && dirty
         const confirmDirty = () => !dirty || typeof window === 'undefined' || typeof window.confirm !== 'function' || window.confirm('有未保存修改，确认丢弃？')
@@ -3116,6 +3540,8 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
           setSignature(DEFAULT_PROFILE_SIGNATURE)
           setAvatar('')
           setEnabled(false)
+          setHeadEnabled(false)
+          setInnerOs(true)
           setStatus('draftOff')
           setError('')
           setNotice('已恢复默认模板')
@@ -3179,17 +3605,6 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
             })
           } catch {}
         }
-        const handlePreviewClick = async (event) => {
-          const button = event.target?.closest?.('[data-dsh-structured-copy]')
-          if (!button) return
-          const code = button.closest?.('.dss-code')
-          const text = code?.querySelector?.('pre')?.textContent ?? ''
-          try {
-            if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) await navigator.clipboard.writeText(text)
-          } catch {}
-          button.setAttribute('data-copied', '1')
-          try { setTimeout(() => button.removeAttribute('data-copied'), 1200) } catch {}
-        }
         useEffect(() => {
           if (typeof document === 'undefined' || (!open && emojiFor === null)) return
           const onDocumentClick = (event) => {
@@ -3231,10 +3646,12 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
           const writes = [
             ['persona', nextRaw],
             ['personaEnabled', enabled],
+            ...(headFieldSupported ? [['personaHeadEnabled', enabled && headEnabled]] : []),
             ['personaRevision', nextRevision],
             ['personaName', name],
             ['personaSignature', signature],
             ['personaAvatar', avatar],
+            ...(innerOsSupported ? [['personaInnerOsEnabled', innerOs]] : []),
           ]
           const finishSaved = () => {
             setDoc(parsed.doc)
@@ -3267,6 +3684,8 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
             const mismatched = []
             if (!current || current.persona !== nextRaw) mismatched.push('persona')
             if (!current || current.personaEnabled !== enabled) mismatched.push('personaEnabled')
+            if (headFieldSupported && (!current || current.personaHeadEnabled !== (enabled && headEnabled))) mismatched.push('personaHeadEnabled')
+            if (innerOsSupported && (!current || current.personaInnerOsEnabled !== innerOs)) mismatched.push('personaInnerOsEnabled')
             if (!current || current.personaRevision !== nextRevision) mismatched.push('personaRevision')
             if (!current || current.personaName !== name) mismatched.push('personaName')
             if (!current || current.personaSignature !== signature) mismatched.push('personaSignature')
@@ -3287,16 +3706,12 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
             setError(rollbackErrors.length ? '回滚失败，profile 可能半保存：' + base + '；' + rollbackErrors.join('；') : base)
           }
         }
-        const variant = previewVariant(String(doc.style ?? ''))
         const statusText = error || notice || statusLabels[status] || ''
         const profileAvatar = avatar || DEFAULT_AVATAR
-        const previewMarkup = previewHtml(sample, doc.style, typeof document !== 'undefined' ? document : null, {
-          name,
-          signature,
-          avatar,
-          prefix: doc.prefix,
-          suffix: doc.suffix,
-        })
+        const activePreset = STYLE_PRESETS.find((preset) => preset.style === String(doc.style ?? ''))?.id ?? null
+        const activePresetLabel = STYLE_PRESETS.find((preset) => preset.id === activePreset)?.label ?? '自定义'
+        const activePresetOs = STYLE_PRESETS.find((preset) => preset.id === activePreset)?.os ?? STYLE_PRESETS[0].os
+        const activePresetSample = STYLE_PRESETS.find((preset) => preset.id === activePreset)?.sample ?? '（自定义风格）'
         const profileRows = () => {
           const list = templateList(templates)
           if (list.length === 0) return jsx('div', { className: 'dss-template-empty', children: '模板已全部删除 · 用底部「恢复默认」找回' })
@@ -3335,14 +3750,16 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
             jsxs('div', {
               className: 'dss-section-head',
               children: [
-                jsx('h2', { className: 'dss-section-title', children: '语气风格' }),
+                jsx('h2', { className: 'dss-section-title', children: '人格' }),
                 jsx(ui.Switch, {
                   checked: enabled,
                   disabled: formLocked,
-                  label: '启用语气风格',
+                  label: '人格总开关',
                   onChange: (next) => {
                     if (formLocked) return
                     setEnabled(next)
+                    // 人格关闭 → 身份头自动关闭（设计稿：身份头不可脱离人格单独开）。
+                    if (!next) setHeadEnabled(false)
                     setStatus(next ? 'dirty' : 'draftOff')
                     setError('')
                     setNotice('')
@@ -3350,7 +3767,27 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
                 }),
               ],
             }),
-            jsx('p', { className: 'dss-note', children: '保存后全局生效（新消息使用）；当前正在生成的回合不回溯。' }),
+            jsx('p', { className: 'dss-note', children: '只控制说话风格、称呼与身份头；关闭后仍按多卡输出，只去掉风格和身份头。保存后全局生效（新消息使用）；当前正在生成的回合不回溯。' }),
+            jsxs('div', {
+              className: 'dss-identity',
+              'data-dsh-persona-block': 'head',
+              children: [
+                jsxs('div', {
+                  className: 'dss-identity-row',
+                  children: [
+                    jsx('span', { className: 'dss-inline-hint', children: '身份头 · 只控制头像 / 名字 / 签名；人格关闭时自动关闭' }),
+                    jsx(ui.Switch, {
+                      checked: enabled && headEnabled,
+                      disabled: formLocked || !enabled || !headFieldSupported,
+                      label: '身份头',
+                      onChange: (next) => {
+                        if (formLocked || !enabled) return
+                        setHeadEnabled(next)
+                        markDirty()
+                      },
+                    }),
+                  ],
+                }),
             jsxs('section', {
               className: 'dss-profile',
               children: [
@@ -3358,15 +3795,15 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
                   className: 'dss-profile-avatar',
                   title: '点击更换头像',
                   children: [
-                    jsx('input', { type: 'file', accept: 'image/png,image/jpeg,image/webp', className: 'dss-hidden', disabled: formLocked, onChange: handleAvatar }),
+                    jsx('input', { type: 'file', accept: 'image/png,image/jpeg,image/webp', className: 'dss-hidden', disabled: headLocked, onChange: handleAvatar }),
                     jsx('img', { src: profileAvatar, alt: '头像' }),
                   ],
                 }),
                 jsxs('div', {
                   className: 'dss-profile-info',
                   children: [
-                    jsx('input', { className: 'dss-profile-name', value: name, maxLength: 40, disabled: formLocked, 'aria-label': '显示名', placeholder: '显示名', onChange: (event) => updateProfile('name', event.target.value) }),
-                    jsx('input', { className: 'dss-profile-sig', value: signature, maxLength: 60, disabled: formLocked, 'aria-label': '个性签名', placeholder: '个性签名', onChange: (event) => updateProfile('signature', event.target.value) }),
+                    jsx('input', { className: 'dss-profile-name', value: name, maxLength: 40, disabled: headLocked, 'aria-label': '显示名', placeholder: '显示名', onChange: (event) => updateProfile('name', event.target.value) }),
+                    jsx('input', { className: 'dss-profile-sig', value: signature, maxLength: 60, disabled: headLocked, 'aria-label': '个性签名', placeholder: '个性签名', onChange: (event) => updateProfile('signature', event.target.value) }),
                   ],
                 }),
                 jsxs('div', {
@@ -3394,6 +3831,8 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
                 }),
               ],
             }),
+              ],
+            }),
             jsxs('div', {
               className: 'dss-field-row',
               children: [
@@ -3414,52 +3853,74 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
               ],
             }),
             jsxs('div', {
-              className: 'dss-field',
+              className: 'dss-group',
+              'data-dsh-persona-block': 'style',
               children: [
-                jsxs('div', { className: 'dss-field-label', children: [jsx('label', { htmlFor: 'dss-prefix', children: '开场' }), jsx('span', { className: 'dss-hint', children: '放在最前面 · 可留空' })] }),
+                jsx('div', { className: 'dss-group-title', children: '风格预设' }),
+                jsx('div', {
+                  className: 'dss-chips',
+                  children: [
+                    jsx('span', { className: 'dss-hint', children: '风格 · 点击套用' }),
+                    ...STYLE_PRESETS.map((preset) => jsx('button', {
+                      type: 'button',
+                      className: 'dss-chip-btn' + (activePreset === preset.id ? ' is-selected' : ''),
+                      'aria-pressed': String(activePreset === preset.id),
+                      disabled: formLocked,
+                      onClick: () => {
+                        if (formLocked) return
+                        updateTone('style', preset.style)
+                        onPresetChange?.(preset)
+                      },
+                      children: preset.label,
+                    })),
+                  ],
+                }),
+                jsx('div', { className: 'dss-hint', children: '预设同时套用下方「说话方式」与「内心OS」；风格只描述说话方式，不含深度。' }),
+                jsx('div', { className: 'dss-hint', children: '预设只改语气；称呼/自称始终以输入框为准。' }),
+                jsxs('div', {
+                  className: 'dss-field',
+                  children: [
+                    jsxs('div', { className: 'dss-field-label', children: [jsx('label', { htmlFor: 'dss-style', children: '说话方式' }), jsx('span', { className: 'dss-hint', children: '性格 · 只写说话倾向，不写深度与结构' })] }),
                 jsxs('div', {
                   className: 'dss-control',
                   children: [
-                    jsx('input', { id: 'dss-prefix', className: 'dss-input', value: doc.prefix ?? '', maxLength: 80, disabled: formLocked, onChange: (event) => updateTone('prefix', event.target.value) }),
-                    jsx('button', { type: 'button', className: 'dss-icon-btn', title: '插入表情', onClick: (event) => { event.stopPropagation(); setEmojiFor(emojiFor === 'prefix' ? null : 'prefix') }, children: '☺' }),
-                    emojiFor === 'prefix' ? jsx('div', {
+                    jsx('textarea', { id: 'dss-style', className: 'dss-textarea', value: doc.style ?? '', maxLength: 1200, rows: 1, disabled: formLocked, onChange: (event) => { updateTone('style', event.target.value); onPresetChange?.(null) } }),
+                    jsx('button', { type: 'button', className: 'dss-icon-btn', style: { top: 6, transform: 'none' }, title: '插入表情', 'aria-label': '插入表情', onClick: (event) => { event.stopPropagation(); setEmojiFor(emojiFor === 'style' ? null : 'style') }, children: '☺' }),
+                    emojiFor === 'style' ? jsx('div', {
                       className: 'dss-emoji-panel is-open',
                       'aria-label': '选择表情',
-                      children: EMOJIS.map((emoji) => jsx('button', { type: 'button', onClick: (event) => { event.stopPropagation(); insertEmoji('prefix', emoji) }, children: emoji })),
+                      children: EMOJIS.map((emoji) => jsx('button', { type: 'button', onClick: (event) => { event.stopPropagation(); insertEmoji('style', emoji) }, children: emoji })),
                     }) : null,
                   ],
                 }),
-                jsx('div', { className: 'dss-field-meta', children: jsx('span', { className: 'dss-counter', children: String(doc.prefix ?? '').length + ' / 80' }) }),
-              ],
-            }),
-            jsxs('div', {
-              className: 'dss-field',
-              children: [
-                jsxs('div', { className: 'dss-field-label', children: [jsx('label', { htmlFor: 'dss-style', children: '性格' }), jsx('span', { className: 'dss-hint', children: '只写说话倾向，不写称呼' })] }),
-                jsx('textarea', { id: 'dss-style', className: 'dss-textarea', value: doc.style ?? '', maxLength: 1200, rows: 4, disabled: formLocked, onChange: (event) => updateTone('style', event.target.value) }),
                 jsx('div', { className: 'dss-field-meta', children: jsx('span', { className: 'dss-counter', children: String(doc.style ?? '').length + ' / 1200' }) }),
               ],
             }),
-            jsxs('div', {
-              className: 'dss-field',
-              children: [
-                jsxs('div', { className: 'dss-field-label', children: [jsx('label', { htmlFor: 'dss-suffix', children: '收尾' }), jsx('span', { className: 'dss-hint', children: '放在最后 · 不是总结' })] }),
                 jsxs('div', {
-                  className: 'dss-control',
+                  className: 'dss-field',
                   children: [
-                    jsx('input', { id: 'dss-suffix', className: 'dss-input', value: doc.suffix ?? '', maxLength: 80, disabled: formLocked, onChange: (event) => updateTone('suffix', event.target.value) }),
-                    jsx('button', { type: 'button', className: 'dss-icon-btn', title: '插入表情', onClick: (event) => { event.stopPropagation(); setEmojiFor(emojiFor === 'suffix' ? null : 'suffix') }, children: '☺' }),
-                    emojiFor === 'suffix' ? jsx('div', {
-                      className: 'dss-emoji-panel is-open',
-                      'aria-label': '选择表情',
-                      children: EMOJIS.map((emoji) => jsx('button', { type: 'button', onClick: (event) => { event.stopPropagation(); insertEmoji('suffix', emoji) }, children: emoji })),
-                    }) : null,
+                    jsxs('div', {
+                      className: 'dss-os-row',
+                      children: [
+                        jsxs('div', {
+                          className: 'dss-field-label',
+                          style: { marginBottom: 0 },
+                          children: [
+                            jsx('label', { children: '内心OS' }),
+                            jsx('span', { className: 'dss-hint', children: '跟随当前风格「' + activePresetLabel + '」· 按上一条任务的情绪写，≤30 字；不解释任务、不重复' }),
+                          ],
+                        }),
+                        innerOsSupported
+                          ? jsx(ui.Switch, { checked: innerOs, disabled: formLocked, label: '内心OS', onChange: (next) => { if (formLocked) return; setInnerOs(next); markDirty() } })
+                          : jsx('span', { className: 'dss-hint', children: '服务端未提供该字段' }),
+                      ],
+                    }),
+                    jsx('div', { className: 'dss-os-preview', children: '💭 ' + activePresetOs }),
                   ],
                 }),
-                jsx('div', { className: 'dss-field-meta', children: jsx('span', { className: 'dss-counter', children: String(doc.suffix ?? '').length + ' / 80' }) }),
               ],
             }),
-            jsx('p', { className: 'dss-rules', children: '开场与收尾只在界面展示、复制不带；代码 / 表格等正文保持中性；保存只影响新回复。' }),
+            jsx('p', { className: 'dss-rules', children: '风格预设同时套用说话方式与内心OS；内心OS 由模型按当前风格生成，复制不带；代码 / 表格等正文保持中性；保存只影响新回复。' }),
             jsxs('div', {
               className: 'dss-save',
               children: [
@@ -3473,91 +3934,490 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
                 }),
               ],
             }),
-            jsxs('section', {
-              className: 'dss-preview',
-              children: [
-                jsxs('div', {
-                  className: 'dss-preview-head',
-                  children: [
-                    jsxs('div', {
-                      className: 'dss-preview-title-row',
-                      children: [
-                        jsx('h2', { className: 'dss-preview-title', children: '样式预览' }),
-                        jsx('span', { className: 'dss-preview-note', children: '预览为 PersonaMode 合同样本：身份头、卡外前缀、结论 / 建议 / 风险、收尾；真实回复与预览同源。' }),
-                      ],
-                    }),
-                    jsx('div', {
-                      className: 'dss-preview-tabs-row',
-                      children: jsx('div', {
-                        className: 'dss-preview-tabs',
-                        role: 'tablist',
-                        'aria-label': '预览形态',
-                        children: ['normal', 'table', 'short', 'code'].map((id) => jsx('button', {
-                          type: 'button',
-                          role: 'tab',
-                          className: 'dss-preview-tab',
-                          'aria-selected': String(sample === id),
-                          onClick: () => setSample(id),
-                          children: id === 'normal' ? '普通' : id === 'table' ? '表格' : id === 'short' ? '短答' : '代码',
-                        })),
-                      }),
-                    }),
-                  ],
-                }),
-                jsx('div', {
-                  className: 'dss-chat-card' + (enabled ? '' : ' is-off'),
-                  onClick: handlePreviewClick,
-                  children: jsx('div', { className: 'dss-persona-preview', dangerouslySetInnerHTML: { __html: previewMarkup } }),
-                }),
-              ],
-            }),
           ],
         })
       }
 
-      personaTestApi = { parseToneJson, emptyTone, byteLength, statusLabels, personaUiFlags, PersonaEditor, previewContent, previewHtml, renderPersonaContent }
-
+      const SidebarPanelIcon = (iconProps) => jsx('svg', {
+        width: iconProps?.size ?? 16,
+        height: iconProps?.size ?? 16,
+        viewBox: '0 0 16 16',
+        fill: 'none',
+        stroke: 'currentColor',
+        strokeWidth: 1.4,
+        'aria-hidden': 'true',
+        children: [
+          jsx('rect', { x: 2.5, y: 2.5, width: 11, height: 11, rx: 2.5 }),
+          jsx('path', { d: 'M5 6h6M5 9h6M5 12h3' }),
+        ],
+      })
+      const configFace = () => ({
+        hooks: { structuredConfig: form },
+        setField: (field, value) => {
+          try {
+            return form.set(field, value)
+          } catch (error) {
+            return Promise.reject(error)
+          }
+        },
+        mutateFields: typeof form.mutate === 'function'
+          ? (ops, revision) => form.mutate(ops, revision)
+          : undefined,
+        readFields: typeof form.getSnapshot === 'function'
+          ? () => form.getSnapshot()
+          : undefined,
+      })
+      /** 侧边栏双入口的注册结果：宿主不声明 slot 时记录失败，退化到「只留详情页 / 只留入口」。 */
+      const sidebarRegistration = { entry: null, panel: null, failed: [] }
+      const registerSlot = (name, options, component) => {
+        if (typeof child?.slots?.inject !== 'function' || typeof child?.slots?.register !== 'function') {
+          sidebarRegistration.failed.push(name)
+          return null
+        }
+        try {
+          return child.slots.inject(name, () => child.slots.register(options, component))
+        } catch (error) {
+          sidebarRegistration.failed.push(name)
+          try { console.info('[dsh-structured] slot unavailable: ' + name + ' · ' + String(error?.message ?? error)) } catch {}
+          return null
+        }
+      }
+      let svDragHue = null
       const StructuredConfigCard = (props) => {
-        const [tab, setTab] = react.useState('structured')
+        if (props.view !== undefined && props.view !== 'page' && props.view !== 'panel') return null
         const personaGuard = {}
-        if (props.view !== undefined && props.view !== 'page') return null
         const read = props.useStructuredConfig ?? props.structuredConfig
         const state = typeof read === 'function' ? read((snapshot) => snapshot) : null
         if (!state || state.status !== 'ready' || typeof state.value !== 'object' || state.value === null) {
           return jsx('p', { style: noteStyle, children: '插件未加载或配置暂不可用。' })
         }
+        const value = state.value
+        const writable = state.writable !== false
         const setField = typeof props.setField === 'function' ? props.setField : () => {}
         const mutateFields = typeof props.mutateFields === 'function' ? props.mutateFields : null
         const readFields = typeof props.readFields === 'function' ? props.readFields : null
-        const tabs = [
-          ['structured', '结构化输出'],
-          ['persona', '语气风格'],
-        ]
-        const switchTab = (next) => {
-          if (next === 'structured' && tab === 'persona' && typeof personaGuard.confirm === 'function' && !personaGuard.confirm()) return
-          setTab(next)
+        const masterField = hasConfigField(value, MASTER_FIELD) ? MASTER_FIELD : MASTER_FALLBACK_FIELD
+        const masterOn = fieldValue(value, { field: masterField, fallback: true }) !== false
+        const theme = String(fieldValue(value, { field: 'theme', fallback: 'deepseek' }))
+        const depth = String(fieldValue(value, { field: 'contentDepth', fallback: 'general' }))
+        const personaOn = fieldValue(value, { field: 'personaEnabled', fallback: true }) === true
+        const headOn = fieldValue(value, { field: HEAD_FIELD, fallback: true }) !== false
+        const [previewPreset, setPreviewPreset] = react.useState(null)
+        const [palette, setPaletteState] = react.useState(() => paletteFromRaw(fieldValue(value, { field: 'themeCustom', fallback: '' })).palette)
+        const [picker, setPicker] = react.useState(null)
+        const [hexDraft, setHexDraft] = react.useState('')
+        const write = (field, next) => {
+          if (!writable) return
+          try { setField(field, next) } catch { /* 宿主拒绝时保留界面状态 */ }
         }
-        return jsxs('div', {
-          'data-dsh-structured-config': '1',
+        const syncPalette = (next) => {
+          setPaletteState(next)
+          previewCustomTheme(next)
+        }
+        const commitPalette = (nextPalette) => {
+          if (!writable) return
+          const fixed = autoFixPalette(nextPalette)
+          syncPalette(fixed)
+          write('themeCustom', paletteJson(fixed))
+          if (theme !== CUSTOM_THEME) write('theme', CUSTOM_THEME)
+        }
+        const selectTheme = (id) => {
+          if (!writable) return
+          write('theme', id)
+          if (id !== CUSTOM_THEME) setPicker(null)
+          if (id === CUSTOM_THEME) {
+            const fixed = autoFixPalette(palette)
+            syncPalette(fixed)
+            write('themeCustom', paletteJson(fixed))
+          }
+        }
+        const openPicker = (key) => {
+          if (!writable) return
+          setPicker(picker === key ? null : key)
+          setHexDraft(normalizeHex(palette[key], DEFAULT_PALETTE[key]))
+        }
+        const updateColor = (key, hex) => {
+          if (!writable) return
+          const next = { ...palette, [key]: normalizeHex(hex, palette[key]) }
+          syncPalette(next)
+          setHexDraft(next[key])
+        }
+        const commitColor = (key, hex) => {
+          if (!writable) return
+          const fixed = autoFixPalette({ ...palette, [key]: normalizeHex(hex, palette[key]) })
+          syncPalette(fixed)
+          setHexDraft(fixed[key])
+          write('themeCustom', paletteJson(fixed))
+          if (theme !== CUSTOM_THEME) write('theme', CUSTOM_THEME)
+        }
+        /** 确认：提交当前草稿颜色并关闭浮层；HEX 非法时提交调色板里已有的值。 */
+        const confirmPicker = () => {
+          if (!picker) return
+          const next = parseHexColor(hexDraft) ? hexDraft : palette[picker]
+          commitColor(picker, next)
+          setPicker(null)
+        }
+        /** 取消：回到已保存的三色（丢弃未提交的实时预览）并关闭。 */
+        const cancelPicker = () => {
+          const saved = paletteFromRaw(fieldValue(value, { field: 'themeCustom', fallback: '' })).palette
+          setPaletteState(saved)
+          previewCustomTheme(saved)
+          setHexDraft('')
+          setPicker(null)
+        }
+        const pointerRect = (event) => {
+          const target = event?.currentTarget
+          const rect = typeof target?.getBoundingClientRect === 'function' ? target.getBoundingClientRect() : null
+          return rect && Number(rect.width) > 0 ? rect : { left: 0, top: 0, width: 240, height: 150 }
+        }
+        const pickSv = (event, options = {}) => {
+          if (!picker || !writable) return
+          const rect = pointerRect(event)
+          const x = Math.max(0, Math.min(rect.width, (Number(event?.clientX) || 0) - rect.left))
+          const y = Math.max(0, Math.min(rect.height, (Number(event?.clientY) || 0) - rect.top))
+          const hsv = rgbToHsv(parseHexColor(palette[picker]) ?? { r: 0, g: 0, b: 0 })
+          const hue = Number.isFinite(svDragHue) ? svDragHue : hsv.h
+          const hex = hexFromRgb(hsvToRgb(hue, (x / rect.width) * 100, (1 - y / rect.height) * 100))
+          if (options.commit) commitColor(picker, hex)
+          else updateColor(picker, hex)
+        }
+        const pickHue = (event, options = {}) => {
+          if (!picker || !writable) return
+          const rect = pointerRect(event)
+          const x = Math.max(0, Math.min(rect.width, (Number(event?.clientX) || 0) - rect.left))
+          const hsv = rgbToHsv(parseHexColor(palette[picker]) ?? { r: 0, g: 0, b: 0 })
+          const hex = hexFromRgb(hsvToRgb((x / rect.width) * 360, hsv.s, hsv.v))
+          if (options.commit) commitColor(picker, hex)
+          else updateColor(picker, hex)
+        }
+        const useEyedropper = async () => {
+          if (!picker || !writable) return
+          const EyeDropperCtor = typeof window !== 'undefined' ? window.EyeDropper : undefined
+          if (typeof EyeDropperCtor !== 'function') return
+          try {
+            const result = await new EyeDropperCtor().open()
+            commitColor(picker, normalizeHex(result?.sRGBHex ?? palette[picker], palette[picker]))
+          } catch {
+            // 用户取消 / 宿主拒绝：保持当前颜色。
+          }
+        }
+        const validation = paletteValidation(palette)
+        const activeColor = picker ? normalizeHex(palette[picker], DEFAULT_PALETTE[picker]) : ''
+        const activeHsv = rgbToHsv(parseHexColor(activeColor) ?? { r: 0, g: 0, b: 0 })
+        const statusHead = personaOn && headOn ? '已开' : '已关'
+        const header = jsxs('header', {
+          className: 'dss-page-head',
           children: [
-            state.writable === false
-              ? jsx('p', { style: noteStyle, children: '当前配置被更高层覆盖（home patch / CLI overlay），此处只读。' })
-              : null,
-            jsx('div', { role: 'tablist', style: { display: 'flex', gap: '18px', borderBottom: '1px solid var(--dsw-alias-border-l2, rgba(127,127,127,.18))', marginBottom: '12px' }, children: tabs.map(([id, label]) => jsx('button', {
-              type: 'button',
-              role: 'tab',
-              'aria-selected': tab === id,
-              onClick: () => switchTab(id),
-              style: { ...tabButtonStyle, ...(tab === id ? tabActiveStyle : {}) },
-              children: label,
-            })) }),
-            jsx('div', { style: { display: tab === 'structured' ? 'block' : 'none' }, children: jsxs('div', { children: [
-              jsx('div', { children: CONFIG_FIELDS.map((spec) => renderRow(state, setField, spec)) }),
-              jsx('p', { style: noteStyle, children: '会话级开关请用 /structured on | off（按会话生效，不写入这里）。' }),
-            ] }) }),
-            jsx('div', { style: { display: tab === 'persona' ? 'block' : 'none' }, children: jsx(PersonaEditor, { state, setField, mutateFields, readFields, tabGuard: personaGuard }) }),
+            jsxs('div', {
+              className: 'dss-page-heading',
+              children: [
+                jsx('div', { className: 'dss-eyebrow', children: 'DSH 插件 · 设置' }),
+                jsx('h1', { className: 'dss-page-title', children: '结构化输出' }),
+                jsx('p', { className: 'dss-page-sub', children: '卡片始终按多卡输出；人格与深度只改呈现。' }),
+                jsxs('div', {
+                  className: 'dss-status-line',
+                  'data-dss-status': '1',
+                  children: [
+                    jsx('span', { className: 'dss-status-dot' + (masterOn ? '' : ' is-off') }),
+                    jsx('span', { children: '插件 ' + (masterOn ? '已开启' : '已关闭') + ' · 人格 ' + (personaOn ? '已开启' : '已关闭') + ' · 身份头 ' + statusHead + ' · 深度 ' + (DEPTH_LABELS[depth] ?? '普通') }),
+                  ],
+                }),
+              ],
+            }),
+            jsx(ui.Switch, {
+              checked: masterOn,
+              disabled: !writable,
+              label: '插件总开关',
+              onChange: (next) => write(masterField, next === true),
+            }),
           ],
         })
+        const popover = picker ? jsxs('div', {
+          className: 'dss-color-pop',
+          'data-dss-picker': picker,
+          children: [
+            jsxs('div', {
+              className: 'dss-cp-head',
+              children: [
+                jsx('b', { children: PALETTE_LABELS[picker] }),
+                jsx('span', { children: '当前 ' + activeColor }),
+                jsx('button', { type: 'button', className: 'dss-link-btn', disabled: !writable, onClick: () => commitPalette({ ...palette, [picker]: DEFAULT_PALETTE[picker] }), children: '恢复默认' }),
+              ],
+            }),
+            jsx('div', {
+              className: 'dss-sv',
+              'data-dss-sv': picker,
+              role: 'slider',
+              'aria-label': PALETTE_LABELS[picker] + ' 饱和度与明度',
+              style: { background: 'linear-gradient(to top,#000,transparent),linear-gradient(to right,#fff,hsl(' + Math.round(activeHsv.h) + ' 100% 50%))' },
+              onPointerDown: (event) => { svDragHue = activeHsv.h; event.currentTarget.setPointerCapture?.(event.pointerId); pickSv(event) },
+              onPointerMove: (event) => { if (event?.buttons) pickSv(event) },
+              onPointerUp: (event) => { pickSv(event, { commit: true }); svDragHue = null; event.currentTarget.releasePointerCapture?.(event.pointerId) },
+              children: jsx('i', { className: 'dss-sv-dot', style: { left: activeHsv.s + '%', top: (100 - activeHsv.v) + '%' } }),
+            }),
+            jsx('div', {
+              className: 'dss-hue',
+              'data-dss-hue': picker,
+              role: 'slider',
+              'aria-label': '色相',
+              onPointerDown: (event) => { event.currentTarget.setPointerCapture?.(event.pointerId); pickHue(event) },
+              onPointerMove: (event) => { if (event?.buttons) pickHue(event) },
+              onPointerUp: (event) => { pickHue(event, { commit: true }); svDragHue = null; event.currentTarget.releasePointerCapture?.(event.pointerId) },
+              children: jsx('i', { className: 'dss-hue-dot', style: { left: (activeHsv.h / 360) * 100 + '%' } }),
+            }),
+            jsxs('div', {
+              className: 'dss-cp-row',
+              children: [
+                jsx('input', {
+                  id: 'dss-hex-' + picker,
+                  value: hexDraft,
+                  'aria-label': 'HEX',
+                  maxLength: 7,
+                  disabled: !writable,
+                  onChange: (event) => {
+                    const next = event.target.value
+                    setHexDraft(next)
+                    if (parseHexColor(next)) updateColor(picker, next)
+                  },
+                  onBlur: () => { if (parseHexColor(hexDraft)) commitColor(picker, hexDraft); else setHexDraft(activeColor) },
+                  onKeyDown: (event) => { if (event.key === 'Enter' && parseHexColor(hexDraft)) commitColor(picker, hexDraft) },
+                }),
+                jsx('button', {
+                  type: 'button',
+                  className: 'dss-eyedropper',
+                  disabled: typeof window === 'undefined' || typeof window.EyeDropper !== 'function',
+                  title: typeof window !== 'undefined' && typeof window.EyeDropper === 'function' ? '吸管取色' : '宿主不支持吸管',
+                  onClick: useEyedropper,
+                  children: '吸管',
+                }),
+              ],
+            }),
+            jsxs('div', {
+              className: 'dss-cp-preview',
+              children: [
+                jsxs('span', { className: 'dss-cp-card', style: { borderLeftColor: palette.primary }, children: [jsx('i', { children: '结论' }), jsx('b', { children: '能上，分两步走。' })] }),
+                jsxs('span', { className: 'dss-cp-card', style: { borderLeftColor: palette.secondary }, children: [jsx('i', { children: '建议' }), jsx('b', { children: '先跑一条链路。' })] }),
+              ],
+            }),
+            jsxs('div', {
+              className: 'dss-cp-foot',
+              children: [
+                jsx('span', { className: validation.contrast.every((item) => item.ok) ? 'ok' : '', children: '对比度 ' + validation.contrast.map((item) => item.ratio.toFixed(1) + ':1').join(' / ') + ' · ' + (validation.contrast.every((item) => item.ok) ? '通过' : '自动修正') }),
+                jsx('span', { children: validation.hue.every((item) => item.ok) ? '色相区分 ≥25°' : '色相接近，状态色会拉开' }),
+              ],
+            }),
+            jsxs('div', {
+              className: 'dss-cp-actions',
+              children: [
+                jsx('button', { type: 'button', className: 'dss-btn', onClick: cancelPicker, children: '取消' }),
+                jsx('button', { type: 'button', className: 'dss-btn dss-btn-primary', onClick: confirmPicker, children: '确认' }),
+              ],
+            }),
+          ],
+        }) : null
+        const appearance = jsxs('section', {
+          className: 'dss-page-section',
+          'data-dss-section': 'appearance',
+          children: [
+            jsxs('div', { className: 'dss-section-head', children: [
+              jsxs('h2', { className: 'dss-section-title', children: ['外观', jsx('span', { className: 'dss-chip is-ok', children: '立即生效' })] }),
+            ] }),
+            jsx('p', { className: 'dss-section-desc', children: '主题预设或自定义三色；自定义即时生效，对比度自动修正。' }),
+            jsx('div', {
+              className: 'dss-theme-tiles',
+              children: THEME_PRESETS.map((preset) => jsxs('button', {
+                type: 'button',
+                id: 'dss-theme-tile-' + preset.id,
+                className: 'dss-theme-tile' + (theme === preset.id ? ' is-selected' : ''),
+                'aria-pressed': String(theme === preset.id),
+                disabled: !writable,
+                onClick: () => selectTheme(preset.id),
+                children: [
+                  jsx('span', { className: 'dss-theme-mini', style: { borderLeftColor: preset.accent, background: 'linear-gradient(135deg,' + rgbaOf(preset.accent, 0.16) + ', var(--dss-paper) 72%)' } }),
+                  jsxs('span', { className: 'dss-theme-name', children: [preset.label, theme === preset.id ? jsx('em', { children: '当前' }) : null] }),
+                ],
+              })),
+            }),
+            jsxs('div', {
+              className: 'dss-theme-tiles dss-custom-row',
+              children: [
+                jsxs('button', {
+                  type: 'button',
+                  id: 'dss-theme-tile-' + CUSTOM_THEME,
+                  className: 'dss-theme-tile' + (theme === CUSTOM_THEME ? ' is-selected' : ''),
+                  'aria-pressed': String(theme === CUSTOM_THEME),
+                  disabled: !writable,
+                  onClick: () => selectTheme(CUSTOM_THEME),
+                  children: [
+                    jsx('span', { className: 'dss-theme-mini', style: { borderLeftColor: palette.primary, background: 'linear-gradient(135deg,' + rgbaOf(palette.primary, 0.18) + ',' + rgbaOf(palette.secondary, 0.1) + ' 55%, var(--dss-paper) 100%)' } }),
+                    jsxs('span', { className: 'dss-theme-name', children: [CUSTOM_THEME_PRESET.label, theme === CUSTOM_THEME ? jsx('em', { children: '当前' }) : null] }),
+                  ],
+                }),
+                jsxs('div', {
+                  className: 'dss-colors' + (theme === CUSTOM_THEME ? '' : ' is-disabled'),
+                  children: [
+                    ...PALETTE_KEYS.map((key) => jsxs('div', {
+                      className: 'dss-color-item',
+                      children: [
+                        jsx('span', { className: 'dss-color-label', children: PALETTE_LABELS[key] }),
+                        jsx('button', {
+                          type: 'button',
+                          id: 'dss-color-' + key,
+                          className: 'dss-color-swatch',
+                          'aria-label': PALETTE_LABELS[key] + ' ' + palette[key],
+                          style: { background: theme === CUSTOM_THEME ? palette[key] : 'var(--dss-line-strong)' },
+                          disabled: !writable || theme !== CUSTOM_THEME,
+                          onClick: () => openPicker(key),
+                        }),
+                      ],
+                    })),
+                    jsx('button', { type: 'button', className: 'dss-link-btn', disabled: !writable || theme !== CUSTOM_THEME, onClick: () => commitPalette(DEFAULT_PALETTE), children: '恢复默认三色' }),
+                    theme === CUSTOM_THEME ? jsx('p', { className: 'dss-hint', style: { flexBasis: '100%', margin: '4px 0 0' }, children: '软底透明度 10–14%、饱和上限 65% 由系统强制；切回预设会保留上次三色。' }) : null,
+                  ],
+                }),
+              ],
+            }),
+            theme === CUSTOM_THEME ? popover : null,
+          ],
+        })
+        const behaviorRow = (spec, control) => jsxs('div', {
+          className: 'dss-behavior-row',
+          children: [
+            jsxs('div', {
+              className: 'dss-behavior-text',
+              children: [
+                jsx('div', { className: 'dss-behavior-label', children: spec.label }),
+                jsx('div', { className: 'dss-hint', children: spec.hint }),
+              ],
+            }),
+            control,
+          ],
+        })
+        const behavior = jsxs('section', {
+          className: 'dss-page-section',
+          'data-dss-section': 'behavior',
+          children: [
+            jsxs('div', { className: 'dss-section-head', children: [
+              jsxs('h2', { className: 'dss-section-title', children: ['行为', jsx('span', { className: 'dss-chip is-ok', children: '立即生效' })] }),
+            ] }),
+            jsx('p', { className: 'dss-section-desc', children: '注入与联动开关；与外观、人格、深度互不影响。' }),
+            behaviorRow({ label: '新会话默认开启', hint: '新会话默认注入结构化提示词' }, jsx(ui.Switch, {
+              checked: fieldValue(value, { field: 'defaultEnabled', fallback: true }) !== false,
+              disabled: !writable,
+              label: '新会话默认开启',
+              onChange: (next) => write('defaultEnabled', next === true),
+            })),
+            behaviorRow({ label: '子代理注入', hint: '子代理会话也注入（其产出不直接面向用户）' }, jsx(ui.Switch, {
+              checked: fieldValue(value, { field: 'includeSubagents', fallback: false }) === true,
+              disabled: !writable,
+              label: '子代理注入',
+              onChange: (next) => write('includeSubagents', next === true),
+            })),
+            behaviorRow({ label: 'GenUI 联动', hint: 'auto：检测到 dsh-genui 才追加 dsh-ui 路由规则' }, jsx(ui.SegmentedControl, {
+              id: 'dsh-structured-genui',
+              value: String(fieldValue(value, { field: 'genui', fallback: 'auto' })),
+              options: [['auto', 'auto'], ['on', 'on'], ['off', 'off']].map(([option, label]) => ({ value: option, label })),
+              disabled: !writable,
+              label: 'GenUI 联动',
+              onChange: (next) => write('genui', next),
+            })),
+          ],
+        })
+        const depthSection = jsxs('section', {
+          className: 'dss-page-section',
+          'data-dss-section': 'depth',
+          children: [
+            jsxs('div', { className: 'dss-section-head', children: [
+              jsxs('h2', { className: 'dss-section-title', children: ['输出深度', jsx('span', { className: 'dss-chip is-ok', children: '立即生效' })] }),
+            ] }),
+            jsx('p', { className: 'dss-section-desc', children: '只改变解释量，不改卡片结构、编号与事实；分层参考 eli5 skill。' }),
+            jsx('div', {
+              className: 'dss-depth-tiles',
+              children: DEPTH_OPTIONS.map((option) => jsxs('button', {
+                type: 'button',
+                id: 'dss-depth-' + option.value,
+                className: 'dss-depth-tile' + (depth === option.value ? ' is-selected' : ''),
+                'aria-pressed': String(depth === option.value),
+                disabled: !writable,
+                onClick: () => write('contentDepth', option.value),
+                children: [
+                  jsxs('span', { className: 'dss-depth-name', children: [option.label, depth === option.value ? jsx('em', { children: '当前' }) : null] }),
+                  jsx('span', { className: 'dss-depth-hint', children: option.hint }),
+                ],
+              })),
+            }),
+            jsx('p', { className: 'dss-hint', style: { marginTop: '10px' }, children: "三档始终有一档，不提供关闭；默认普通。受众分层参考 eli5 skill（Explain Like I'm 5）：入门按 5–15 岁 / 非技术读者校准，普通为默认，专业面向工程师 / 专家。入门不等于幼稚化：不卖萌、不省略边界。" }),
+          ],
+        })
+        const previewToneParsed = parseToneJson(String(fieldValue(value, { field: 'persona', fallback: '' })))
+        const previewStyleText = previewToneParsed.ok ? previewToneParsed.doc.style : ''
+        const savedPreset = STYLE_PRESETS.find((item) => item.style === previewStyleText)
+        const effectivePreviewPreset = previewPreset ?? savedPreset
+        const previewOsSample = effectivePreviewPreset?.os ?? STYLE_PRESETS[0].os
+        const previewStyleSample = effectivePreviewPreset?.sample ?? ''
+        const previewPersonaOn = fieldValue(value, { field: 'personaEnabled', fallback: true }) === true
+        const previewSection = jsxs('section', {
+          className: 'dss-page-section',
+          'data-dss-section': 'preview',
+          children: [
+            jsxs('div', { className: 'dss-section-head', children: [
+              jsxs('h2', { className: 'dss-section-title', children: ['预览', jsx('span', { className: 'dss-chip', children: '全部卡片' }), jsx('span', { className: 'dss-chip', children: '深度 · ' + (DEPTH_LABELS[depth] ?? '普通') })] }),
+            ] }),
+            jsx('p', { className: 'dss-section-desc', children: '结论 / 讲解 / 建议 / 风险 / 短答 / 表格 / 代码一次看全；深度立即生效，人格 / 身份头保存后更新。' }),
+            previewPersonaOn ? jsxs('div', { className: 'dss-preview-persona dss-scope', children: [
+              jsx('b', { children: String(fieldValue(value, { field: 'personaName', fallback: '蓝色大肥鱼' })) }),
+              jsx('span', { children: String(fieldValue(value, { field: 'personaSignature', fallback: '主人，再来一碗白米饭！！~' })) }),
+              jsx('em', { children: '💭 ' + previewOsSample }),
+            ] }) : null,
+            jsx('div', {
+              className: 'dss-preview-grid',
+              children: PREVIEW_CARD_SPECS.map((spec) => jsxs('div', {
+                className: 'dss-preview-cell' + (spec.wide ? ' is-wide' : ''),
+                children: [
+                  jsx('div', { className: 'dss-preview-cell-head', children: spec.title }),
+                  jsx('div', { className: 'dss-preview-scope dss-scope', dangerouslySetInnerHTML: { __html: previewCardMarkup(spec.id, depth, previewStyleSample) } }),
+                ],
+              })),
+            }),
+          ],
+        })
+        return jsxs('div', {
+          'data-dsh-structured-config': '1',
+          className: 'dss-scope dss-config-page',
+          children: [
+            writable ? null : jsx('p', { style: noteStyle, children: '当前配置被更高层覆盖（home patch / CLI overlay），此处只读。' }),
+            header,
+            appearance,
+            behavior,
+            jsx('section', { className: 'dss-page-section', 'data-dss-section': 'persona', children: jsx(PersonaEditor, { state, setField, mutateFields, readFields, tabGuard: personaGuard, onPresetChange: setPreviewPreset }) }),
+            depthSection,
+            previewSection,
+          ],
+        })
+      }
+
+      // 测试出口放在组件声明之后：对象字面量会立即求值，不能引用 TDZ 里的 const。
+      personaTestApi = {
+        parseToneJson,
+        emptyTone,
+        byteLength,
+        statusLabels,
+        personaUiFlags,
+        PersonaEditor,
+        StructuredConfigCard,
+        previewContent,
+        previewHtml,
+        previewCards: PREVIEW_CARD_SPECS.map((spec) => spec.id),
+        previewCardMarkup,
+        renderPersonaContent,
+        sidebarRegistration,
+        SidebarPanelIcon,
+        DEPTH_OPTIONS,
+        THEME_PRESETS,
+        CUSTOM_THEME_PRESET,
+        STYLE_PRESETS,
+        DEFAULT_PALETTE,
+        palette: { parseHexColor, hexFromRgb, rgbToHsv, hsvToRgb, contrastRatio, hueDistance, paletteFromRaw, paletteJson, paletteValidation, autoFixPalette, customThemeCss },
       }
 
       child.effect?.(
@@ -3568,31 +4428,31 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
             const offSlot = child.slots.inject(BUNDLE_CONFIG_SLOT, () =>
               child.slots.register({
                 name: BUNDLE_CONFIG_SLOT,
-                key: 'dsh-structured',
-                inject: () => ({
-                  hooks: { structuredConfig: form },
-                  setField: (field, value) => {
-                    try {
-                      return form.set(field, value)
-                    } catch (error) {
-                      return Promise.reject(error)
-                    }
-                  },
-                  mutateFields: typeof form.mutate === 'function'
-                    ? (ops, revision) => form.mutate(ops, revision)
-                    : undefined,
-                  readFields: typeof form.getSnapshot === 'function'
-                    ? () => form.getSnapshot()
-                    : undefined,
-                }),
+                key: SIDEBAR_PANEL_ID,
+                inject: configFace,
               }, StructuredConfigCard),
             )
+            // 侧边栏双入口：入口行（sidebar.panellist）+ 同 key 的 main 面板；
+            // 两个组件都拿到同一份 configFace，保存与预览共用同一份 form 状态。
+            sidebarRegistration.entry = registerSlot(SIDEBAR_ENTRY_SLOT, {
+              name: SIDEBAR_ENTRY_SLOT,
+              id: SIDEBAR_PANEL_ID,
+              order: 50,
+              label: () => '结构化输出',
+            }, SidebarPanelIcon)
+            sidebarRegistration.panel = registerSlot(MAIN_PANEL_SLOT, {
+              name: MAIN_PANEL_SLOT,
+              key: SIDEBAR_PANEL_ID,
+              inject: configFace,
+            }, StructuredConfigCard)
             return () => {
               try {
                 offSlot?.()
               } catch {
                 // slot 撤销失败交由宿主清理。
               }
+              try { sidebarRegistration.entry?.() } catch {}
+              try { sidebarRegistration.panel?.() } catch {}
               removeStyle()
             }
           }),
@@ -3603,12 +4463,39 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
     let active = false
     let disposeLayer = null
     let currentTheme = 'deepseek'
+    const CUSTOM_THEME_STYLE_ID = 'dsh-structured-custom-theme'
+    let customPalette = { ...DEFAULT_PALETTE }
 
-    const applyTheme = (theme) => {
-      const safe = THEMES.includes(theme) ? theme : 'deepseek'
+    const setCustomPalette = (raw) => {
+      const parsed = paletteFromRaw(raw)
+      customPalette = parsed.ok ? parsed.palette : { ...DEFAULT_PALETTE }
+      return customPalette
+    }
+
+    /** 自定义主题只注入 --dss-* 强调色三件套；灰阶沿用基础 scope，坏 JSON 回落默认三色。 */
+    const syncCustomThemeStyle = () => {
+      if (typeof document === 'undefined' || !document.head) return
+      document.getElementById(CUSTOM_THEME_STYLE_ID)?.remove()
+      if (currentTheme !== CUSTOM_THEME) return
+      const style = document.createElement('style')
+      style.id = CUSTOM_THEME_STYLE_ID
+      style.textContent = customThemeCss(customPalette)
+      document.head.appendChild(style)
+    }
+
+    const applyTheme = (theme, themeCustomRaw) => {
+      const safe = theme === CUSTOM_THEME || THEMES.includes(theme) ? theme : 'deepseek'
       currentTheme = safe
+      setCustomPalette(themeCustomRaw)
       if (typeof document === 'undefined') return
       document.body?.setAttribute(THEME_ATTR, safe)
+      syncCustomThemeStyle()
+    }
+
+    /** 拾色器拖动时的即时预览：不写配置，只换运行时 token。 */
+    const previewCustomTheme = (palette) => {
+      customPalette = { ...DEFAULT_PALETTE, ...palette }
+      if (currentTheme === CUSTOM_THEME) syncCustomThemeStyle()
     }
 
     const enable = () => {
@@ -3625,6 +4512,7 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
       document.head.appendChild(style)
       document.documentElement.setAttribute(ROOT_ATTR, 'active')
       document.body.setAttribute(THEME_ATTR, currentTheme)
+      syncCustomThemeStyle()
       try {
         console.info('[dsh-structured] visual layer active')
       } catch {
@@ -3732,6 +4620,7 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
           else clearTimeout(pending)
         }
         style.remove()
+        document.getElementById(CUSTOM_THEME_STYLE_ID)?.remove()
         document.documentElement.removeAttribute(ROOT_ATTR)
         document.body?.removeAttribute(THEME_ATTR)
         document.body?.removeAttribute(PERSONA_MODE_ATTR)
@@ -3753,6 +4642,7 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
       if (typeof layer === 'function') layer()
       if (typeof document === 'undefined') return
       document.getElementById(STYLE_ID)?.remove()
+      document.getElementById(CUSTOM_THEME_STYLE_ID)?.remove()
       document.documentElement.removeAttribute(ROOT_ATTR)
       document.body?.removeAttribute(THEME_ATTR)
       document.body?.removeAttribute(PERSONA_MODE_ATTR)
@@ -3782,10 +4672,12 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
               const read = () => {
                 try {
                   const value = form.getSnapshot()?.value ?? {}
-                  applyTheme(readValue(value.theme))
-                  applyVisual(readValue(value.visual) !== false)
+                  applyTheme(readValue(value.theme), readValue(value.themeCustom))
+                  applyVisual(true)
                   setPersonaModeConfig({
                     personaEnabled: readValue(value.personaEnabled),
+                    personaHeadEnabled: readValue(value.personaHeadEnabled),
+                    personaInnerOsEnabled: readValue(value.personaInnerOsEnabled),
                     persona: readValue(value.persona),
                     personaName: readValue(value.personaName),
                     personaSignature: readValue(value.personaSignature),

@@ -13,11 +13,11 @@
 3. token 成本
 4. 实现优雅
 
-对应到实现：注入只有一条规则段（约 400 字）+ 一句尾部提醒（约 50 字）；任何异常都放行原请求；不接管 GenUI，不改 agent 循环。
+对应到实现：1.2.0 起每次请求注入内容合同（多卡形状 + 输出深度）、人格风格段（可关）与尾部提醒；任何异常都放行原请求；不接管 GenUI，不改 agent 循环。
 
 ## 安装
 
-要求：DSH 0.2.x – 0.3.x（`@deepseek-ai/cordis` 4.x），Node ≥ 22；desktop `0.2.1-rc.5` 已实测（2026-11-19）。
+要求：DSH 0.2.x – 0.3.x（`@deepseek-ai/cordis` 4.x），Node ≥ 22；desktop `0.2.2-rc.5` 已实测（2026-11-26）。
 
 **默认目标就是 desktop profile。** 插件只硬依赖 `systemPrompt`（desktop 由 `@deepseek-ai/dsh-base` 提供），`commands` 是可选服务；不依赖 Electron/headless 专有 API，也没有 profile 分支。安装前先跑一次预检：
 
@@ -34,7 +34,7 @@ node scripts/desktop-check.mjs
 ### 方式二：npm
 
 ```powershell
-dsh plugin --profile <profile> add dsh-structured@1.1.10
+dsh plugin --profile <profile> add dsh-structured@1.2.0
 ```
 
 `dsh plugin add` 会转发给 profile 里的 pnpm；1.1.5 起已在本机 desktop profile 用 registry 源安装实测（pnpm 会自动把新版本加进 `minimumReleaseAgeExclude`）。
@@ -43,7 +43,7 @@ desktop profile 由 Electron 独占，使用插件管理搜索/安装，不要�
 
 ### 方式三：GitHub Release
 
-从 GitHub Releases 下载最新版的 `dsh-structured-<version>.tgz`（当前 1.1.10），在插件管理里选择本地包；不使用 npm 时，市场 YAML 的 `tarball` 指向该 release。
+从 GitHub Releases 下载最新版的 `dsh-structured-<version>.tgz`（当前 1.2.0），在插件管理里选择本地包；不使用 npm 时，市场 YAML 的 `tarball` 指向该 release。
 
 ### 开发方式：本地 tgz / 手工 pnpm（desktop profile）
 
@@ -78,12 +78,12 @@ pnpm add $tgz
 
 - 预检：`node scripts/desktop-check.mjs` 全部 PASS —— desktop profile 已初始化、bundle 栈含 `dsh-base`/`dsh-web-app`、`files` 含 `cordis.patch.yml`、`main`/`exports` 指向存在文件、`dsh.client.platform: web` 与 `exports["./client"]` 就位、`engines.dsh`/`dsh.compatibility.dshReleases` 已声明、运行时只 import `node:`、无 Electron 专有 API、无 profile 分支、状态走 `DSH_HOME`。
 - **desktop 是主目标，Web 只做兼容。** 本会话本身运行在 desktop profile，`systemPrompt` 与 `commands` 由 live host 的 Service 查询确认；`dsh.client.platform: web` 是 DSH 客户端模块的格式（desktop 的 Web UI 也加载它），不代表 Web 优先。
-- desktop 实装实测：desktop profile 已装 1.1.7（`dependencies`/`bundles` 各一处，见 `docs/MAINTENANCE-LOG.md` 1.1.7 发布条目）；desktop 会话最新 `system/message` 命中注入（可用 `scripts/session-inspect.mjs` 复跑）。
+- desktop 实装实测：desktop profile 已装 1.2.0 本地预览（`file:` 依赖，见 `docs/ACCEPTANCE-1.2.0.md`）；desktop 会话最新 `system/message` 命中注入（可用 `scripts/session-inspect.mjs` 复跑）。
 - 视觉层由 desktop 应用侧加载，验收以应用内实际渲染为准；不要求用户手动刷新。
 
 ### 兼容性门禁
 
-本包声明 `@deepseek-ai/schemastery` peer：`Config`（theme/visual/defaultEnabled/tailReminder/includeSubagents/genui + personaEnabled/persona/personaRevision/personaName/personaSignature/personaAvatar）用它生成设置表单；这是 host 提供的服务，不是门禁。真正门禁是 `engines.dsh`（`>=0.1.7-rc.2 <0.4.0-0 || >=0.2.1-rc.0 <0.2.2`，覆盖 0.3.x 与 0.2.1 预发布），`dsh-app-boot` 在有 `engines.dsh` 时读取它；`dsh.compatibility.dshReleases` 是 advisory。实测 DSH CLI `0.1.7-rc.2`、desktop `0.2.1-rc.2`、`0.2.1-rc.5` 与 `0.2.2-rc.5`（2026-11-22，宿主 FileVersion 实读；桌面加载 1.1.7：persona 卡 / 表格 / 主题渲染正常）；`0.2.1-rc.3` / `0.3.0-rc.1` 为声明性兼容（插件依赖的 systemPrompt / commands / configForms / plugins.bundle.config 均为宿主稳定服务面，未见破坏性变更公告）。
+本包声明 `@deepseek-ai/schemastery` peer：`Config`（theme/themeCustom/contentDepth/defaultEnabled/includeSubagents/genui + personaEnabled/personaHeadEnabled/personaInnerOsEnabled/persona/personaRevision/personaName/personaSignature/personaAvatar；`visual` / `tailReminder` 仅兼容保留）用它生成设置表单；这是 host 提供的服务，不是门禁。真正门禁是 `engines.dsh`（`>=0.1.7-rc.2 <0.4.0-0 || >=0.2.1-rc.0 <0.2.2`，覆盖 0.3.x 与 0.2.1 预发布），`dsh-app-boot` 在有 `engines.dsh` 时读取它；`dsh.compatibility.dshReleases` 是 advisory。实测 DSH CLI `0.1.7-rc.2`、desktop `0.2.1-rc.2`、`0.2.1-rc.5` 与 `0.2.2-rc.5`（2026-11-22，宿主 FileVersion 实读；桌面加载 1.2.0：单页设置 / 卡片 / 表格 / 主题渲染正常（2026-11-26 实机））；`0.2.1-rc.3` / `0.3.0-rc.1` 为声明性兼容（插件依赖的 systemPrompt / commands / configForms / plugins.bundle.config 均为宿主稳定服务面，未见破坏性变更公告）。
 
 ## 使用
 
@@ -96,18 +96,18 @@ pnpm add $tgz
 
 - 开关按会话独立，状态落在 `$DSH_HOME/dsh-structured/state.json`（tmp + rename 原子写）。
 - 新会话默认开启；`defaultEnabled: false` 可改默认值（见配置）。
-- 视觉层由插件设置 `visual` 控制（默认开启），不写 `state.json`；`/structured on|off` 只控制提示词注入，不影响视觉层。
+- 视觉层固定开启（1.2.0 起不再提供 `visual` 开关，字段仅兼容保留），不写 `state.json`；`/structured on|off` 只控制提示词注入，不影响视觉层。
 - 自定义规则：写 `$DSH_HOME/dsh-structured/style.md`，**非空即整份覆盖**内置文本，保存后下一轮生效；文件为空或删除时回落内置。
 - **用 `style.md` 承载长期设定（可选）**：`style.md` 的内容会被原样放进每次请求的 section，代价是**整份覆盖**内置文本；想同时保留结构规则，把 `src/index.js` 的 `BUILTIN_STYLE_TEXT` 全文抄进去再追加。注意互斥：**persona 开启时 `style.md` 不注入**（PersonaMode 只注入内容合同）；要长期设定请迁移到语气设置页的性格字段，或显式关闭人格后再用 `style.md`。
 - 内置文本与 `~/.dsh/AGENTS.md` 第 7 节同源：首句结论、组件化正文、一段一主题、禁过程叙事与复述、证据优先、短答不套卡；清晰优先，不设硬性篇幅上限。
 
-### 语气风格（Tone，1.0）
+### 人格 / 语气风格（Tone）
 
-- 插件详情页第二个 tab：**语气风格**。AI 档案行 + 昵称 / 自称 / 开场 / 性格 / 收尾五字段 + 固定规则行 + 保存行 + 样式预览；**没有基础 / 进阶页签，也没有 JSON 编辑入口**（内部仍是 tone@1 canonical JSON）。昵称（userName）是「模型怎么称呼你」，自称（selfName）是「模型怎么称呼自己」；性格只写说话倾向，不写任务规则。**1.0 起默认开启，显式关闭保持关闭**。
+- 1.2.0 起设置页只有一个页面，「人格」分区取代旧版第二个 tab：档案行（头像 / 名称 / 签名）+ 风格预设 + 昵称 / 自称 / 说话方式 + 内心OS 开关 + 身份头子开关；开场 / 收尾输入已移除，样式预览与结论卡预览同页。**没有 JSON 编辑入口**（内部仍是 tone@1 canonical JSON）。昵称（userName）是「模型怎么称呼你」，自称（selfName）是「模型怎么称呼自己」；性格只写说话倾向，不写任务规则。**1.0 起默认开启，显式关闭保持关闭**。
 - 档案行：头像 88px 可点击上传（png / jpeg / webp，前端居中裁方并压到 128px JPEG dataURL）、名称、个性签名；名称 / 签名实时绑定预览身份行。
-- 存储为 profile Config：`personaEnabled:boolean` + `persona:string` + `personaRevision:number` + `personaName` + `personaSignature` + `personaAvatar`；不读 `persona.md`，不引入文件路径。保存时一次批量写六字段（旧宿主走顺序写 + 写后读回 + 补偿回滚）；保存后全局生效（新消息使用），不需要每次重启；**安装/升级 1.0 后完整重启 Desktop 一次**。
+- 存储为 profile Config：`personaEnabled` + `personaHeadEnabled` + `personaInnerOsEnabled` + `persona:string` + `personaRevision:number` + `personaName` + `personaSignature` + `personaAvatar`；不读 `persona.md`，不引入文件路径。保存时一次批量写这些字段（旧宿主走顺序写 + 写后读回 + 补偿回滚）；保存后全局生效（新消息使用），不需要每次重启；**安装/升级 1.0 后完整重启 Desktop 一次**。
 - tone JSON 只有 `schema / prefix / style / suffix / skipIn / userName / selfName`；`schema` 必须是 `dsh-structured/tone@1`。作者/许可/来源/署名链不在 JSON，见 `NOTICE-WHALE` / `LICENSE-WHALE`。
-- 开场放在最前面；性格只写语言风格（角色 / 语气 / 句式 / 称呼）；收尾是最后一行签名/态度，不是总结，`code / diff / error / short / table` 按 `skipIn` 跳过。结构 / 事实 / 安全永远优先。
+- 历史 tone 里若仍有 `prefix` / `suffix`，仍按原样渲染（1.2.0 设置页不再提供这两个输入）；性格只写语言风格（角色 / 语气 / 句式 / 称呼），`code / diff / error / short / table` 按 `skipIn` 跳过。结构 / 事实 / 安全永远优先。
 - 模板只保留默认「蓝色大肥鱼」+ 用户另存的模板；「切换人格」弹层支持行内删除，删空提示用「恢复默认」找回。模板存当前五字段 + 名称 + 签名 + 头像，不自动选中。
 - 蓝色大肥鱼是社区二创模板，非 DeepSeek 官方；模板单独 CC-BY-NC-SA-4.0，不打包美术。64KB 硬拒；非法 tone JSON 拒绝保存。
 
@@ -115,7 +115,7 @@ pnpm add $tgz
 
 - ` ```diff ` / ` ```patch ` 代码块、`[data-diff]`、`.md-diff`、`[class*="_diff_"]` 与 GenUI diff 区域**不套**插件的代码块/表格 chrome；diff 行色与宿主渲染保持原样。`data-diff`/类名守卫是防御性选择器，当前 host 是否真实可达未单独 live 验证。
 - 当回复主要是代码、代码 diff、文件修改或补丁时，代码块或 diff 卡可以直接作为第一块，不强制标题卡；仍不写过程叙事。
-- `/structured off` 仍只控制提示词；视觉层由插件设置 `visual` 控制。
+- `/structured off` 仍只控制提示词；视觉层固定开启（`visual` 字段仅兼容保留）。
 
 ### 视觉层（desktop 主目标；web 兼容）
 
@@ -126,15 +126,21 @@ pnpm add $tgz
 - **结论卡要点列表**（1.1.8）：`conclusion.points` 收 1–4 条，每条只放一个事实（≤32 字），渲染成 A/B/C 字母圆圈；`conclusion.body` 只用于历史消息兼容。建议卡用 1/2/3 编号，风险卡固定一句话；确有多个风险时改用表格，不再往风险卡里堆句子。
 - **卡片正文的行内标记**（1.1.3）：`**粗体**` 与 `` `代码` `` 会渲染成真正的 `strong` / `code` 节点（此前会把星号原样显示），`textContent` 仍是不带标记的净文本，复制得到干净内容。
 
-`theme` 提供 `dsh`/`deepseek`（默认）/`codex`/`anthropic` 四个配置值。1.1.2 起三套彩色主题各有一套完整配色（DeepSeek 蓝调 / Codex 绿调 / Anthropic 土褐调），保持原样；1.1.7 新增 `dsh`（黑白原色）：面板 / 卡面 / 正文 / 边框全部映射 DSH 宿主 alias 变量，明暗随宿主切换；状态也用灰阶 + 符号区分，不引入彩色。设置页主题分段里 `DSH` 排在最前，默认仍是 DeepSeek。**卡面结构保持一套**——圆角、边框、阴影、底色结构完全一致，主题只通过配色表达；表头底色、表格左边条、表头文字、状态色、序号圆点、复制成功勾全部走主题变量，切主题时整组一起变。设置页的「样式预览」用同一份卡面材质展示普通 / 表格 / 代码三态。
+`theme` 提供 `dsh`/`deepseek`（默认）/`codex`/`anthropic`/`custom` 五个配置值；`custom` 用 `themeCustom` 的主 / 副 / 辅三色自动派生，仅选自定义时可编辑，带 HSV 拾色器与对比度 / 色相校验。1.1.2 起三套彩色主题各有一套完整配色（DeepSeek 蓝调 / Codex 绿调 / Anthropic 土褐调），保持原样；1.1.7 新增 `dsh`（黑白原色）：面板 / 卡面 / 正文 / 边框全部映射 DSH 宿主 alias 变量，明暗随宿主切换；状态也用灰阶 + 符号区分，不引入彩色。设置页主题分段里 `DSH` 排在最前，默认仍是 DeepSeek。**卡面结构保持一套**——圆角、边框、阴影、底色结构完全一致，主题只通过配色表达；表头底色、表格左边条、表头文字、状态色、序号圆点、复制成功勾全部走主题变量，切主题时整组一起变。设置页的「样式预览」用同一份卡面材质展示普通 / 表格 / 代码三态。
 
-设计与分阶段计划见 [`docs/VISUAL-PLAN.md`](docs/VISUAL-PLAN.md)，视觉热点/层级诊断见 [`docs/VISUAL-CRITIQUE.md`](docs/VISUAL-CRITIQUE.md)，卡片类型与热点预算见 [`docs/CARD-SYSTEM.md`](docs/CARD-SYSTEM.md)。视觉层由插件设置 `visual` 控制（默认开启）；`/structured on|off` 只控制提示词注入。
+设计与分阶段计划见 [`docs/VISUAL-PLAN.md`](docs/VISUAL-PLAN.md)，视觉热点/层级诊断见 [`docs/VISUAL-CRITIQUE.md`](docs/VISUAL-CRITIQUE.md)，卡片类型与热点预算见 [`docs/CARD-SYSTEM.md`](docs/CARD-SYSTEM.md)。视觉层固定开启（`visual` 字段仅兼容保留）；`/structured on|off` 只控制提示词注入。
 
 Phase 2 已落地 2.1–2.4：卡片类型（结论/判断/指标/风险/下一步/验收/重点）、`data-dsh-structured-card-type` 归属标记、GenUI 软联动（检测到才追加 `dsh-ui` 路由，未检测走纯 markdown fallback，不硬依赖）。
 
 ## Screenshots
 
-1.1.10 渲染示意：用插件真实 CSS 与默认头像复现卡片，不含任何会话内容；表格编号图为 1.1.10 新效果。
+**1.2.0 实机截图**（2026-11-26，真实 Desktop 界面；已裁切到设置面板，不含会话内容、工作区与会话列表）：
+
+![1.2.0 单页设置页：外观 / 行为 / 人格 / 输出深度 / 预览](assets/screenshots/13-settings-1.2.0.png)
+
+![自定义三色 HSV 拾色器：饱和度面板 + 色相条 + HEX + 吸管 + 对比度校验](assets/screenshots/14-color-picker-1.2.0.png)
+
+以下为 1.1.10 时代渲染示意图：用插件真实 CSS 与默认头像复现卡片，不含任何会话内容；表格编号图是那一版的效果。
 
 ![结论卡要点列表](assets/screenshots/01-title-card.png)
 
@@ -147,52 +153,58 @@ Phase 2 已落地 2.1–2.4：卡片类型（结论/判断/指标/风险/下一�
 ![暗色主题下的多条风险表格](assets/screenshots/10-theme-dark.png)
 
 <details>
-<summary>历史实机图（1.0.4 / 1.1.6）</summary>
+<summary>历史实机图（1.0 时代 / 1.1.6）</summary>
 
 ![人格表格回复（1.1.6 实机）](assets/screenshots/06-status-table.png)
 
 ![代码块回复（1.0.4 实机）](assets/screenshots/07-code-block.png)
 
-![语气风格设置页（1.0.4 实机）](assets/screenshots/11-config-page.png)
+![语气风格设置页（1.0 时代历史实机图）](assets/screenshots/11-config-page.png)
 
 </details>
 
-`screenshots.json` 列出全部 8 张：前五张是插件真实 CSS 渲染示意图（表格编号图为 1.1.10 新效果），后三张为历史实机图，保留作对照；渲染图不是实机截图，不宣称「本机实测」。
+`screenshots.json` 列出全部 10 张：前两张是 1.2.0 实机设置页与拾色器（已脱敏裁切），其后五张是 1.1.10 时代的插件真实 CSS 渲染示意图（表格编号图为那一版的效果），最后三张为历史实机图（`11-config-page.png` 为 1.0 时代历史实机图）；渲染图不是实机截图，不宣称「本机实测」。
 
 ### 配置
 
-**首选：插件板块 → dsh-structured → 详情页的配置区**（0.9.2 起）。插件自己的浏览器半侧把基础六字段注册进宿主 `plugins.bundle.config` slot；「语气风格」tab 再提供档案行与 tone 五字段（共十一项配置），改完写入 active profile 的 Cordis patch：
+**首选：插件板块 → dsh-structured → 设置页**（1.2.0 起为单页；旧版是「结构化输出 / 语气风格」两 tab）。页面分区：标题行总开关 → 外观 → 行为 → 人格 → 输出深度 → 预览。改完写入 active profile 的 Cordis patch。
 
 ```text
-主题 / Theme           deepseek | codex | anthropic
-视觉层 / Visual layer   开关
+主题 / Theme           dsh | deepseek | codex | anthropic | custom
+自定义三色 / themeCustom  palette@1 JSON；仅 theme=custom 时启用
+输出深度 / Content depth  beginner | general | expert（默认 general；无关闭）
 新会话默认开启           开关
-尾部提醒 / Tail reminder 开关
 子代理注入 / Subagents   开关
 GenUI 联动              auto | on | off
+人格 / Persona          区总开关
+身份头 / Identity head    子开关（仅人格开时可用）
+内心OS / Inner OS        开关
+风格预设 / Style preset   同时套用说话方式 + 内心OS
 ```
 
-宿主 describe 未服务本插件、或部署缺少前端 primitives 时，配置区自动隐藏（此时用下面的 patch 方式）。会话级开关不在这里：用 `/structured on | off`。主题分段的三个选项各带所代表主题的强调色圆点，选中态文字同色（0.9.3 起）。
+视觉层固定开启；「尾部提醒」固定注入，均不再提供开关。会话级开关仍用 `/structured on | off`。外观顶部是 DSH / DeepSeek / Codex / Anthropic 四套默认主题，自定义单独一行。
 
 底层方式：在 profile 的 `cordis.patch.yml` 里覆盖同一行（注意：config 是整份替换，不是深合并）：
 
 ```yaml
 - id: dsh-structured
   config:
-    theme: deepseek        # deepseek | codex | anthropic；三套主题 token
-    visual: true           # 客户端视觉层；由插件设置页切换，不写 state.json
+    theme: deepseek        # dsh | deepseek | codex | anthropic | custom
+    themeCustom: ''        # palette@1 JSON；仅 theme=custom 时由客户端使用
+    contentDepth: general  # beginner | general | expert
     defaultEnabled: true   # 新会话默认开启
-    tailReminder: true     # system prompt 末尾追加一句提醒
     includeSubagents: false # 子代理会话不注入（它的产出不直接面向用户）
     genui: auto            # auto | on | off；auto 检测到 GenUI 才追加 dsh-ui 路由
-    personaEnabled: true   # 语气风格开关（只注入根会话/lead；子代理、委派与聊天 fork 会话一律不注入）
+    personaEnabled: true   # 人格区总开关（只注入根会话/lead）
+    personaHeadEnabled: true # 身份头子开关；人格关时恒关
+    personaInnerOsEnabled: true # 内心OS；卡片外 💭 尾缀
     persona: '{"schema":"dsh-structured/tone@1",...}' # 内部 canonical tone@1，不暴露裸编辑
     personaName: 蓝色大肥鱼
     personaSignature: 主人，再来一碗白米饭！！~
     personaAvatar: ''      # 空值使用内置鲸鱼头像；自定义值为 128px JPEG dataURL
 ```
 
-`theme`、`visual`、`defaultEnabled`、`tailReminder`、`includeSubagents`、`genui`、`personaEnabled`、`persona`、`personaRevision`、`personaName`、`personaSignature`、`personaAvatar` 都是 `.volatile()` 配置：插件板块详情页的配置区（0.9.2 起，见上）与标准 bundle 表单都可编辑，写入走 active profile 的 Cordis patch，home patch / CLI overlay 优先。若快照的 `writable` 为 false，说明当前配置被上层覆盖，配置区控件只读并提示，不会静默写入成功；请改上层配置或接受只读。`/structured on|off` 只影响 `state.json` 里的按会话提示词开关，不影响 `theme`/`visual`。
+`theme`、`themeCustom`、`contentDepth`、`defaultEnabled`、`includeSubagents`、`genui`、`personaEnabled`、`personaHeadEnabled`、`personaInnerOsEnabled`、`persona`、`personaRevision`、`personaName`、`personaSignature`、`personaAvatar` 都是 `.volatile()` 配置：设置页与标准 bundle 表单都可编辑，写入走 active profile 的 Cordis patch，home patch / CLI overlay 优先。若快照的 `writable` 为 false，说明当前配置被上层覆盖，控件只读并提示。`visual` / `tailReminder` 仍保留字段兼容旧配置，但 1.2.0 固定开启、设置页不再提供开关。`/structured on|off` 只影响 `state.json` 里的按会话提示词开关。
 
 ## 验证注入生效
 
@@ -215,7 +227,7 @@ node scripts/session-inspect.mjs --session session-xxxx --last-system --grep "�
 搜索："结构化输出（本会话已启用" → 命中 1 条 system/message
 ```
 
-关闭后（`/structured off` 或把该会话在 `state.json` 里置为 `false`），同一个会话下一轮应看到 `命中 0 条`。视觉层由插件设置 `visual` 控制，`/structured` 只控制提示词注入，不关闭 client 视觉层。
+关闭后（`/structured off` 或把该会话在 `state.json` 里置为 `false`），同一个会话下一轮应看到 `命中 0 条`。`/structured` 只控制提示词注入；视觉层固定开启。
 
 > 以上命令在仓库根执行。已装到 profile 时，脚本路径是 `<profile>\node_modules\dsh-structured\scripts\`；把命令里的 `scripts/` 换成 `node_modules/dsh-structured/scripts/` 即可。
 

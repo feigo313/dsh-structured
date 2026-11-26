@@ -113,7 +113,7 @@ function makeContext(form) {
   }
 }
 
-test('client：visual=false 停用视觉层，visual=true 恢复', () => {
+test('client：视觉层恒定开启，visual=false 不再停用（1.2.0 删除视觉开关）', () => {
   const dom = makeDom()
   const form = {
     value: { visual: false, theme: 'codex' },
@@ -129,9 +129,9 @@ test('client：visual=false 停用视觉层，visual=true 恢复', () => {
   const module = loadClient(dom)
   const dispose = module.apply(makeContext(form))
 
-  assert.equal(dom.styles.has('dsh-structured-skin-style'), false)
-  assert.equal(dom.attrs.has('data-dsh-structured'), false)
-  assert.equal(dom.document.body['data-dsh-structured-theme'], undefined)
+  assert.equal(dom.styles.has('dsh-structured-skin-style'), true)
+  assert.equal(dom.attrs.get('data-dsh-structured'), 'active')
+  assert.equal(dom.document.body['data-dsh-structured-theme'], 'codex')
 
   form.value = { visual: true, theme: 'codex' }
   for (const listener of form.listeners) listener()
@@ -149,9 +149,8 @@ test('client：visual=false 停用视觉层，visual=true 恢复', () => {
 
   form.value = { visual: false, theme: 'anthropic' }
   for (const listener of form.listeners) listener()
-  assert.equal(dom.styles.has('dsh-structured-skin-style'), false)
-  assert.equal(dom.attrs.has('data-dsh-structured'), false)
-  assert.equal(dom.document.body['data-dsh-structured-theme'], undefined)
+  assert.equal(dom.styles.has('dsh-structured-skin-style'), true)
+  assert.equal(dom.document.body['data-dsh-structured-theme'], 'anthropic')
 
   dispose()
 })

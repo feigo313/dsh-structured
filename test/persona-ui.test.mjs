@@ -63,11 +63,22 @@ function makeHarness(state, setField, extraProps = {}) {
   const written = { ...(state.value ?? {}) }
   const trackedSetField = async (field, value) => {
     const result = await setField(field, value)
-    if (result !== false) written[field] = value
+    if (result !== false) {
+      written[field] = value
+      // 模拟宿主订阅：写成功后快照变化并触发重渲染。
+      render()
+    }
     return result
   }
   const readFields = extraProps.readFields ?? (() => ({ status: 'ready', writable: state.writable, value: { ...written } }))
-  const render = () => { hookIndex = 0; tree = current({ state, setField: trackedSetField, readFields, ...extraProps }); return tree }
+  const renderProps = { ...extraProps }
+  delete renderProps.renderCard
+  const render = () => {
+    hookIndex = 0
+    // readFields 放在展开前：extraProps.readFields === undefined 显式覆盖成「缺少读回接口」。
+    tree = current({ state, setField: trackedSetField, readFields, useStructuredConfig: (selector) => selector(readFields()), ...renderProps })
+    return tree
+  }
   const react = {
     useState(initial) {
       const index = hookIndex++
@@ -127,7 +138,7 @@ function makeHarness(state, setField, extraProps = {}) {
   }
   plugin.__test.setupConfigPage(child, form)
   const api = plugin.__test.personaApi()
-  current = api.PersonaEditor
+  current = extraProps.renderCard ? api.StructuredConfigCard : api.PersonaEditor
   render()
   const nodes = () => allNodes(tree)
   const findButton = (label) => nodes().find((item) => item.type === 'button' && textOf(item.props.children) === label)
@@ -172,25 +183,39 @@ const personaEnvelopePlain = (payload) => `<div class="md-code-block"><div class
 // 内容在 pre>code>span.line 里 —— 检测必须靠内容（looksLikePersonaEnvelope），不能靠 banner 语言词。
 const personaEnvelopeSeated = (payload) => `<div class="_fenceSeat_13jw0_146"><div class="md-code-block"><div class="_bannerWrap_kjs70_24"><div class="_header_1mqf1_10" data-code-block-banner><div class="_heading_1mqf1_23"><span class="_language_1mqf1_30">代码块</span></div><div class="_actions_1mqf1_43"></div></div></div><div class="_content_kjs70_74" data-code-block-content><pre class="_plain_kjs70_103"><code><span class="line">${JSON.stringify(payload)}</span></code></pre></div></div></div><p>块外正文</p>`
 
-test('v5 语气设置：档案行 + 三字段 + 规则行 + 样式预览，不再有基础/进阶/JSON', () => {
+test('1.2.0 人格：身份头子开关 + 风格预设组（说话方式 + 内心OS）+ 简洁改名', () => {
   const harness = makeHarness(baseState, async () => true)
   const text = harness.nodes().map((item) => String(textOf(item.props.children))).join(' ')
-  assert.match(text, /语气风格/)
-  assert.match(text, /样式预览/)
+  assert.match(text, /身份头 · 只控制头像 \/ 名字 \/ 签名；人格关闭时自动关闭/)
+  assert.match(text, /风格预设/)
+  assert.match(text, /说话方式/)
+  assert.match(text, /内心OS/)
+  assert.match(text, /预设同时套用下方「说话方式」与「内心OS」；风格只描述说话方式，不含深度。/)
+  assert.match(text, /预设只改语气；称呼\/自称始终以输入框为准。/)
   assert.match(text, /切换人格/)
   assert.match(text, /昵称/)
   assert.match(text, /自称/)
-  assert.match(text, /开场/)
   assert.match(text, /性格/)
-  assert.match(text, /收尾/)
-  assert.match(text, /放在最前面 · 可留空/)
   assert.match(text, /代码 \/ 表格等正文保持中性/)
-  assert.doesNotMatch(text, /基础|进阶|JSON 编辑|开头前缀|中间风格|结尾后缀/)
+  assert.doesNotMatch(text, /开场|收尾|放在最前面|放在最后/)
+  assert.doesNotMatch(text, /基础|进阶|JSON 编辑|开头前缀|中间风格|结尾后缀|简洁专业|样式预览/)
   assert.equal(harness.findButton('保存').props.disabled, true)
   assert.ok(harness.nodeByClass('dss-config'))
-  assert.ok(harness.nodeByClass('dss-preview'))
-  assert.ok(String(harness.previewHost()?.props?.className ?? '').includes('dss-persona-preview'), 'preview host must mark persona scope')
-  assert.ok(harness.inputByValue('我最爱💗的Boss~！！鱼鱼🐳报告📢！'))
+  // 身份头子开关：人格关（baseState personaEnabled=false）时禁用。
+  const headSwitch = harness.nodes().find((item) => item.type?.name === 'Switch' && item.props.label === '身份头')
+  assert.ok(headSwitch, 'identity head switch must exist')
+  assert.equal(headSwitch.props.disabled, true)
+  // 风格预设 10 个 chip，含「简洁」且没有「简洁专业」。
+  const chips = harness.nodes().filter((item) => item.type === 'button' && String(item.props.className ?? '').includes('dss-chip-btn'))
+  assert.equal(chips.length, 10)
+  assert.ok(chips.some((item) => textOf(item.props.children) === '简洁'))
+  assert.equal(chips.some((item) => textOf(item.props.children) === '简洁专业'), false)
+  // 预设组同时包住说话方式与内心OS。
+  const group = harness.nodeByClass('dss-group')
+  assert.ok(group)
+  const groupText = String(textOf(group.props.children))
+  assert.ok(groupText.includes('说话方式'))
+  assert.ok(groupText.includes('内心OS'))
   assert.ok(harness.inputByValue('Boss💗'))
   assert.ok(harness.inputByValue('本鱼鱼🐳'))
   assert.ok(harness.findTextarea('搞怪/傲娇'))
@@ -199,15 +224,12 @@ test('v5 语气设置：档案行 + 三字段 + 规则行 + 样式预览，不�
   assert.equal(harness.nodes().some((item) => item.type === 'select'), false)
   const avatar = harness.nodes().find((item) => item.type === 'img' && item.props.src?.startsWith('data:image/jpeg;base64,'))
   assert.ok(avatar, 'default whale avatar must be a real image')
-  assert.equal(harness.nodes().filter((item) => item.type === 'button' && textOf(item.props.children) === '普通').length, 1)
 })
 
 test('v5 编辑三字段/名称/签名 → 保存 persona + enabled + revision + 档案字段', async () => {
   const calls = []
   const harness = makeHarness(baseState, async (field, value) => { calls.push([field, value]) })
-  harness.inputByValue('我最爱💗的Boss~！！鱼鱼🐳报告📢！').props.onChange({ target: { value: '老板，' } })
   harness.findTextarea('搞怪/傲娇').props.onChange({ target: { value: '直接 / 克制' } })
-  harness.inputByValue('本鱼鱼🐳 精准！🚀高效的完成了任务！🔥快夸我！🌝 ~ 报告完毕！~').props.onChange({ target: { value: '——收工' } })
   harness.inputByValue('蓝色大肥鱼').props.onChange({ target: { value: '新名字' } })
   harness.inputByValue('主人，再来一碗白米饭！！~').props.onChange({ target: { value: '新签名' } })
   assert.equal(harness.findButton('保存').props.disabled, false)
@@ -216,9 +238,7 @@ test('v5 编辑三字段/名称/签名 → 保存 persona + enabled + revision +
   assert.equal(calls[2][1], 1)
   const saved = JSON.parse(calls[0][1])
   assert.equal(saved.schema, 'dsh-structured/tone@1')
-  assert.equal(saved.prefix, '老板，')
   assert.equal(saved.style, '直接 / 克制')
-  assert.equal(saved.suffix, '——收工')
   assert.equal(calls[3][1], '新名字')
   assert.equal(calls[4][1], '新签名')
   assert.ok(harness.nodes().some((item) => item.type === 'span' && String(textOf(item.props.children)).includes('已保存，未启用')))
@@ -233,7 +253,7 @@ test('v5 批量保存：payload 六字段一次提交，revision 从快照读取
     async (field, value) => { calls.push([field, value]); return true },
     { mutateFields: async (ops, revision) => { batch = { ops, revision }; return true } },
   )
-  harness.inputByValue('我最爱💗的Boss~！！鱼鱼🐳报告📢！').props.onChange({ target: { value: '批量前缀' } })
+  harness.findTextarea('搞怪/傲娇').props.onChange({ target: { value: '批量风格' } })
   await harness.click('保存')
   assert.equal(calls.length, 0, 'batch path must not call setField')
   assert.ok(batch)
@@ -241,7 +261,7 @@ test('v5 批量保存：payload 六字段一次提交，revision 从快照读取
     ['set', 'persona'], ['set', 'personaEnabled'], ['set', 'personaRevision'],
     ['set', 'personaName'], ['set', 'personaSignature'], ['set', 'personaAvatar'],
   ]))
-  assert.match(batch.ops[0].value, /批量前缀/)
+  assert.match(batch.ops[0].value, /批量风格/)
   assert.equal(batch.ops[2].value, 4)
   assert.equal(batch.revision, 9)
   assert.ok(harness.nodes().some((item) => item.type === 'span' && String(textOf(item.props.children)).includes('已保存，未启用')))
@@ -254,7 +274,7 @@ test('v5 批量保存被拒绝：保留草稿并允许重试', async () => {
     async () => { throw new Error('setField must not run') },
     { mutateFields: async () => { batchCalls += 1; return false } },
   )
-  harness.inputByValue('我最爱💗的Boss~！！鱼鱼🐳报告📢！').props.onChange({ target: { value: '批量失败草稿' } })
+  harness.inputByValue('蓝色大肥鱼').props.onChange({ target: { value: '批量失败草稿' } })
   await harness.click('保存')
   assert.equal(batchCalls, 1)
   assert.ok(harness.inputByValue('批量失败草稿'))
@@ -270,7 +290,7 @@ test('v5 回滚：persona 失败不继续写后续字段', async () => {
     if (field === 'persona') throw new Error('persona failed')
     return true
   })
-  harness.inputByValue('我最爱💗的Boss~！！鱼鱼🐳报告📢！').props.onChange({ target: { value: 'persona 失败草稿' } })
+  harness.inputByValue('蓝色大肥鱼').props.onChange({ target: { value: 'persona 失败草稿' } })
   await harness.click('保存')
   assert.deepEqual(calls.map(([field]) => field), ['persona'])
   assert.ok(harness.inputByValue('persona 失败草稿'))
@@ -284,7 +304,7 @@ test('v5 回滚：revision 失败回滚 enabled/persona', async () => {
     if (field === 'personaRevision') throw new Error('revision failed')
     return true
   })
-  harness.inputByValue('我最爱💗的Boss~！！鱼鱼🐳报告📢！').props.onChange({ target: { value: 'revision 失败草稿' } })
+  harness.inputByValue('蓝色大肥鱼').props.onChange({ target: { value: 'revision 失败草稿' } })
   await harness.click('保存')
   assert.deepEqual(calls.map(([field]) => field), ['persona', 'personaEnabled', 'personaRevision', 'personaEnabled', 'persona'])
   assert.equal(calls[3][1], false)
@@ -299,7 +319,7 @@ test('v5 回滚：写后读回不一致触发六字段回滚', async () => {
     async (field, value) => { calls.push([field, value]); return true },
     { readFields: () => ({ status: 'ready', writable: true, value: { persona: 'not-the-doc', personaEnabled: true, personaRevision: 99, personaName: 'x', personaSignature: 'y', personaAvatar: 'z' } }) },
   )
-  harness.inputByValue('我最爱💗的Boss~！！鱼鱼🐳报告📢！').props.onChange({ target: { value: '读回失败草稿' } })
+  harness.inputByValue('蓝色大肥鱼').props.onChange({ target: { value: '读回失败草稿' } })
   await harness.click('保存')
   assert.ok(harness.inputByValue('读回失败草稿'))
   assert.ok(harness.nodes().some((item) => item.type === 'span' && String(textOf(item.props.children)).includes('写后读回校验失败')))
@@ -311,7 +331,7 @@ test('v5 回滚：写后读回不一致触发六字段回滚', async () => {
 
 test('v5 缺少读回接口：不宣布保存成功', async () => {
   const harness = makeHarness(baseState, async () => true, { readFields: undefined })
-  harness.inputByValue('我最爱💗的Boss~！！鱼鱼🐳报告📢！').props.onChange({ target: { value: '无读回草稿' } })
+  harness.inputByValue('蓝色大肥鱼').props.onChange({ target: { value: '无读回草稿' } })
   await harness.click('保存')
   assert.ok(harness.inputByValue('无读回草稿'))
   assert.ok(harness.nodes().some((item) => item.type === 'span' && String(textOf(item.props.children)).includes('缺少配置读回接口')))
@@ -321,7 +341,7 @@ test('v5 readonly：档案行/字段/保存/恢复默认全部禁用', () => {
   const harness = makeHarness({ status: 'ready', writable: false, value: { persona: whale, personaEnabled: true } }, async () => true)
   assert.equal(harness.findButton('保存').props.disabled, true)
   assert.equal(harness.findButton('恢复默认').props.disabled, true)
-  assert.equal(harness.inputByValue('我最爱💗的Boss~！！鱼鱼🐳报告📢！').props.disabled, true)
+  assert.equal(harness.nodes().find((item) => item.props.id === 'dss-username').props.disabled, true)
   assert.equal(harness.findTextarea('搞怪/傲娇').props.disabled, true)
   assert.equal(harness.nodes().some((item) => item.type === 'input' && item.props.type === 'file'), true)
   const file = harness.nodes().find((item) => item.type === 'input' && item.props.type === 'file')
@@ -334,13 +354,12 @@ test('v5 头像：上传后裁压到 128px JPEG，保存 personaAvatar；恢复�
   const fileInput = harness.nodes().find((item) => item.type === 'input' && item.props.type === 'file')
   assert.ok(fileInput)
   fileInput.props.onChange({ target: { files: [{ type: 'image/png' }], value: '' } })
-  assert.ok(harness.previewHtml().includes('data:image/jpeg;base64,AAAA'), 'preview avatar must sync')
+  assert.ok(harness.nodes().some((item) => item.type === 'img' && item.props.src === 'data:image/jpeg;base64,AAAA'), 'profile avatar must sync')
   assert.equal(harness.findButton('保存').props.disabled, false)
   await harness.click('保存')
   assert.ok(calls.some(([field, value]) => field === 'personaAvatar' && value === 'data:image/jpeg;base64,AAAA'))
   await harness.click('恢复默认')
-  assert.equal(harness.previewHtml().includes('data:image/jpeg;base64,AAAA'), false)
-  assert.ok(harness.previewHtml().includes('data:image/jpeg;base64,/9j/'), 'reset must restore the built-in whale avatar')
+  assert.equal(harness.nodes().some((item) => item.type === 'img' && item.props.src === 'data:image/jpeg;base64,AAAA'), false)
   const defaultAvatar = harness.nodes().find((item) => item.type === 'img' && String(item.props.src).startsWith('data:image/jpeg;base64,/9j/'))
   assert.ok(defaultAvatar, 'profile avatar must restore the built-in whale avatar')
 })
@@ -349,7 +368,7 @@ test('v5 tabGuard：dirty 时确认，clean 时放行', () => {
   const guard = {}
   const harness = makeHarness(baseState, async () => true, { tabGuard: guard })
   assert.equal(guard.confirm(), true)
-  harness.inputByValue('我最爱💗的Boss~！！鱼鱼🐳报告📢！').props.onChange({ target: { value: '草稿' } })
+  harness.findTextarea('搞怪/傲娇').props.onChange({ target: { value: '草稿' } })
   harness.setWindowConfirm(false)
   assert.equal(guard.confirm(), false)
   harness.setWindowConfirm(true)
@@ -371,47 +390,39 @@ test('v5 模板：默认鲸鱼可删空后提示恢复默认；另存模板不�
   assert.equal(harness.findButton('保存').props.disabled, true, 'save-as-template must not select the new template')
 })
 
-test('v5 emoji：64 格面板，点选插入开场并更新计数器', async () => {
+test('1.2.0 预览：结论 / 讲解 / 建议 / 风险 / 短答 / 表格 / 代码走同一渲染管线', () => {
   const harness = makeHarness(baseState, async () => true)
-  await harness.click('☺')
-  const panel = harness.nodeByClass('dss-emoji-panel')
-  assert.ok(panel)
-  assert.equal(panel.props.children.length, 64)
-  const first = panel.props.children[0]
-  await first.props.onClick({ stopPropagation() {} })
-  const prefix = harness.nodes().find((item) => item.type === 'input' && item.props.id === 'dss-prefix')
-  assert.ok(String(prefix.props.value).includes('🐳'))
-  assert.ok(harness.nodes().some((item) => item.type === 'span' && String(textOf(item.props.children)).endsWith(' / 80')))
-})
-
-test('v5 预览：三态走公共装饰管线，不再手写卡片/状态签', async () => {
-  const harness = makeHarness(baseState, async () => true)
-  assert.ok(harness.findButton('普通'))
-  const text = harness.nodes().map((item) => String(textOf(item.props.children))).join(' ')
-  assert.match(text, /预览为 PersonaMode 合同样本：身份头、卡外前缀、结论 \/ 建议 \/ 风险、收尾；真实回复与预览同源。/)
-  await harness.click('表格')
-  let html = harness.previewHtml()
-  assert.match(html, /注入链路/)
-  assert.match(html, /data-dsh-structured-status-table="1"/)
+  const api = harness.api
+  assert.equal(JSON.stringify(api.previewCards), JSON.stringify(['conclusion', 'explain', 'suggestion', 'risk', 'short', 'table', 'code']))
+  const conclusion = api.previewCardMarkup('conclusion')
+  assert.match(conclusion, /能上，分两步走/)
+  assert.match(conclusion, /data-dsh-structured-card-type="conclusion"/)
+  const explain = api.previewCardMarkup('explain')
+  assert.match(explain, /讲解/)
+  assert.match(explain, /dss-card-explain/)
+  assert.match(explain, /像试水温/)
+  const risk = api.previewCardMarkup('risk')
+  assert.match(risk, /自动更新跳过确认/)
+  assert.match(risk, /dss-card-risk/)
+  const short = api.previewCardMarkup('short')
+  assert.match(short, /收到，灰阶主题已按宿主配色对齐。/)
+  assert.match(short, /data-dsh-structured-card-type="short"/)
+  const table = api.previewCardMarkup('table')
+  assert.match(table, /检查项/)
+  assert.match(table, /data-dsh-structured-status-table="1"/)
   // 状态只写属性、不再往 React 管理的单元格里塞胶囊节点（issue #5 的崩溃源）。
-  assert.match(html, /data-dsh-structured-status-cell="success"/)
-  assert.doesNotMatch(html, /data-dsh-structured-status-pill/, 'status pill node must not be created')
-  await harness.click('短答')
-  html = harness.previewHtml()
-  assert.match(html, /现在三点/)
-  assert.match(html, /data-dsh-persona-kind="short"/)
-  assert.match(html, /data-dsh-structured-card-type="short"/)
-  await harness.click('代码')
-  html = harness.previewHtml()
-  assert.match(html, /tone-loader\.js/)
-  assert.match(html, /data-dsh-structured-copy="1"/)
-  assert.match(html, /dss-code/)
-  assert.match(html, /data-dsh-persona-kind="code"/)
-  await harness.click('普通')
-  html = harness.previewHtml()
-  assert.match(html, /能上/)
-  assert.match(html, /data-dsh-structured-card-type="conclusion"/)
-  assert.match(html, /dss-card-conclusion/)
+  assert.match(table, /data-dsh-structured-status-cell="success"/)
+  const code = api.previewCardMarkup('code')
+  assert.match(code, /tone-loader\.js/)
+  assert.match(code, /dss-code/)
+  assert.doesNotMatch(conclusion + explain + risk + short + table + code, /data-dsh-structured-status-pill/)
+
+  // 整页渲染：七格预览一次看全，标题逐字。
+  const page = makeHarness({ status: 'ready', writable: true, value: { theme: 'deepseek', contentDepth: 'general', personaEnabled: true } }, async () => true, { renderCard: true })
+  const cells = page.nodes().filter((item) => String(item.props.className ?? '').split(/\s+/).includes('dss-preview-cell'))
+  assert.equal(cells.length, 7)
+  const titles = cells.map((item) => String(textOf(item.props.children?.[0]?.props?.children ?? item.props.children)))
+  assert.equal(JSON.stringify(titles), JSON.stringify(['结论', '讲解', '建议', '风险', '短答', '表格', '代码']))
 })
 
 test('PersonaMode：预览与真实同源（内容对象 → 同一 renderer）', () => {
@@ -532,9 +543,66 @@ test('PersonaMode：conclusion.points 渲染字母要点；body 仅作历史兼�
   const api = harness.plugin.__test.cardCopyApi()
   assert.equal(api.personaCardPlainText(points.markdown.querySelector('.dss-card-conclusion')), '能上\nA. 先灰度一周。\nB. 回滚先验收。')
 
+  const longPoint = '这是一条明显超过三十二个字的结论要点，用来证明插件没有字数硬限，不会被判不合规。'
+  const longPoints = flowFor(personaEnvelope({ version: 1, kind: 'normal', conclusion: { lead: '能上', points: [longPoint] }, suggestions: ['跑一条真实链路'], risk: '回滚未演练' }))
+  assert.equal(longPoints.markdown.getAttribute('data-dsh-persona-kind'), 'normal')
+  assert.equal(longPoints.markdown.querySelector('.dss-card-conclusion ol.dss-points li').textContent, longPoint)
+
   const legacy = flowFor(personaEnvelope({ version: 1, kind: 'normal', conclusion: { lead: '旧格式', body: '先灰度' }, suggestions: ['S'], risk: 'R' }))
   assert.equal(legacy.markdown.querySelectorAll('ol.dss-points').length, 0)
   assert.match(legacy.markdown.textContent, /先灰度/)
+})
+
+test('PersonaMode：explanation 渲染为「讲解」卡，插在结论与表格之间且不参与编号', () => {
+  const harness = makeHarness(baseState, async () => true)
+  const tone = JSON.stringify({ schema: 'dsh-structured/tone@1', prefix: '', suffix: '', style: '搞怪', skipIn: ['code', 'diff', 'error', 'short', 'table'] })
+  harness.plugin.__test.setPersonaModeConfig({ personaEnabled: true, persona: tone, personaName: 'N', personaSignature: 'S', personaAvatar: '' })
+  const flowFor = (html) => {
+    const flow = harness.document.createElement('div')
+    flow.setAttribute('data-chat-flow-kind', 'assistant-step')
+    flow.setAttribute('data-chat-node-key', 'explain-' + Math.random())
+    const slot = harness.document.createElement('div')
+    slot.setAttribute('data-slot', 'conversation.chat.node')
+    const markdown = harness.document.createElement('div')
+    markdown.className = '_markdown_preview'
+    markdown.innerHTML = html
+    slot.appendChild(markdown)
+    flow.appendChild(slot)
+    harness.document.body.appendChild(flow)
+    harness.plugin.__test.decorate(flow)
+    return { flow, markdown }
+  }
+  const withExplanation = flowFor(personaEnvelope({
+    version: 1,
+    kind: 'table',
+    conclusion: { lead: '能上，先灰度', points: ['先小范围验证。'] },
+    explanation: { analogy: '像试水温：先用手背试，再决定要不要下水。', example: '先拿一个现网账号跑灰度。' },
+    suggestions: ['跑通一条真实链路'],
+    risk: '回滚未演练',
+    table: { head: ['模块', '状态'], rows: [['注入链路', '✅ 通过']] },
+  }))
+  const cards = [...withExplanation.markdown.querySelectorAll('blockquote')]
+  assert.equal(cards.length, 4, '结论 / 讲解 / 建议 / 风险')
+  assert.ok(cards[1].classList.contains('dss-card-explain'), 'explanation must render as explain card')
+  assert.equal(cards[1].querySelector('p > strong').textContent, '讲解')
+  assert.deepEqual([...cards[1].querySelectorAll('p')].map((p) => p.textContent), [
+    '讲解',
+    '类比：像试水温：先用手背试，再决定要不要下水。',
+    '举例：先拿一个现网账号跑灰度。',
+  ])
+  assert.equal(cards[1].querySelectorAll('ol').length, 0, '讲解卡不参与 A/B/C 编号')
+  assert.equal(cards[1].querySelector('[data-dsh-card-copy]').getAttribute('data-dsh-card-copy'), '讲解')
+  const api = harness.plugin.__test.cardCopyApi()
+  assert.equal(api.personaCardPlainText(cards[1]), '类比：像试水温：先用手背试，再决定要不要下水。\n举例：先拿一个现网账号跑灰度。')
+  const order = [...withExplanation.markdown.children].map((node) => {
+    if (node.matches?.('blockquote')) return (node.querySelector('p > strong')?.textContent ?? '').trim()
+    if (node.matches?.('.dss-table-wrap')) return 'table'
+    return ''
+  }).filter(Boolean)
+  assert.deepEqual(order.slice(0, 4), ['结论', '讲解', 'table', '建议'])
+
+  const without = flowFor(personaEnvelope({ version: 1, kind: 'normal', conclusion: { lead: '能上' }, suggestions: ['跑链路'], risk: '回滚未演练' }))
+  assert.equal(without.markdown.querySelectorAll('.dss-card-explain').length, 0, '没有 explanation 就不出讲解卡')
 })
 
 test('PersonaMode：表行小写索引与结论大写要点分层，TSV 复制带索引', () => {
@@ -686,6 +754,18 @@ test('PersonaMode：缺块 legacy、非法块 error，不补卡、不回落；co
     assert.equal(item.markdown.getAttribute('data-dsh-persona-error'), null)
     assert.equal(item.markdown.querySelectorAll('.dss-persona-prefix, .dss-persona-suffix').length, 0)
   }
+
+  const freshDisabled = flowFor(personaEnvelope({ version: 1, kind: 'normal', conclusion: { lead: '关闭后仍出卡', points: ['要点'] }, suggestions: ['S'], risk: 'R' }))
+  assert.equal(freshDisabled.flow.querySelectorAll('[data-dsh-persona-head]').length, 0)
+  assert.equal(freshDisabled.markdown.querySelectorAll('[data-dsh-structured-card-type]').length, 3)
+  assert.equal(freshDisabled.markdown.querySelectorAll('.dss-persona-prefix, .dss-persona-suffix').length, 0)
+  assert.doesNotMatch(freshDisabled.markdown.textContent, /"version"/)
+
+  const freshShort = flowFor(personaEnvelope({ version: 1, kind: 'short', text: '关闭后短答也出卡。' }))
+  assert.equal(freshShort.markdown.querySelectorAll('[data-dsh-structured-card-type]').length, 1)
+  assert.equal(freshShort.markdown.querySelector('[data-dsh-structured-card-type]').getAttribute('data-dsh-structured-card-type'), 'short')
+  assert.equal(freshShort.flow.querySelectorAll('[data-dsh-persona-head]').length, 0)
+  assert.doesNotMatch(freshShort.markdown.textContent, /"version"/)
 })
 
 test('PersonaMode：幂等、旧历史、流式、no-flow、diff、关闭文本', () => {
@@ -904,17 +984,17 @@ test('PersonaMode：MutationObserver 忽略插件自生成子树，重复 decora
   assert.equal(markdown.getAttribute('data-dsh-persona-kind'), 'normal', 'config change must keep the rendered message')
   assert.equal(markdown.querySelectorAll('[data-dsh-structured-card-type]').length, 3, 'config change must not duplicate cards')
   assert.equal(markdown.querySelectorAll('.dss-persona-prefix').length, 1, 'prefix must not duplicate on config change')
-  assert.equal(markdown.querySelector('.dss-persona-prefix').textContent, '新前缀，')
-  assert.match(flow.querySelector('[data-dsh-persona-head]').textContent, /新名字/)
+  assert.equal(markdown.querySelector('.dss-persona-prefix').textContent, 'Boss，', 'old message keeps its original prefix')
+  assert.match(flow.querySelector('[data-dsh-persona-head]').textContent, /N/, 'old message keeps its original head')
   assert.equal(oldMarkdown.getAttribute('data-dsh-persona-kind'), null, 'config change must not decorate old history')
 
-  // 关闭：前后缀节点与文本删除，通用卡保留。
+  // 关闭：旧消息不回溯；新消息才按关闭态渲染。
   harness.plugin.__test.setPersonaModeConfig({ personaEnabled: false })
-  assert.equal(flow.querySelectorAll('[data-dsh-persona-head]').length, 0)
-  assert.equal(markdown.getAttribute('data-dsh-persona-kind'), null)
-  assert.equal(markdown.querySelectorAll('.dss-persona-prefix, .dss-persona-suffix').length, 0)
-  assert.doesNotMatch(markdown.textContent, /新前缀，|——新尾/)
-  assert.equal(markdown.querySelectorAll('blockquote').length, 3, 'generic cards remain after close')
+  assert.equal(flow.querySelectorAll('[data-dsh-persona-head]').length, 1, 'old head stays')
+  assert.equal(markdown.getAttribute('data-dsh-persona-kind'), 'normal', 'old render stays')
+  assert.equal(markdown.querySelectorAll('.dss-persona-prefix, .dss-persona-suffix').length, 2, 'old prefix/suffix stay')
+  assert.match(markdown.textContent, /Boss，/)
+  assert.equal(markdown.querySelectorAll('blockquote').length, 3, 'old cards remain')
 })
 
 test('PersonaMode：reasoning / step-process / compaction 不套内容合同', () => {
@@ -1749,4 +1829,256 @@ test('卡片级复制：五档按钮齐备、净内容、连续渲染幂等（v1
   assert.match(reply, /能上，先灰度/)
   assert.match(reply, /模块\t状态/)
   assert.doesNotMatch(reply, /结论|建议|风险|Boss，|——完/)
+})
+
+// ── 1.2.0 设置页（单页）：总开关 / 状态行 / 行为区 / 拾色器 / 深度 / 身份头 ──
+
+const cardState = (extra = {}) => ({
+  status: 'ready',
+  writable: true,
+  revision: 0,
+  value: {
+    theme: 'deepseek',
+    contentDepth: 'general',
+    defaultEnabled: true,
+    tailReminder: true,
+    includeSubagents: false,
+    genui: 'auto',
+    personaEnabled: true,
+    personaHeadEnabled: true,
+    persona: whale,
+    personaRevision: 0,
+    ...extra,
+  },
+})
+
+test('1.2.0 设置页：标题行插件总开关 + 顶部状态行 + 行为区保留四字段', async () => {
+  const calls = []
+  const harness = makeHarness(cardState(), async (field, value) => { calls.push([field, value]); return true }, { renderCard: true })
+  const status = harness.nodes().find((item) => item.props?.['data-dss-status'] === '1')
+  assert.ok(status, 'status line must stay at the top')
+  assert.match(textOf(status.props.children), /插件 已开启 · 人格 已开启 · 身份头 已开 · 深度 普通/)
+  const master = harness.nodes().find((item) => item.type?.name === 'Switch' && item.props.label === '插件总开关')
+  assert.ok(master, 'master switch sits in the title row')
+  assert.equal(master.props.checked, true)
+  master.props.onChange(false)
+  assert.deepEqual(calls, [['defaultEnabled', false]])
+  await new Promise((resolve) => setImmediate(resolve))
+  const statusOff = harness.nodes().find((item) => item.props?.['data-dss-status'] === '1')
+  assert.match(textOf(statusOff.props.children), /插件 已关闭/)
+
+  // 行为区：defaultEnabled / includeSubagents / GenUI；尾部提醒固定开启，不给开关。
+  assert.equal(harness.nodes().some((item) => item.type?.name === 'Switch' && item.props.label === '尾部提醒'), false)
+  assert.ok(harness.nodes().some((item) => item.type?.name === 'Switch' && item.props.label === '子代理注入'))
+  assert.ok(harness.nodes().some((item) => item.props?.id === 'dsh-structured-genui'))
+})
+
+test('1.2.0 外观：HSV 拾色器（SV 面板 / 色相条 / HEX / 吸管）实时预览并写 themeCustom', () => {
+  const calls = []
+  const harness = makeHarness(cardState({ theme: 'custom' }), async (field, value) => { calls.push([field, value]); return true }, { renderCard: true })
+  const swatch = () => harness.nodes().find((item) => item.props.id === 'dss-color-primary')
+  assert.ok(swatch(), 'primary swatch must exist')
+  assert.doesNotMatch(String(swatch().props.className), /preset/, 'no preset swatches')
+  swatch().props.onClick()
+
+  const sv = harness.nodes().find((item) => item.props?.['data-dss-sv'] === 'primary')
+  assert.ok(sv, 'saturation/value panel must exist')
+  const hue = harness.nodes().find((item) => item.props?.['data-dss-hue'] === 'primary')
+  assert.ok(hue, 'hue bar must exist')
+  const hexInput = harness.nodes().find((item) => item.props.id === 'dss-hex-primary')
+  assert.ok(hexInput, 'HEX input must exist')
+  const eyedropper = harness.nodes().find((item) => item.type === 'button' && textOf(item.props.children) === '吸管')
+  assert.ok(eyedropper, 'eyedropper button must exist')
+  assert.equal(eyedropper.props.disabled, true, 'no EyeDropper in this host → disabled, not fake')
+  assert.match(String(eyedropper.props.title), /不支持吸管/)
+
+  const rect = { left: 0, top: 0, width: 200, height: 100 }
+  sv.props.onPointerDown({ clientX: 100, clientY: 25, currentTarget: { getBoundingClientRect: () => rect } })
+  const live = harness.nodes().find((item) => item.props.id === 'dss-color-primary')
+  const liveHex = String(live.props['aria-label']).split(' ')[1]
+  assert.notEqual(liveHex, '#4B5563', 'dragging must preview live')
+  assert.equal(calls.length, 0, 'live preview must not write config')
+
+  const sv2 = harness.nodes().find((item) => item.props?.['data-dss-sv'] === 'primary')
+  sv2.props.onPointerUp({ clientX: 100, clientY: 25, currentTarget: { getBoundingClientRect: () => rect } })
+  assert.ok(calls.some(([field]) => field === 'themeCustom'), 'release commits themeCustom')
+  const palette = JSON.parse(calls.find(([field]) => field === 'themeCustom')[1])
+  assert.equal(palette.schema, 'dsh-structured/palette@1')
+  assert.ok(harness.api.palette.contrastRatio(palette.primary, '#ffffff') >= 3, 'contrast auto-fixed to ≥3')
+
+  // 色相条：改色相（提交）。
+  const before = palette.primary
+  const hue2 = harness.nodes().find((item) => item.props?.['data-dss-hue'] === 'primary')
+  hue2.props.onPointerUp({ clientX: 190, clientY: 6, currentTarget: { getBoundingClientRect: () => ({ left: 0, top: 0, width: 200, height: 12 }) } })
+  const afterHue = JSON.parse(calls.filter(([field]) => field === 'themeCustom').at(-1)[1]).primary
+  assert.notEqual(afterHue, before, 'hue bar must change the color')
+
+  // HEX 输入：回车 / 失焦提交。
+  harness.nodes().find((item) => item.props.id === 'dss-hex-primary').props.onChange({ target: { value: '#2563EB' } })
+  harness.nodes().find((item) => item.props.id === 'dss-hex-primary').props.onBlur()
+  const afterHex = JSON.parse(calls.filter(([field]) => field === 'themeCustom').at(-1)[1]).primary
+  assert.notEqual(afterHex, afterHue, 'HEX input must commit a new color')
+  assert.ok(harness.api.palette.contrastRatio(afterHex, '#ffffff') >= 3)
+
+  // 自定义主题只注入 --dss-* 强调色，明暗两段都在。
+  const css = harness.api.palette.customThemeCss(harness.api.palette.paletteFromRaw(calls.filter(([field]) => field === 'themeCustom').at(-1)[1]).palette)
+  assert.match(css, /data-dsh-structured-theme="custom"/)
+  assert.match(css, /--dss-blue:/)
+  assert.match(css, /data-ds-dark-theme/)
+  assert.ok(css.includes(afterHex))
+})
+
+// 1.2.0 修复：预设只改语气，不得覆盖昵称 / 自称；「中二」不再出现「本座」。
+test('1.2.0 风格预设：只改说话方式，昵称 / 自称以输入框为准，中二无「本座」', async () => {
+  const calls = []
+  const harness = makeHarness(baseState, async (field, value) => { calls.push([field, value]) })
+  assert.doesNotMatch(JSON.stringify(harness.api.STYLE_PRESETS), /本座/, 'no preset field may mention 本座')
+
+  const chuuni = harness.nodes().find((item) => item.type === 'button' && String(item.props.className ?? '').includes('dss-chip-btn') && textOf(item.props.children) === '中二')
+  assert.ok(chuuni, '中二 preset chip must exist')
+  chuuni.props.onClick()
+
+  // 昵称 / 自称输入框保持原值（preset 只写 style）。
+  assert.ok(harness.inputByValue('Boss💗'), 'nickname must not be overwritten by preset')
+  assert.ok(harness.inputByValue('本鱼鱼🐳'), 'self-name must not be overwritten by preset')
+
+  await harness.click('保存')
+  const saved = JSON.parse(calls.find(([field]) => field === 'persona')[1])
+  assert.equal(saved.userName, 'Boss💗')
+  assert.equal(saved.selfName, '本鱼鱼🐳')
+  assert.match(saved.style, /中二/)
+  assert.doesNotMatch(JSON.stringify(saved), /本座/)
+})
+
+test('1.2.0 拾色器：确认提交当前颜色并关闭，取消丢弃草稿', () => {
+  const calls = []
+  const harness = makeHarness(cardState({ theme: 'custom' }), async (field, value) => { calls.push([field, value]); return true }, { renderCard: true })
+  const openPrimary = () => harness.nodes().find((item) => item.props.id === 'dss-color-primary').props.onClick()
+  const svOpen = () => harness.nodes().some((item) => item.props?.['data-dss-sv'] === 'primary')
+
+  openPrimary()
+  assert.ok(svOpen(), 'clicking swatch opens the picker')
+  harness.nodes().find((item) => item.props.id === 'dss-hex-primary').props.onChange({ target: { value: '#2563EB' } })
+  assert.equal(calls.length, 0, 'typing HEX only previews')
+
+  const confirm = harness.nodes().find((item) => item.type === 'button' && textOf(item.props.children) === '确认')
+  assert.ok(confirm, 'explicit confirm button must exist')
+  confirm.props.onClick()
+  const written = calls.find(([field]) => field === 'themeCustom')
+  assert.ok(written, 'confirm commits themeCustom')
+  assert.notEqual(JSON.parse(written[1]).primary, '#2563EB', 'commit applies saturation / contrast fix')
+  assert.equal(svOpen(), false, 'confirm closes the picker')
+
+  openPrimary()
+  harness.nodes().find((item) => item.props.id === 'dss-hex-primary').props.onChange({ target: { value: '#2563EB' } })
+  const before = calls.length
+  const cancel = harness.nodes().find((item) => item.type === 'button' && textOf(item.props.children) === '取消')
+  assert.ok(cancel, 'cancel button available')
+  cancel.props.onClick()
+  assert.equal(calls.length, before, 'cancel must not write config')
+  assert.equal(svOpen(), false, 'cancel closes the picker')
+})
+
+test('1.2.0 讲解卡跟随自定义三色：主/副混合、明暗都可读', () => {
+  const harness = makeHarness(baseState, async () => true)
+  const palette = { primary: '#2563EB', secondary: '#047857', tertiary: '#B45309' }
+  const [light, dark] = harness.api.palette.customThemeCss(palette).split('\n')
+  const token = (block, name) => (block.match(new RegExp('--' + name + ':([^;]+);')) ?? [])[1]
+  const parse = (hex) => [1, 3, 5].map((index) => parseInt(hex.slice(index, index + 2), 16))
+  const mix = (a, b, ratio) => '#' + parse(a).map((value, index) => Math.round(value + (parse(b)[index] - value) * ratio).toString(16).padStart(2, '0')).join('').toUpperCase()
+  const { contrastRatio } = harness.api.palette
+
+  const lightExplain = token(light, 'dss-explain')
+  assert.equal(lightExplain, mix('#2563EB', '#047857', 0.5), 'explain = primary / secondary midpoint')
+  assert.notEqual(lightExplain, '#7c3aed', 'explain must not fall back to the preset purple')
+  const lightText = token(light, 'dss-explain-text')
+  assert.ok(contrastRatio(lightExplain, '#ffffff') >= 4.5, 'light explain is readable')
+  assert.ok(contrastRatio(lightText, '#ffffff') >= 4.5, 'light explain text is readable')
+
+  assert.ok(dark, 'dark segment must exist')
+  const darkExplain = token(dark, 'dss-explain')
+  const darkText = token(dark, 'dss-explain-text')
+  assert.notEqual(darkExplain, lightExplain, 'dark explain is derived separately')
+  assert.ok(contrastRatio(darkExplain, '#242629') >= 4.5, 'dark explain is readable')
+  assert.ok(contrastRatio(darkText, '#242629') >= 4.5, 'dark explain text is readable')
+
+  const shifted = harness.api.palette.customThemeCss({ ...palette, primary: '#B42318' }).split('\n')[0]
+  assert.notEqual(token(shifted, 'dss-explain'), lightExplain, 'explain follows the custom palette')
+})
+
+test('1.2.0 输出深度：三档、默认普通、只写 contentDepth', () => {
+  const calls = []
+  const harness = makeHarness(cardState(), async (field, value) => { calls.push([field, value]); return true }, { renderCard: true })
+  const text = harness.nodes().map((item) => String(textOf(item.props.children))).join(' ')
+  assert.match(text, /只改变解释量，不改卡片结构、编号与事实；分层参考 eli5 skill。/)
+  assert.match(text, /三档始终有一档，不提供关闭；默认普通/)
+  assert.match(text, /Explain Like I'm 5/)
+  assert.match(text, /入门不等于幼稚化/)
+  const general = harness.nodes().find((item) => item.props.id === 'dss-depth-general')
+  assert.equal(general.props['aria-pressed'], 'true')
+  const expert = harness.nodes().find((item) => item.props.id === 'dss-depth-expert')
+  expert.props.onClick()
+  assert.deepEqual(calls, [['contentDepth', 'expert']])
+  assert.equal(harness.nodes().some((item) => item.type === 'button' && textOf(item.props.children) === '关闭'), false)
+})
+
+test('1.2.0 人格：身份头开关写 personaHeadEnabled，人格关时自动关闭并禁用', async () => {
+  const calls = []
+  const state = { status: 'ready', writable: true, revision: 3, value: { persona: whale, personaEnabled: true, personaHeadEnabled: true, personaRevision: 1 } }
+  const harness = makeHarness(state, async (field, value) => { calls.push([field, value]); return true })
+  const head = harness.nodes().find((item) => item.type?.name === 'Switch' && item.props.label === '身份头')
+  assert.ok(head)
+  assert.equal(head.props.checked, true)
+  assert.equal(head.props.disabled, false)
+  head.props.onChange(false)
+  await harness.click('保存')
+  assert.ok(calls.some(([field, value]) => field === 'personaHeadEnabled' && value === false), 'head switch must persist')
+  assert.equal(harness.findButton('保存').props.disabled, true)
+
+  const personaSwitch = harness.nodes().find((item) => item.type?.name === 'Switch' && item.props.label === '人格总开关')
+  personaSwitch.props.onChange(false)
+  const headOff = harness.nodes().find((item) => item.type?.name === 'Switch' && item.props.label === '身份头')
+  assert.equal(headOff.props.checked, false, 'persona off → head off')
+  assert.equal(headOff.props.disabled, true, 'persona off → head switch disabled')
+  await harness.click('保存')
+  assert.ok(calls.some(([field, value]) => field === 'personaEnabled' && value === false))
+  assert.ok(calls.some(([field, value]) => field === 'personaHeadEnabled' && value === false))
+})
+
+test('PersonaMode：身份头关仍出卡，只去掉头像 / 名字 / 签名', () => {
+  const harness = makeHarness(baseState, async () => true)
+  const persona = { prefix: 'Boss，', suffix: '——完' }
+  const tone = JSON.stringify({ schema: 'dsh-structured/tone@1', ...persona, style: '搞怪', skipIn: ['code', 'diff', 'error', 'short', 'table'] })
+  const config = { personaEnabled: true, personaHeadEnabled: true, persona: tone, personaName: '鲸鱼', personaSignature: 'S', personaAvatar: '' }
+  harness.plugin.__test.setPersonaModeConfig(config)
+  const flowFor = (html) => {
+    const flow = harness.document.createElement('div')
+    flow.setAttribute('data-chat-flow-kind', 'assistant-step')
+    flow.setAttribute('data-chat-node-key', 'head-' + Math.random())
+    const slot = harness.document.createElement('div')
+    slot.setAttribute('data-slot', 'conversation.chat.node')
+    const markdown = harness.document.createElement('div')
+    markdown.className = '_markdown_preview'
+    markdown.innerHTML = html
+    slot.appendChild(markdown)
+    flow.appendChild(slot)
+    harness.document.body.appendChild(flow)
+    harness.plugin.__test.decorate(flow)
+    return { flow, markdown }
+  }
+  const content = { version: 1, kind: 'normal', conclusion: { lead: '能上' }, suggestions: ['跑链路'], risk: '回滚未演练' }
+  const on = flowFor(personaEnvelope(content))
+  assert.equal(on.flow.querySelectorAll('[data-dsh-persona-head]').length, 1)
+  assert.equal(on.markdown.querySelectorAll('[data-dsh-structured-card-type]').length, 3)
+  assert.ok(on.markdown.querySelector('.dss-persona-prefix'))
+
+  harness.plugin.__test.setPersonaModeConfig({ ...config, personaHeadEnabled: false })
+  harness.plugin.__test.decorate(on.flow)
+  assert.equal(on.flow.querySelectorAll('[data-dsh-persona-head]').length, 0, 'head removed when switch is off')
+  assert.equal(on.markdown.querySelectorAll('[data-dsh-structured-card-type]').length, 3, 'cards stay')
+  assert.ok(on.markdown.querySelector('.dss-persona-prefix'), 'persona style still on: prefix stays')
+
+  const fresh = flowFor(personaEnvelope(content))
+  assert.equal(fresh.flow.querySelectorAll('[data-dsh-persona-head]').length, 0, 'no head on new messages')
+  assert.equal(fresh.markdown.querySelectorAll('[data-dsh-structured-card-type]').length, 3, 'new messages still render cards')
 })

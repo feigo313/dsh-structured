@@ -1,4 +1,4 @@
-# 交接：dsh-structured（2026-11-22 更新，1.1.8 已发布）
+# 交接：dsh-structured（2026-11-23 更新，1.1.10 已发布；下一版 1.2.0 待计划）
 
 > 这是**唯一可信起点**。旧会话因上下文过大归档；本文件把项目全量口径、当前状态、待办与踩坑一次写完。新会话请先读完本文件再动手。
 
@@ -24,7 +24,7 @@
 | `src/client.js` | 客户端半区：CSS 皮肤 + DOM 装饰（卡片/表格/代码/人格头/复制按钮）+ 插件详情页配置区 |
 | `lib/` | 构建产物（`node scripts/build.mjs` 由 src 生成，**必须与 src 同步**） |
 | `scripts/` | `build.mjs`、`desktop-check.mjs`、`theme-contrast.mjs`、`theme-hue-distance.mjs`、`style-gate.mjs`、`measure-prose.mjs` 等门禁脚本 |
-| `test/` | node:test 套件（129 条断言，linkedom 真实 DOM + CSS 契约 + 语料回归辅助） |
+| `test/` | node:test 套件（131 条断言，linkedom 真实 DOM + CSS 契约 + 语料回归辅助） |
 | `docs/` | `MAINTENANCE.md`（手册，含 12.0 攒批规矩）、`MAINTENANCE-LOG.md`（逐轮记录）、`ACCEPTANCE-1.0.0.md`（逐版验收）、`ROADMAP.md`、`PLAN-1.2.0-ENTRIES.md`、`CARD-SYSTEM.md` 等 |
 | `locale/` | 中英文案 |
 | `assets/` | 截图（`screenshots.json` 索引） |
@@ -33,15 +33,16 @@
 
 ---
 
-## 3. 当前状态（2026-11-22 22:30 实测 / 1.1.9 已发布，版本 1.1.9）
+## 3. 当前状态（2026-11-23 11:40 发布 / 1.1.10 已发布，版本 1.1.10；下一版 1.2.0 待计划）
 
-- 仓库：远端 `main` = `13245f3`（1.1.9 发版提交，GitHub API 推送）；tag `v1.1.9` annotated（对象 `1695efeb` → commit `13245f3`）；CI `45032934658` success。
-- 本机 `main` = `854c95c`（1.1.9 发版提交，parent `ea3b8cb`；与远端同树、不同 hash：API 建 commit 与本地 commit 字节编码不一致）；**本地不建 v1.1.9 tag，以远端 tag 为准**；1.1.8 备份分支 `backup/main-pre-1.1.8` = `c8bcc1e`。
-- npm：`dsh-structured@1.1.9` 已发布，latest = 1.1.9（shasum `5d56b9d9`；registry 确认）。
-- 市场（awesome-dsh-plugin）：PR **#17858 open**（listing tarball 指向 `v1.1.9`；1.1.8 的 #17827 已关闭，标注 superseded）。
-- 桌面 profile：仍装 1.1.7（应用运行中，未安装 1.1.8 / 1.1.9；需要时备份后 `pnpm add dsh-structured@1.1.9`）。
-- 门禁（2026-11-22 发布复跑）：`npm test` 129/129；`desktop-check` 全 PASS（真实宿主 0.2.2-rc.5）；对比度 80/80；色相 12/12；计算样式 8 主题块 × 10 项全过；`npm pack` 58 文件 / **1,377,795 B** / unpacked 2,098,890 B。
-- 截图：01 / 09-theme-light / 09-theme-dark / 10-theme-dark 已改为 1.1.9 渲染示意（真实 CSS + 默认头像，不含会话内容）；06 / 07 / 11 保留为历史实机图，README 折叠展示。
+- 仓库：远端 `main` = `3deec7fe`（docs: record 1.1.10 release，docs CI `45107393518` success；父 `cb90b5f4` 为 release: 1.1.10，tree `97fc4da1`，发版 CI `45106928812` success）；tag `v1.1.10` annotated（对象 `58ab1091` → commit `cb90b5f4`）。
+- 本机 `main` = `5212427`（release: 1.1.10，14 文件），其上另有本地 docs 提交（HANDOFF / MAINTENANCE-LOG / ACCEPTANCE 回填）。**本地不建 v1.1.10 tag，以远端 tag 为准**；本地日志（HANDOFF / MAINTENANCE-LOG）按 Boss 口径不推。
+- npm：`dsh-structured@1.1.10` 已发布，latest = 1.1.10（shasum `e5e48579`；tarball 59 文件 / 1,560,575 B / unpacked 2,293,215 B）。
+- 市场（awesome-dsh-plugin）：PR **#18038 open / MERGEABLE**（只改 listing tarball 行到 v1.1.10）；1.1.9 的 #17858 已于 2026-11-22T20:11:39Z MERGED。
+- 桌面 profile：磁盘已装 **1.1.9**；按 Boss 2026-11-23 决定，等市场 PR #18038 合并后统一升 1.1.10（装前备份）。
+- 门禁（2026-11-23 发布复跑）：`npm test` 131/131；`desktop-check` 全 PASS（真实宿主 0.2.2-rc.5）；对比度 80/80；色相 12/12；计算样式 8 主题块 × 10 项全过；`npm pack` 59 文件 / **1,560,575 B** / unpacked 2,293,215 B。
+- 截图：新增 `assets/screenshots/12-layered-index.png`（表格卡三层编号示意）；README / `screenshots.json` 现共 8 张（5 张渲染图 + 3 张历史实机图）。
+- 下一版：**1.2.0**（1.1.x 线已收口；计划仍待按 settings-final7 重写，代码未开工）。
 - 定时任务：每日巡检「dsh-structured 项目巡检」已重建（每天 10:00 Asia/Shanghai，target=本会话）。
 ---
 
@@ -105,14 +106,13 @@ node .tools/market-XXX.mjs     # fork 同步 → 改 tarball 行 → 提交 → 
 
 ## 7. 待办队列
 
-1. **1.2.0 侧边栏入口**（Boss 口径：**只做侧边栏，不做设置页**）——计划见 `docs/PLAN-1.2.0-ENTRIES.md`：注册 `main` 面板 + `sidebar.panellist` 一行「结构化输出」，面板复用现有配置卡；**动手前先实机验证「点行是否真的选中同 key 面板」**（宿主无公开跳转 API，是最大未知）。
-2. **1.1.6 已发布**（2026-11-18：npm `dsh-structured@1.1.6` / tag `v1.1.6` / Release 资产 1,495,212 B / 市场 PR #16480）；1.1.7 待发清单为空（12.1 已重新计数）。
-3. **截图**：06 / 09-theme-light / 09-theme-dark / 10-theme-dark 已于 2026-11-18 用 1.1.6 实机重拍（本机 GUI，装 1.1.6 后）；01 / 07 / 11 不含表格、不受列宽变更影响，保留 1.0.4 实机图。
-4. 已知未修：信封里字符串被截断的那类仍然降级（补引号会造假内容，刻意不修）；没有任何 persona 块的回复只能靠合同/提醒压概率。
-5. 长期项（`docs/ROADMAP.md`）：A = 用户头像落本地数据目录（不写进配置）；C = persona 抗漂移实测（12 类提示词产出率 ≥90%）。
-6. **发布物可复现**：工作区 CRLF 已于 2026-11-18 归一（README、`docs/1.0-3-RELEASE-CHECKPOINT.md`、`test/persona-ui.test.mjs` → LF）；发版打包前按 12.2 第 4 条先确认工作区 LF。
-7. **1.1.7 主题**：`dsh`（黑白原色）已实现并随 main 推送（远程 `7368ae2`）——纯灰阶、映射 DSH 宿主 alias、状态用符号；设置页第一项 `DSH`，DeepSeek 蓝与默认值不动；实机截图已入 issue #6（带图回复后已关闭）。搭车修复 persona 中途闭合残片泄漏（seq 432 原文回归）与无信封中间消息误挂身份头。待办：发布 1.1.7（bump + 截图 09/10/11 + tag/npm/Release/市场）；自定义配色后置。
-
+1. **1.2.0（未开工）**：Boss 2026-11-22 定下一版直接 1.2.0；设计方向已定到 settings-final7（单页三区 / 自定义三色 / 内心OS 开关），但 `docs/PLAN-1.2.0.md` 仍是 2026-11-19 旧稿，开工前先按定稿重写，再动代码。
+2. **市场 listing**：PR #17858 已合并（2026-11-22T20:11:39Z），tarball 已核；旧 #17827（v1.1.8）已关闭，标注 superseded。
+3. **桌面 profile**：磁盘已装 1.1.9；若运行中仍是旧 client，完全退出 Desktop 后重开即可。
+4. **截图**：06 / 07 / 11 保留历史实机图；11（设置页）在 1.2.0 改版后必须重拍，06 / 07 视需要。
+5. **长期项**（`docs/ROADMAP.md`）：A = 用户头像落本地数据目录（不写进配置）；C = persona 抗漂移实测（12 类提示词产出率 ≥90%）。
+6. **已知限制（不修）**：信封里字符串被截断仍会降级（补引号会造假内容）；没有任何 persona 块的回复只能靠合同/提醒压概率。
+7. **发布物可复现**：发版前确认工作区 LF；pack 基线在 `test/pack.test.mjs`（1.1.9：58 文件 / 1,377,795 B / unpacked 2,098,890 B）。
 ---
 
 ## 8. 验证命令（缺一不可）

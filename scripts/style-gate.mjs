@@ -1,4 +1,5 @@
 import { execFileSync, spawn } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import { closeSync, existsSync, mkdirSync, openSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -33,15 +34,31 @@ function readJson(path) {
 }
 
 // Bind evidence to the code tree that produced it, not just a text timestamp.
-// Docs-only commits may advance HEAD; src/lib/scripts/test-fixtures changes may not.
-function codeTreeMatches(head) {
-  if (typeof head !== 'string' || head === '' || head === 'unknown') return false
+// treeHash 覆盖已跟踪改动 + 未跟踪新文件（只用 git diff 会漏掉新增夹具）。
+// 允许未提交工作树：只要求「检查时的树 == 产出证据的树」；HEAD 照记，作为旁证。
+const CODE_TREE_PATHS = ['src', 'lib', 'scripts', 'test/fixtures']
+
+function gitOutput(argv) {
   try {
-    execFileSync('git', ['diff', '--quiet', head, '--', 'src', 'lib', 'scripts', 'test/fixtures'], { cwd: root, stdio: 'ignore' })
-    return true
+    return execFileSync('git', argv, { cwd: root, encoding: 'utf8' })
   } catch {
-    return false
+    return null
   }
+}
+
+function codeTreeFingerprint() {
+  const status = gitOutput(['status', '--porcelain=v1', '-uall', '--', ...CODE_TREE_PATHS])
+  const diff = gitOutput(['diff', 'HEAD', '--', ...CODE_TREE_PATHS])
+  if (status === null && diff === null) return null
+  return createHash('sha256').update(JSON.stringify({ status: status ?? '', diff: diff ?? '' })).digest('hex')
+}
+
+// 名字沿用旧函数（test/style-browser.test.mjs 对它有静态断言，test/ 不在本次改动范围）：
+// 语义从「工作树与 HEAD 一致」改成「工作树与产出证据的那棵树一致」，允许未提交工作树。
+function codeTreeMatches(head, treeHash) {
+  if (typeof head !== 'string' || head === '') return false
+  if (typeof treeHash !== 'string' || treeHash === '') return false
+  return codeTreeFingerprint() === treeHash
 }
 
 function runProcess(command, argv, options = {}) {
@@ -100,9 +117,11 @@ async function runWorker(evidenceDirArg) {
     head = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim()
   } catch {}
 
+  const treeHash = codeTreeFingerprint()
   const meta = {
     checkedAt: startedAt,
     head,
+    treeHash,
     probe,
     command: 'ego-browser nodejs -e "await import(probe)"',
     mode: 'detached-worker',
@@ -156,9 +175,13 @@ async function runWorker(evidenceDirArg) {
   writeFileSync(stderrPath, run.stderr ?? '')
 
   if (run.error || run.code !== 0) {
+    const stderr = String(run.stderr ?? '')
+    // 探针缺元素时抛 STYLE_PROBE_MISSING: <名字>；把它带进 gate.failures，--check 能直接指名。
+    const marker = /STYLE_PROBE_MISSING:[^\r\n"]*/.exec(stderr)
+    const detail = marker ? marker[0] : stderr.trim().split(/\r?\n/).filter(Boolean).slice(-3).join(' | ')
     failures.push({
       name: 'ego-browser run',
-      actual: run.error?.message ?? `exit ${run.code}`,
+      actual: run.error?.message ?? `exit ${run.code}${detail ? ' · ' + detail : ''}`,
       expected: 'exit 0',
     })
   }
@@ -168,82 +191,104 @@ async function runWorker(evidenceDirArg) {
 
   if (existsSync(resultPath)) {
     const raw = readFileSync(resultPath, 'utf8')
-    writeFileSync(evidenceResultPath, raw)
-    const { style, narrow, persona: personaProbe } = JSON.parse(raw)
+    const data = JSON.parse(raw)
+    // 证据里带上产出它的代码树指纹（head + treeHash），--check 据此判断新鲜度。
+    writeFileSync(evidenceResultPath, JSON.stringify({ head, treeHash, ...data }, null, 2))
+    const { style, narrow, persona: personaProbe } = data
 
     const contains = (name, actual, expected) => {
       if (!String(actual ?? '').includes(expected)) failures.push({ name, actual, expected: 'contains ' + expected })
     }
-    record('titleSize', style.titleSize, '19px')
-    record('titleWeight', style.titleWeight, '700')
-    contains('titleFamily', style.titleFamily, 'Georgia')
-    record('bodySize', style.bodySize, '13.5px')
-    record('bodyLine', style.bodyLine, '22.95px')
-    record('cardRadius', style.cardRadius, '12px')
-    record('cardLeft', style.cardLeft, '3px')
-    contains('cardBackground', style.cardBackground, 'rgb(238, 244, 255)')
-    record('conclusionTitleSize', style.conclusionTitleSize, '19px')
-    record('headerSize', style.headerSize, '11.5px')
-    record('headerWeight', style.headerWeight, '600')
-    record('headerColor', style.headerColor, 'rgb(17, 94, 89)')
-    record('headerBackgroundImage', style.headerBackgroundImage, 'linear-gradient(90deg, rgba(13, 148, 136, 0.18), rgba(13, 148, 136, 0.05))')
-    record('bodyCellSize', style.bodyCellSize, '13px')
-    record('firstCellWeight', style.firstCellWeight, '600')
-    record('firstCellSize', style.firstCellSize, '13.5px')
-    record('statusText', style.statusText, '通过')
-    record('statusPillClass', style.statusPillClass, 'dss-status dss-status-success')
-    record('statusPillSize', style.statusPillSize, '11px')
-    record('statusPillBackground', style.statusPillBackground, 'rgb(236, 253, 243)')
-    record('statusPillColor', style.statusPillColor, 'rgb(6, 118, 71)')
-    record('leadSize', style.leadSize, '13.5px')
-    record('leadStrongSize', style.leadStrongSize, '13.5px')
-    record('leadStrongWeight', style.leadStrongWeight, '650')
-    record('nextTitleSize', style.nextTitleSize, '12px')
-    record('nextTitleColor', style.nextTitleColor, 'rgb(4, 120, 87)')
-    record('nextStepSize', style.nextStepSize, '13.5px')
-    record('nextRadius', style.nextRadius, '12px')
-    record('nextLeft', style.nextLeft, '3px')
-    contains('nextBackground', style.nextBackground, 'rgb(240, 250, 244)')
-    record('riskLeft', style.riskLeft, '3px')
-    record('riskLeftColor', style.riskLeftColor, 'rgb(217, 119, 6)')
-    record('codeRadius', style.codeRadius, '12px')
-    record('codeLeft', style.codeLeft, '3px')
-    record('codeBannerColor', style.codeBannerColor, 'rgb(29, 78, 216)')
-    record('codeBannerSize', style.codeBannerSize, '12px')
-    record('codePreBackground', style.codePreBackground, 'rgba(255, 255, 255, 0.72)')
-    record('codePreColor', style.codePreColor, 'rgb(52, 64, 84)')
-    record('codePreSize', style.codePreSize, '12.5px')
-    record('copyButton', style.copyButton, true)
-    contains('dark.cardBackground', style.dark?.cardBackground, 'rgba(37, 99, 235, 0.18)')
-    record('dark.tableHeadBackgroundImage', style.dark?.tableHeadBackgroundImage, 'linear-gradient(90deg, rgba(45, 212, 191, 0.24), rgba(45, 212, 191, 0.06))')
-    record('dark.tableHeadColor', style.dark?.tableHeadColor, 'rgb(94, 234, 212)')
-    record('dark.codePreBackground', style.dark?.codePreBackground, 'rgba(0, 0, 0, 0.28)')
-    record('dark.codePreColor', style.dark?.codePreColor, 'rgb(201, 210, 224)')
-    record('dark.statusBackground', style.dark?.statusBackground, 'rgba(52, 211, 153, 0.16)')
-    // Persona 视觉：身份头 / 前后缀 / 三卡 / 短答 / 表格（人格开启态 fixture）
+    // 期望值依据：src/client.js 的 skin CSS（`const CSS`，当前源码第 750 行起）与装饰函数。
+    // 颜色走 token 关系：探针把 var(--dss-x) 赋给 .dss-scope 内的临时元素再读 computed，与目标元素比对；
+    // 门禁里不抄色值，改 CSS token 后若元素没跟着 token 走，这里就会红。
+    // 数字（字号 / 圆角 / 边条宽度）是设计常量，行号写在每条后面。
+    record('label.conclusion', style.labels?.conclusion, '结论')                                  // labelOf → CARD_TYPES['结论']=conclusion（L729-738）
+    record('label.next', style.labels?.next, '建议')                                              // ['建议','next']
+    record('label.risk', style.labels?.risk, '风险')                                              // ['风险','risk']
+    record('label.short', style.labels?.short, '短答')                                            // ['短答','short']
+    record('titleSize', style.titleSize, '19px')                                                  // L941-944 font:700 calc(text*19/13.5)
+    record('titleWeight', style.titleWeight, '700')                                               // L943
+    contains('titleFamily', style.titleFamily, 'Georgia')                                         // L765 --dss-serif 回退栈
+    record('bodySize', style.bodySize, '13.5px')                                                  // L945 var(--dss-text-size)（L766 回退 13.5px）
+    record('bodyLine', style.bodyLine, '22.95px')                                                 // L945 line-height:1.7 × 13.5px
+    record('cardRadius', style.cardRadius, '12px')                                                // L333 .dss-card border-radius
+    record('cardLeft', style.cardLeft, '3px')                                                     // L335 border-left:3px
+    record('cardBlueSoft', style.cardBlueSoft, true)                                              // L336 background 用 var(--dss-blue-soft)
+    record('conclusionTitleSize', style.conclusionTitleSize, '19px')                              // L934-938 结论卡加粗结论
+    record('headerSize', style.headerSize, '11.5px')                                              // L976 font calc(text*11.5/13.5)
+    record('headerWeight', style.headerWeight, '600')                                             // L976
+    record('headerThToken', style.headerThToken, true)                                            // L976 color:var(--dss-th-text)（L755 #1e3a8a）
+    record('headerHeadBgToken', style.headerHeadBgToken, true)                                    // L975 background:var(--dss-head-bg)（L760）
+    record('bodyCellSize', style.bodyCellSize, '13px')                                            // L982 calc(text*13/13.5)
+    record('firstCellWeight', style.firstCellWeight, '600')                                       // L984
+    record('firstCellSize', style.firstCellSize, '13.5px')                                        // L984 var(--dss-text-size)
+    record('statusCellAttr', style.statusCellAttr, 'success')                                     // markStatusCell 只写属性（L1260-1263）
+    record('statusCellText', style.statusCellText, '✅ 通过')                                        // 不再改写 textContent / 不再插胶囊节点
+    record('statusCellGreenSoft', style.statusCellGreenSoft, true)                                // L988 background:var(--dss-green-soft)
+    record('statusCellGreenBar', style.statusCellGreenBar, true)                                  // L988 box-shadow inset 3px 0 0 var(--dss-green)
+    record('statusCellBarInset', style.statusCellBarInset, true)                                  // L988 inset
+    record('statusCellBarWidth', style.statusCellBarWidth, '3px')                                 // L988 inset 3px
+    record('leadSize', style.leadSize, '13.5px')                                                  // L1080 var(--dss-text-size)
+    record('leadStrongSize', style.leadStrongSize, '13.5px')                                      // L1081
+    record('leadStrongWeight', style.leadStrongWeight, '650')                                     // L1081
+    record('nextTitleSize', style.nextTitleSize, '12px')                                          // L925 卡标签 font:700 calc(text*12/13.5)
+    record('nextTitleGreenText', style.nextTitleGreenText, true)                                  // L928 color:var(--dss-green-text)（L756 #047857）
+    record('nextStepSize', style.nextStepSize, '13.5px')                                          // L948
+    record('nextRadius', style.nextRadius, '12px')                                                // L333
+    record('nextLeft', style.nextLeft, '3px')                                                     // L335
+    record('nextGreenSoft', style.nextGreenSoft, true)                                            // L347 background var(--dss-green-soft)
+    record('riskLeft', style.riskLeft, '3px')                                                     // L349-351
+    record('riskAmberStrong', style.riskAmberStrong, true)                                        // L897 border-left-color:var(--dss-amber-strong)
+    record('shortBlue', style.shortBlue, true)                                                    // L904-905 短答卡 border-left-color:var(--dss-blue)
+    record('shortBlueSoft', style.shortBlueSoft, true)                                            // L905 background var(--dss-blue-soft)
+    record('codeRadius', style.codeRadius, '12px')                                                // L991-993
+    record('codeLeft', style.codeLeft, '3px')                                                     // L993
+    record('codeBannerBlueText', style.codeBannerBlueText, true)                                  // L1002 color:var(--dss-blue-text)
+    record('codeBannerSize', style.codeBannerSize, '12px')                                        // L1003 calc(text*12/13.5)
+    record('codePreCodeBg', style.codePreCodeBg, true)                                            // L1018 background:var(--dss-code-bg)（L761）
+    record('codePreCodeText', style.codePreCodeText, true)                                        // L1018 color:var(--dss-code-text)
+    record('codePreCodeSize', style.codePreCodeSize, '12.5px')                                    // L1019 var(--dss-code-size)（L767 回退 12.5px）
+    record('copyButton', style.copyButton, true)                                                  // ensureCodeCopy（L1266+）插 [data-dsh-structured-copy]
+    // 深色：同一组 token 在 body[data-ds-dark-theme] .dss-scope 下重算（L785-797）
+    record('dark.cardBlueSoft', style.dark?.cardBlueSoft, true)
+    record('dark.tableHeaderThToken', style.dark?.tableHeaderThToken, true)
+    record('dark.tableHeaderHeadBgToken', style.dark?.tableHeaderHeadBgToken, true)
+    record('dark.codePreCodeBg', style.dark?.codePreCodeBg, true)
+    record('dark.codePreCodeText', style.dark?.codePreCodeText, true)
+    record('dark.statusCellGreenSoft', style.dark?.statusCellGreenSoft, true)
+    // Persona 视觉：身份头 / 前后缀 / 三卡 + 短答 / 表格（人格开启态 fixture）
     const persona = personaProbe ?? {}
-    record('persona.headCount', persona.headCount, 1)
-    record('persona.prefixCount', persona.prefixCount, 1)
-    record('persona.suffixCount', persona.suffixCount, 1)
-    record('persona.prefixSize', persona.prefixSize, '12.5px')
-    record('persona.suffixSize', persona.suffixSize, '12px')
-    record('persona.suffixBorderTop', persona.suffixBorderTop, '1px dotted')
-    record('persona.headNameSize', persona.headNameSize, '16px')
-    record('persona.headNameWeight', persona.headNameWeight, '650')
-    record('persona.headAvatarSize', persona.headAvatarSize, '38px')
-    record('persona.conclusionLeadSize', persona.conclusionLeadSize, '19px')
-    record('persona.conclusionLeadWeight', persona.conclusionLeadWeight, '700')
-    record('persona.nextLabelColor', persona.nextLabelColor, 'rgb(4, 120, 87)')
-    record('persona.riskLeftColor', persona.riskLeftColor, 'rgb(217, 119, 6)')
-    record('persona.shortLeftColor', persona.shortLeftColor, 'rgb(124, 58, 237)')
-    contains('persona.shortBackground', persona.shortBackground, 'rgb(245, 243, 255)')
-    record('persona.tableLeftColor', persona.tableLeftColor, 'rgb(13, 148, 136)')
-    record('persona.thColor', persona.thColor, 'rgb(17, 94, 89)')
-    record('persona.thBackgroundImage', persona.thBackgroundImage, 'linear-gradient(90deg, rgba(13, 148, 136, 0.18), rgba(13, 148, 136, 0.05))')
-    record('persona.dark.thColor', persona.dark?.thColor, 'rgb(94, 234, 212)')
-    record('persona.dark.thBackgroundImage', persona.dark?.thBackgroundImage, 'linear-gradient(90deg, rgba(45, 212, 191, 0.24), rgba(45, 212, 191, 0.06))')
-    record('persona.dark.shortLeftColor', persona.dark?.shortLeftColor, 'rgb(196, 181, 253)')
-    record('persona.dark.nameColor', persona.dark?.nameColor, 'rgb(230, 233, 239)')
+    record('persona.headCount', persona.headCount, 1)                                             // createPersonaHead / mountPersonaHead（L1473-1554）
+    record('persona.prefixCount', persona.prefixCount, 1)                                         // renderPersonaContent（L2339）
+    record('persona.suffixCount', persona.suffixCount, 1)                                         // innerOs 收尾（L2402）
+    record('persona.prefixSize', persona.prefixSize, '12.5px')                                    // L1047 font:var(--dss-code-size)
+    record('persona.suffixSize', persona.suffixSize, '12px')                                      // L1048 calc(code*12/12.5)
+    record('persona.suffixBorderTop', persona.suffixBorderTop, '1px dotted')                      // L1048
+    // 身份头几何（2026-11-26 修复：L1040-1046 的选择器由 `.dss-scope .dss-persona-head …` 改为
+    // `.dss-scope.dss-persona-head …`，head 自身带 dss-scope 自持 token，两种挂载位置都成立）。
+    record('persona.headPadding', persona.headPadding, '0px 0px 10px')                            // L1040 padding:0 0 10px
+    record('persona.headRowDisplay', persona.headRowDisplay, 'flex')                              // L1041 .dss-chat-head{display:flex}
+    record('persona.headAvatarWidth', persona.headAvatarWidth, '38px')                            // L1042 width:38px
+    record('persona.headAvatarRadius', persona.headAvatarRadius, '50%')                           // L1042 border-radius:50%
+    record('persona.headNameSize', persona.headNameSize, '16px')                                  // L1045 calc(--dss-text-size*16/13.5)
+    record('persona.headNameWeight', persona.headNameWeight, '650')                               // L1045 font-weight:650
+    record('persona.headIsScope', persona.headIsScope, true)                                      // L1475 head.className 含 dss-scope：身份头自带 token 载体
+    record('persona.headHasName', persona.headHasName, true)                                      // L1488-1492 名字/签名节点
+    record('persona.conclusionLeadSize', persona.conclusionLeadSize, '19px')                      // L934-938
+    record('persona.conclusionLeadWeight', persona.conclusionLeadWeight, '700')                   // L937 font:700
+    record('persona.nextLabelGreenText', persona.nextLabelGreenText, true)                        // L928 var(--dss-green-text)
+    record('persona.riskAmberStrong', persona.riskAmberStrong, true)                              // L897 var(--dss-amber-strong)
+    record('persona.shortBlue', persona.shortBlue, true)                                          // L904-905 var(--dss-blue)
+    record('persona.shortBlueSoft', persona.shortBlueSoft, true)                                  // L905 var(--dss-blue-soft)
+    record('persona.tableBlue', persona.tableBlue, true)                                          // L969 border-left:3px solid var(--dss-blue)
+    record('persona.tableHeaderThToken', persona.tableHeaderThToken, true)                        // L976 var(--dss-th-text)
+    record('persona.tableHeaderHeadBgToken', persona.tableHeaderHeadBgToken, true)                // L975 var(--dss-head-bg)
+    record('persona.dark.tableHeaderThToken', persona.dark?.tableHeaderThToken, true)             // L785+ 深色 token
+    record('persona.dark.tableHeaderHeadBgToken', persona.dark?.tableHeaderHeadBgToken, true)
+    record('persona.dark.shortBlue', persona.dark?.shortBlue, true)                               // 深色 --dss-blue:#3b82f6
+    record('persona.dark.nameInk', persona.dark?.nameInk, true)                                   // L1045 color:var(--dss-ink)
+    record('persona.dark.tableBlue', persona.dark?.tableBlue, true)
     record('narrow.overflow', narrow.overflow, false)
     if (narrow.docScrollWidth > narrow.innerWidth) {
       failures.push({
@@ -287,8 +332,11 @@ if (checkIndex !== -1) {
       process.exit(2)
     }
     if (gate.ok) {
-      if (!codeTreeMatches(gate.head)) {
-        console.error(`STYLE_GATE_STALE: ${dir} head=${gate.head ?? 'unknown'} — src/lib/scripts/test/fixtures changed since evidence`)
+      // 证据绑定「产出它的那棵代码树」：treeHash 覆盖已跟踪改动 + 未跟踪新文件。
+      // 同一棵树（允许未提交）→ PASS；树变了 → STALE，旧证据不再作数。
+      if (!codeTreeMatches(gate.head, gate.treeHash)) {
+        const current = codeTreeFingerprint()
+        console.error(`STYLE_GATE_STALE: ${dir} head=${gate.head ?? 'unknown'} tree=${gate.treeHash ?? 'unknown'} current=${current ?? 'unknown'} — src/lib/scripts/test/fixtures changed since evidence`)
         process.exit(1)
       }
       console.log(`STYLE_GATE_PASS: ${dir}`)
