@@ -447,7 +447,8 @@ test('1.2.0 不重复注入：合同激活时通用 section 与通用提醒为�
       const reminder = sections.find((section) => section.name === REMINDER_NAME).text(mainContext('session-a'))
       const contract = sections.find((section) => section.name === CONTRACT_SECTION_NAME).text(mainContext('session-a'))
       assert.equal(main, '')
-      assert.equal(reminder, PERSONA_REMINDER_TEXT)
+      assert.ok(reminder.startsWith(PERSONA_REMINDER_TEXT))
+      assert.equal(reminder.includes('【本轮风格（硬提醒）】'), personaEnabled)
       assert.doesNotMatch(reminder, /加粗标题/)
       assert.match(contract, /【PersonaMode 内容合同】/)
       assert.doesNotMatch(contract, /结构化输出（本会话已启用/)
@@ -515,18 +516,74 @@ test('apply：尾部提醒跟随内容合同，人格开关不影响', () => {
     // 兼容字段：tailReminder=false 仍固定注入提醒，不再能关闭。
     const legacyOff = fakeCtx()
     apply(legacyOff.ctx, { defaultEnabled: true, tailReminder: false, personaEnabled: true, persona: DEFAULT_PERSONA_JSON })
-    assert.equal(legacyOff.sections.find((section) => section.name === REMINDER_NAME).text(mainContext('session-a')), PERSONA_REMINDER_TEXT)
+    assert.ok(legacyOff.sections.find((section) => section.name === REMINDER_NAME).text(mainContext('session-a')).startsWith(PERSONA_REMINDER_TEXT))
 
     const on = fakeCtx()
     apply(on.ctx, { defaultEnabled: true, personaEnabled: true, persona: DEFAULT_PERSONA_JSON })
     const onReminder = on.sections.find((section) => section.name === REMINDER_NAME)
-    assert.equal(onReminder.text(mainContext('session-a')), PERSONA_REMINDER_TEXT)
+    assert.ok(onReminder.text(mainContext('session-a')).startsWith(PERSONA_REMINDER_TEXT))
+    assert.match(onReminder.text(mainContext('session-a')), /本轮风格（硬提醒）/)
     assert.match(onReminder.text(mainContext('session-a')), /短回复 \/ 催进度/)
     assert.doesNotMatch(onReminder.text(mainContext('session-a')), /加粗标题/)
 
     // 子代理：内容合同不注入（根会话边界），通用提醒按 includeSubagents 默认关闭保持空。
     const sub = { agent: { id: 'uuid-sub', session: { id: 'uuid-sub', header: { origin: 'subagent' } } } }
     assert.equal(onReminder.text(sub), '')
+  } finally {
+    box.cleanup()
+  }
+})
+
+test('1.2.1 尾部风格硬提醒：人格开启时追加风格原文与 innerOs 必填', () => {
+  const box = isolate()
+  try {
+    const tone = JSON.stringify({ schema: TONE_SCHEMA, prefix: '', style: '中二病语气\n像在念必杀技台词', suffix: '' })
+    const on = fakeCtx()
+    apply(on.ctx, { defaultEnabled: true, personaEnabled: true, personaInnerOsEnabled: true, persona: tone })
+    const reminder = on.sections.find((section) => section.name === REMINDER_NAME).text(mainContext('session-a'))
+    // 信封提醒仍在最前，风格硬提醒追加在末尾。
+    assert.ok(reminder.startsWith(PERSONA_REMINDER_TEXT))
+    assert.match(reminder, /【本轮风格（硬提醒）】/)
+    assert.match(reminder, /必须至少两处/)
+    assert.match(reminder, /表格单元格、代码 \/ diff \/ 报错保持中性/)
+    assert.match(reminder, /normal \/ table 回复必须包含 innerOs 字段/)
+    assert.match(reminder, /short \/ code \/ diff \/ error 可省/)
+    // 风格原文去换行后是最后一行：确保它是最后读到的一句。
+    assert.equal(reminder.split('\n').at(-1), '- 风格原文：中二病语气 像在念必杀技台词')
+
+    // innerOS 关闭：仍追加风格硬提醒，但不要求 innerOs 字段。
+    const noOs = fakeCtx()
+    apply(noOs.ctx, { defaultEnabled: true, personaEnabled: true, personaInnerOsEnabled: false, persona: tone })
+    const noOsReminder = noOs.sections.find((section) => section.name === REMINDER_NAME).text(mainContext('session-a'))
+    assert.match(noOsReminder, /【本轮风格（硬提醒）】/)
+    assert.match(noOsReminder, /中二病语气 像在念必杀技台词/)
+    assert.doesNotMatch(noOsReminder, /innerOs 字段/)
+  } finally {
+    box.cleanup()
+  }
+})
+
+test('1.2.1 人格关闭 / tone 非法时尾部提醒不追加风格与 innerOS', () => {
+  const box = isolate()
+  try {
+    const tone = JSON.stringify({ schema: TONE_SCHEMA, prefix: '', style: '中二病语气', suffix: '' })
+    const off = fakeCtx()
+    apply(off.ctx, { defaultEnabled: true, personaEnabled: false, personaInnerOsEnabled: true, persona: tone })
+    const offReminder = off.sections.find((section) => section.name === REMINDER_NAME).text(mainContext('session-a'))
+    assert.equal(offReminder, PERSONA_REMINDER_TEXT)
+    assert.doesNotMatch(offReminder, /【本轮风格（硬提醒）】/)
+    assert.doesNotMatch(offReminder, /innerOs 字段/)
+    assert.doesNotMatch(offReminder, /中二病语气/)
+
+    // tone JSON 非法：人格开着也不追加（沿用 parsePersona 校验）。
+    const broken = fakeCtx()
+    apply(broken.ctx, { defaultEnabled: true, personaEnabled: true, personaInnerOsEnabled: true, persona: '{' })
+    assert.equal(broken.sections.find((section) => section.name === REMINDER_NAME).text(mainContext('session-a')), PERSONA_REMINDER_TEXT)
+
+    // 本会话结构化关闭：整段提醒为空，不单独注入风格硬提醒。
+    const disabled = fakeCtx()
+    apply(disabled.ctx, { defaultEnabled: false, personaEnabled: true, personaInnerOsEnabled: true, persona: tone })
+    assert.equal(disabled.sections.find((section) => section.name === REMINDER_NAME).text(mainContext('session-a')), '')
   } finally {
     box.cleanup()
   }
@@ -607,12 +664,13 @@ test('tone：顺序、64KB、style.md 覆盖、内容合同与风格分区、wra
     assert.match(toneSection.text(mainContext('session-a')), /风格落在 persona 内容槽位/)
     assert.match(toneSection.text(mainContext('session-a')), /表格单元格保持中性/)
     assert.match(toneSection.text(mainContext('session-a')), /与朋友说话/)
-    assert.match(toneSection.text(mainContext('session-a')), /正文至少两处自然体现风格/)
+    assert.match(toneSection.text(mainContext('session-a')), /正文必须至少两处自然体现风格/)
     assert.match(toneSection.text(mainContext('session-a')), /发送前自检/)
     // 表格细节等结构规则只在内容合同里出现，风格段不重复。
     assert.doesNotMatch(toneSection.text(mainContext('session-a')), /表格首列是标签列/)
     const reminder = sections.find((section) => section.name === 'dsh-structured:reminder')
-    assert.equal(reminder.text(mainContext('session-a')), PERSONA_REMINDER_TEXT)
+    assert.ok(reminder.text(mainContext('session-a')).startsWith(PERSONA_REMINDER_TEXT))
+    assert.match(reminder.text(mainContext('session-a')), /本轮风格（硬提醒）/)
     const anchor = sections.find((section) => section.name === TONE_ANCHOR_SECTION_NAME)
     assert.equal(anchor.text(mainContext('session-a')), '')
 
@@ -628,7 +686,7 @@ test('tone：顺序、64KB、style.md 覆盖、内容合同与风格分区、wra
     const noTail = fakeCtx()
     apply(noTail.ctx, { defaultEnabled: true, tailReminder: false, personaEnabled: true, persona: whale })
     assert.equal(noTail.sections.length, 5)
-    assert.equal(noTail.sections.find((section) => section.name === REMINDER_NAME).text(mainContext('session-a')), PERSONA_REMINDER_TEXT)
+    assert.ok(noTail.sections.find((section) => section.name === REMINDER_NAME).text(mainContext('session-a')).startsWith(PERSONA_REMINDER_TEXT))
     assert.equal(noTail.sections.find((section) => section.name === TONE_ANCHOR_SECTION_NAME).text(mainContext('session-a')), '')
     assert.match(noTail.sections.find((section) => section.name === PERSONA_SECTION_NAME).text(mainContext('session-a')), /发送前自检/)
 
@@ -653,7 +711,7 @@ test('内容合同与人格解耦：人格关闭时 /structured 与状态文本�
     const onContract = on.sections.find((section) => section.name === CONTRACT_SECTION_NAME)
     const onPersona = on.sections.find((section) => section.name === PERSONA_SECTION_NAME)
     assert.equal(onMain.text(mainContext('session-a')), '')
-    assert.equal(onReminder.text(mainContext('session-a')), PERSONA_REMINDER_TEXT)
+    assert.ok(onReminder.text(mainContext('session-a')).startsWith(PERSONA_REMINDER_TEXT))
     assert.match(onContract.text(mainContext('session-a')), /【PersonaMode 内容合同】/)
     assert.match(onContract.text(mainContext('session-a')), /"kind":"normal"/)
     assert.match(onContract.text(mainContext('session-a')), /"kind":"short"/)

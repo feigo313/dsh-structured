@@ -120,7 +120,7 @@ export const PERSONA_WRAPPER_HEAD = [
   '- 结尾后缀：模型不输出后缀；插件按配置渲染；short / table / code / diff / error 由插件跳过。',
   '- skipIn 只控制插件渲染的结尾后缀；代码 / diff / 报错则前后缀与风格全部跳过。',
   '- 代码 / diff / 报错 / 高风险结论的正文保持中性。',
-  '- 正文至少两处自然体现风格；不写过程叙事。',
+  '- 正文必须至少两处自然体现风格；不写过程叙事。',
   '【风格数据开始】',
 ].join('\n')
 
@@ -259,6 +259,29 @@ const toneRequiredString = (value, max) => typeof value === 'string' && value.tr
 const sanitizeToneText = (value) => String(value)
   .replace(/[\r\n]+/g, ' ')
   .replace(/【\s*(已启用的表达风格|开头前缀|中间风格|结尾后缀|跳过场景|风格数据(?:开始|结束))\s*】/g, '［$1］')
+
+/**
+ * 1.2.1 尾部风格硬提醒：风格段 order=10250 不是最后一段，模型优先跟随尾部提醒，
+ * 导致「有卡无风格」。这里把风格原文与最少执行量拼成末段，由尾部提醒 section 追加。
+ * 只接受已解析的 tone.style；非字符串 / 空串返回 ''（fail-open，不追加）。
+ * @param {unknown} style 已通过 parsePersona 的 tone.style
+ * @param {boolean} [innerOs] personaInnerOsEnabled 为真时要求 normal / table 带 innerOs
+ * @returns {string}
+ */
+export function personaTailReminder(style, innerOs = false) {
+  if (typeof style !== 'string') return ''
+  const safeStyle = sanitizeToneText(style).trim()
+  if (safeStyle === '') return ''
+  const lines = [
+    '【本轮风格（硬提醒）】',
+    '- 正文（结论 / 要点 / 建议）必须至少两处自然体现下面的风格；表格单元格、代码 / diff / 报错保持中性。',
+  ]
+  if (innerOs === true) {
+    lines.push('- normal / table 回复必须包含 innerOs 字段：≤30 字、第一人称、跟随风格；不复述任务、不解释；short / code / diff / error 可省。')
+  }
+  lines.push('- 风格原文：' + safeStyle)
+  return lines.join(String.fromCharCode(10))
+}
 
 /**
  * 严格解析 tone JSON；只接受 tone@1，不把旧 persona/meta 字段带进 1.0。
@@ -839,6 +862,22 @@ export function apply(ctx, config = {}) {
     return compiled.text
   }
 
+  /**
+   * 1.2.1 尾部风格硬提醒求值：人格开启 + tone 合法 + 插件 / 本会话开启 + 根会话时才追加。
+   * 人格关闭 / tone 非法 / 非根会话一律返回 ''，不改变现有开关与根会话边界。
+   */
+  const personaTailReminderNow = (context) => {
+    try {
+      if (!pluginEnabledNow() || !personaEnabledNow() || !isRootSessionContext(context) || !enabledFor(context)) return ''
+      const parsed = parsePersona(personaRawNow())
+      if (!parsed.ok) return ''
+      return personaTailReminder(parsed.doc.style, personaInnerOsNow() === true)
+    } catch (error) {
+      warn('尾部风格硬提醒求值失败，已跳过', error)
+      return ''
+    }
+  }
+
   try {
     ctx.effect(
       () =>
@@ -888,12 +927,20 @@ export function apply(ctx, config = {}) {
           text: (context) => {
             // 内容合同激活时通用结构化提醒与合同互斥，换成只讲信封的专用提醒：长对话里模型
             // 最爱在短回复 / 催进度回合漏信封，一旦漏了整条回复就没有卡片。人格关也照旧。
+            // 1.2.1：两条分支都先取到正文，再把风格硬提醒统一拼到末尾；section 为空（插件 /
+            // 本会话关闭）时不单独注入，保持既有开关语义。
+            let base = ''
             try {
-              if (contentContractNow(context) !== '') return PERSONA_REMINDER_TEXT
+              base = contentContractNow(context) !== ''
+                ? PERSONA_REMINDER_TEXT
+                : sectionText(context, () => TAIL_REMINDER_TEXT, '尾部提醒求值失败，已回退为空 section')
             } catch (error) {
               warn('内容合同尾部提醒求值失败，已回退为通用提醒', error)
+              base = ''
             }
-            return sectionText(context, () => TAIL_REMINDER_TEXT, '尾部提醒求值失败，已回退为空 section')
+            const extra = personaTailReminderNow(context)
+            if (base === '' || extra === '') return base
+            return base + String.fromCharCode(10) + extra
           },
         }),
       'dsh-structured: tail reminder',
