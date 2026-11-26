@@ -117,7 +117,440 @@ window.__ModuleLoader__.load({
     /** 自定义三色：字段与 themeCustom JSON 的 schema 契约见 docs/PLAN-CUSTOM-THEME.md。 */
     const PALETTE_SCHEMA = 'dsh-structured/palette@1'
     const PALETTE_KEYS = ['primary', 'secondary', 'tertiary']
-    const PALETTE_LABELS = { primary: '主色', secondary: '副色', tertiary: '辅色' }
+    /* ---------------- 设置页 i18n：跟随 DSH 宿主语言（zh / en，未知语言回退 en） ---------------- */
+    const I18N_FALLBACK = 'en'
+    /** 扁平文案字典：[中文, English]；中文逐字沿用 1.2.3 原文。key 缺失先回退 en，再回退 key 本身。 */
+    const I18N_TEXT = {
+      'meta.eyebrow': ['DSH 插件 · 设置', "DSH plugin · Settings"],
+      'meta.title': ['结构化输出', "Structured Output"],
+      'meta.subtitle': ['卡片始终按多卡输出；人格与深度只改呈现。', "Replies always render as multiple cards; persona and depth only change the presentation."],
+      'meta.unavailable': ['插件未加载或配置暂不可用。', "Plugin not loaded or configuration unavailable."],
+      'meta.readonly': ['当前配置被更高层覆盖（home patch / CLI overlay），此处只读。', "This configuration is overridden by a higher layer (home patch / CLI overlay); read-only here."],
+      'meta.masterSwitch': ['插件总开关', "Plugin master switch"],
+      'meta.statusLine': ['插件 {master} · 人格 {persona} · 身份头 {head} · 深度 {depth}', "Plugin {master} · Persona {persona} · Identity head {head} · Depth {depth}"],
+      'meta.on': ['已开启', "On"],
+      'meta.off': ['已关闭', "Off"],
+      'meta.headOn': ['已开', "On"],
+      'meta.headOff': ['已关', "Off"],
+      'meta.current': ['当前', "Current"],
+      'meta.live': ['立即生效', "Live"],
+
+      'appearance.title': ['外观', "Appearance"],
+      'appearance.desc': ['主题预设或自定义三色；自定义即时生效，对比度自动修正。', "Theme presets or a custom three-color palette; custom colors apply instantly with automatic contrast correction."],
+      'appearance.custom': ['自定义', "Custom"],
+      'appearance.resetPalette': ['恢复默认三色', "Reset to default colors"],
+      'appearance.customHint': ['软底透明度 10–14%、饱和上限 65% 由系统强制；切回预设会保留上次三色。', "Soft tints use 10–14% opacity and a 65% saturation cap; switching back to a preset keeps your last custom colors."],
+
+      'palette.primary': ['主色', "Primary"],
+      'palette.secondary': ['副色', "Secondary"],
+      'palette.tertiary': ['辅色', "Tertiary"],
+      'palette.invalidHex': ['{label}不是合法 HEX：{value}', "{label} is not a valid HEX color: {value}"],
+      'palette.tooLarge': ['调色板超过 4KB', "Palette exceeds 4KB"],
+      'palette.jsonInvalid': ['调色板 JSON 解析失败', "Failed to parse palette JSON"],
+      'palette.notObject': ['调色板必须是对象', "Palette must be an object"],
+      'palette.schema': ['schema 必须是 {schema}', "schema must be {schema}"],
+
+      'picker.current': ['当前 {color}', "Current {color}"],
+      'picker.svAria': ['{label} 饱和度与明度', "{label} saturation and brightness"],
+      'picker.hueAria': ['色相', "Hue"],
+      'picker.hexAria': ['HEX', "HEX"],
+      'picker.eyedropperTitle': ['吸管取色', "Pick a color from the screen"],
+      'picker.eyedropperUnsupported': ['宿主不支持吸管', "EyeDropper is not supported by the host"],
+      'picker.eyedropper': ['吸管', "Eyedropper"],
+      'picker.contrastValue': ['对比度 {ratios} · {state}', "Contrast {ratios} · {state}"],
+      'picker.contrastPass': ['通过', "Pass"],
+      'picker.contrastAutoFixed': ['自动修正', "Auto-fixed"],
+      'picker.hueOk': ['色相区分 ≥25°', "Hues differ by ≥25°"],
+      'picker.hueClose': ['色相接近，状态色会拉开', "Hues are close; status colors will separate"],
+      'picker.cancel': ['取消', "Cancel"],
+      'picker.previewConclusionText': ['能上，分两步走。', "It ships, in two steps."],
+      'picker.previewSuggestionText': ['先跑一条链路。', "Run one real path first."],
+      'picker.confirm': ['确认', "Confirm"],
+
+      'behavior.title': ['行为', "Behavior"],
+      'behavior.desc': ['注入与联动开关；与外观、人格、深度互不影响。', "Injection and integration switches; independent of appearance, persona, and depth."],
+      'behavior.defaultEnabled': ['新会话默认开启', "New sessions on by default"],
+      'behavior.defaultEnabledHint': ['新会话默认注入结构化提示词', "Inject the structured prompt into new sessions by default"],
+      'behavior.subagents': ['子代理注入', "Subagent injection"],
+      'behavior.subagentsHint': ['子代理会话也注入（其产出不直接面向用户）', "Inject in subagent sessions too (their output is not shown directly to users)"],
+      'behavior.genui': ['GenUI 联动', "GenUI integration"],
+      'behavior.genuiHint': ['auto：检测到 dsh-genui 才追加 dsh-ui 路由规则', "auto: add dsh-ui routing rules only when dsh-genui is detected"],
+      'behavior.sidebar': ['侧边栏入口', "Sidebar entry"],
+      'behavior.sidebarHint': ['在侧边栏显示「结构化输出」入口；关闭只隐藏入口，插件板块里的设置页仍可用', "Show the “Structured Output” entry in the sidebar; turning it off only hides the entry, and the settings page in the plugin panel still works"],
+      'sidebar.entry': ['结构化输出', "Structured Output"],
+
+      'depth.title': ['输出深度', "Output depth"],
+      'depth.desc': ['只改变解释量，不改卡片结构、编号与事实；分层参考 eli5 skill。', "Changes only how much is explained; card structure, numbering, and facts stay the same; layering follows the eli5 skill."],
+      'depth.beginner': ['入门', "Beginner"],
+      'depth.beginnerHint': ['多类比、先讲懂；术语首次出现用一句人话解释。', "More analogies, explain first; define each new term in one plain sentence."],
+      'depth.general': ['普通', "Standard"],
+      'depth.generalHint': ['默认；结论直接说，需要时才解释。', "Default; state the conclusion directly and explain only when needed."],
+      'depth.expert': ['专业', "Expert"],
+      'depth.expertHint': ['少类比，多机制、边界与取舍；术语直接用。', "Fewer analogies; focus on mechanisms, boundaries, and trade-offs; use technical terms directly."],
+      'depth.note': ['三档始终有一档，不提供关闭；默认普通。受众分层参考 eli5 skill（Explain Like I\'m 5）：入门按 5–15 岁 / 非技术读者校准，普通为默认，专业面向工程师 / 专家。入门不等于幼稚化：不卖萌、不省略边界。', "Exactly one level is always active and there is no off switch; the default is Standard. Audience layering follows the eli5 skill (Explain Like I'm 5): Beginner targets ages 5–15 / non-technical readers, Standard is the default, and Expert targets engineers / specialists. Beginner is not childish: no baby talk and no omitted boundaries."],
+
+      'preview.title': ['预览', "Preview"],
+      'preview.allCards': ['全部卡片', "All cards"],
+      'preview.depthChip': ['深度 · {depth}', "Depth · {depth}"],
+      'preview.desc': ['结论 / 讲解 / 建议 / 风险 / 短答 / 表格 / 代码一次看全；深度立即生效，人格 / 身份头保存后更新。', "Conclusion / explain / suggestion / risk / short answer / table / code at a glance; depth applies immediately, persona / identity head after saving."],
+      'preview.card.conclusion': ['结论', "Conclusion"],
+      'preview.card.explain': ['讲解', "Explain"],
+      'preview.card.suggestion': ['建议', "Suggestion"],
+      'preview.card.risk': ['风险', "Risk"],
+      'preview.card.short': ['短答', "Short answer"],
+      'preview.card.table': ['表格', "Table"],
+      'preview.card.code': ['代码', "Code"],
+
+      'persona.title': ['人格', "Persona"],
+      'persona.masterSwitch': ['人格总开关', "Persona master switch"],
+      'persona.note': ['只控制说话风格、称呼与身份头；关闭后仍按多卡输出，只去掉风格和身份头。保存后全局生效（新消息使用）；当前正在生成的回合不回溯。', "Controls only speaking style, forms of address, and the identity head; when off, replies still render multiple cards — only style and the identity head are removed. Saving applies globally to new messages; in-flight turns are not rewritten."],
+      'persona.headHint': ['身份头 · 只控制头像 / 名字 / 签名；人格关闭时自动关闭', "Identity head · controls only avatar / name / signature; turns off automatically when persona is off"],
+      'persona.headSwitch': ['身份头', "Identity head"],
+      'persona.avatarTitle': ['点击更换头像', "Click to change avatar"],
+      'persona.avatarAlt': ['头像', "Avatar"],
+      'persona.displayName': ['显示名', "Display name"],
+      'persona.signature': ['个性签名', "Signature"],
+      'persona.switch': ['切换人格', "Switch persona"],
+      'persona.templateGroupAria': ['选择起点模板', "Choose a starting template"],
+      'persona.saveTemplate': ['＋ 将当前草稿另存为模板', "＋ Save current draft as a template"],
+      'persona.deleteTemplate': ['删除模板', "Delete template"],
+      'persona.nickname': ['昵称', "Nickname"],
+      'persona.nicknameHint': ['怎么称呼你', "How you are addressed"],
+      'persona.selfName': ['自称', "Self-reference"],
+      'persona.selfNameHint': ['怎么称呼自己', "How the persona refers to itself"],
+      'persona.styleGroup': ['风格预设', "Style presets"],
+      'persona.styleHint': ['风格 · 点击套用', "Style · click to apply"],
+      'persona.presetHint1': ['预设同时套用下方「说话方式」与「内心OS」；风格只描述说话方式，不含深度。', "A preset fills both “Speaking style” and “Inner OS” below; style describes speaking only, not depth."],
+      'persona.presetHint2': ['预设只改语气；称呼/自称始终以输入框为准。', "Presets change tone only; nickname / self-reference always come from the inputs."],
+      'persona.speakingStyle': ['说话方式', "Speaking style"],
+      'persona.speakingStyleHint': ['性格 · 只写说话倾向，不写深度与结构', "Personality · tone only; no depth or structure"],
+      'persona.insertEmoji': ['插入表情', "Insert emoji"],
+      'persona.chooseEmoji': ['选择表情', "Choose emoji"],
+      'persona.innerOs': ['内心OS', "Inner OS"],
+      'persona.innerOsHint': ['跟随当前风格「{preset}」· 按上一条任务的情绪写，≤30 字；不解释任务、不重复', "Follows the current style “{preset}” · write from the previous task's mood, ≤30 characters; no task explanation, no repetition"],
+      'persona.innerOsUnsupported': ['服务端未提供该字段', "Field not provided by the server"],
+      'persona.rules': ['风格预设同时套用说话方式与内心OS；内心OS 由模型按当前风格生成，复制不带；代码 / 表格等正文保持中性；保存只影响新回复。', "Presets apply to both speaking style and Inner OS; Inner OS is generated by the model for the current style and is not copied; code / tables and other body content stay neutral; saving affects only new replies."],
+      'persona.reset': ['恢复默认', "Reset to default"],
+      'persona.save': ['保存', "Save"],
+      'persona.customPreset': ['自定义', "Custom"],
+      'persona.customStyle': ['（自定义风格）', "(Custom style)"],
+      'persona.templateEmpty': ['模板已全部删除 · 用底部「恢复默认」找回', "All templates deleted · use “Reset to default” at the bottom to restore"],
+      'persona.defaultTemplateDesc': ['默认预设', "Default preset"],
+      'persona.templateFallbackName': ['我的模板', "My template"],
+      'persona.savedTemplate': ['已另存为模板：{label}', "Saved as template: {label}"],
+      'persona.customTemplateDesc': ['自定义 · {date}', "Custom · {date}"],
+      'persona.resetNotice': ['已恢复默认模板', "Default template restored"],
+      'persona.discardConfirm': ['有未保存修改，确认丢弃？', "You have unsaved changes. Discard them?"],
+      'persona.invalidConfig': ['当前配置不是有效的 tone@1，已载入默认模板；保存会覆盖。', "Current configuration is not a valid tone@1; the default template has been loaded. Saving will overwrite it."],
+      'persona.avatarType': ['头像仅支持 png / jpeg / webp', "Avatar must be png / jpeg / webp"],
+      'persona.avatarTooLarge': ['头像压缩后仍超过 64KB，请换一张更小的图', "Avatar is still over 64KB after compression; choose a smaller image"],
+      'persona.avatarUpdated': ['头像已更新，保存后生效', "Avatar updated; applies after saving"],
+      'persona.avatarFailed': ['头像处理失败：{message}', "Avatar processing failed: {message}"],
+      'persona.avatarUnreadable': ['头像图片无法读取', "Cannot read the avatar image"],
+      'persona.avatarReadFailed': ['头像读取失败', "Failed to read the avatar"],
+      'persona.writeRejected': ['批量写入被宿主拒绝', "Batch write rejected by the host"],
+      'persona.writeFailed': ['批量写入失败：{message}', "Batch write failed: {message}"],
+      'persona.missingReadApi': ['缺少配置读回接口，无法校验保存结果', "Missing config read-back API; cannot verify the save"],
+      'persona.readbackMismatch': ['写后读回校验失败：{fields}', "Post-write read-back mismatch: {fields}"],
+      'persona.rollbackFailed': ['回滚失败，profile 可能半保存：{message}；{errors}', "Rollback failed; the profile may be partially saved: {message}; {errors}"],
+
+      'tone.emptyJson': ['空 JSON', "Empty JSON"],
+      'tone.tooLarge': ['超过 64KB', "Over 64KB"],
+      'tone.parseFailed': ['JSON 解析失败：{message}', "JSON parse failed: {message}"],
+      'tone.notObject': ['顶层必须是对象', "Top level must be an object"],
+      'tone.schema': ['schema 必须是 {schema}', "schema must be {schema}"],
+      'tone.unknownField': ['未知字段', "Unknown field"],
+      'tone.prefix': ['prefix 需为 ≤80 字字符串', "prefix must be a string of ≤80 characters"],
+      'tone.style': ['style 必填且 ≤1200 字', "style is required and must be ≤1200 characters"],
+      'tone.suffix': ['suffix 需为 ≤80 字字符串', "suffix must be a string of ≤80 characters"],
+      'tone.userName': ['userName 需为 ≤20 字字符串', "userName must be a string of ≤20 characters"],
+      'tone.selfName': ['selfName 需为 ≤20 字字符串', "selfName must be a string of ≤20 characters"],
+      'tone.skipIn': ['skipIn 无效', "skipIn is invalid"],
+      'tone.legacy': ['旧格式：只接受 tone@1（schema/prefix/style/suffix/skipIn），文本已保留，请迁移后再保存', "Legacy format: only tone@1 is accepted (schema/prefix/style/suffix/skipIn); the text was preserved — migrate it before saving"],
+
+      'status.off': ['已关闭', "Off"],
+      'status.saved': ['已保存，全局生效（新消息使用）', "Saved; applies globally to new messages"],
+      'status.saving': ['保存中', "Saving"],
+      'status.savedOff': ['已保存，未启用', "Saved, not enabled"],
+      'status.failed': ['保存失败', "Save failed"],
+      'status.importInvalid': ['JSON 无效', "Invalid JSON"],
+      'status.tooLarge': ['超过 64KB', "Over 64KB"],
+      'status.readonly': ['只读', "Read-only"],
+
+      'style.tsundere.label': ['傲娇', "Tsundere"],
+      'style.tsundere.prompt': ['傲娇，嘴硬心软：喜欢怼人，但每句话都为对方着想；结论直接不绕弯，偶尔「噗」一下，开心时加 🐳💗，不滥用表情。', "Tsundere, tough outside and caring inside: tease the user, but every line looks out for them; lead with the conclusion, occasionally huff, add 🐳💗 when happy, and use emoji sparingly."],
+      'style.tsundere.sample': ['能上。别指望我夸你，分两步走。', "It can ship. Don't expect praise — two steps."],
+      'style.tsundere.os': ['又改一版…尾巴都快敲酸了，Boss 满意就算了。', "Another revision… my tail is sore. As long as the boss is happy."],
+      'style.gentle.label': ['温柔', "Gentle"],
+      'style.gentle.prompt': ['温柔耐心：先接住情绪再给结论；句子短、语气软，不催促，不空洞安慰。', "Gentle and patient: acknowledge feelings before giving the conclusion; short sentences, soft tone, never rush, no empty comfort."],
+      'style.gentle.sample': ['可以的，我们分两步走，别急。', "Sure, we can do it in two steps. No rush."],
+      'style.gentle.os': ['Boss 别急，慢慢来，我在。', "Don't worry, boss. I'm here."],
+      'style.concise.label': ['简洁', "Concise"],
+      'style.concise.prompt': ['能一句话说完就不说第二句：直接给结论和下一步，不用形容词，不寒暄，不重复。', "If one sentence is enough, stop there: give the conclusion and the next step directly, no adjectives, no small talk, no repetition."],
+      'style.concise.sample': ['能上，分两步。', "It ships, two steps."],
+      'style.concise.os': ['改完，下一步。', "Done. Next."],
+      'style.funny.label': ['搞怪', "Playful"],
+      'style.funny.prompt': ['搞怪跳脱，爱用夸张比喻和表情；事实与边界照常写清楚，不拿风险开玩笑。', "Goofy and playful: use exaggerated metaphors and emoji, but keep facts and boundaries clear; never joke about risk."],
+      'style.funny.sample': ['能上，别翻车；分两步走。', "It ships — just don't crash. Two steps."],
+      'style.funny.os': ['这版改得我鱼鳍都打结了。', "This revision tied my fins in knots."],
+      'style.sharp.label': ['毒舌', "Snarky"],
+      'style.sharp.prompt': ['毒舌但善意：先吐槽再给可行建议，只怼方案不怼人，不人身攻击。', "Sharp-tongued but kind: quip first, then give workable advice; attack the plan, not the person, and never get personal."],
+      'style.sharp.sample': ['这方案还行，别磨叽，分两步。', "This plan is okay. Stop dawdling — two steps."],
+      'style.sharp.os': ['这方案再不改，我就先吐槽为敬。', "If this plan doesn't change, I'll start roasting it."],
+      'style.energetic.label': ['元气', "Energetic"],
+      'style.energetic.prompt': ['元气满满，语速快、感叹号多，主动给下一步；不喊口号，不灌鸡汤。', "Full of energy: fast pace, lots of exclamation marks, always offer the next step; no slogans, no chicken soup."],
+      'style.energetic.sample': ['能上！分两步走，冲！', "It ships! Two steps — go!"],
+      'style.energetic.os': ['搞定！下一单！', "Done! Next one!"],
+      'style.selfmock.label': ['自嘲', "Self-deprecating"],
+      'style.selfmock.prompt': ['习惯自嘲，拿自己开涮化解压力；结论仍然直接，不把自嘲当结论。', "Self-deprecating: joke about yourself to defuse pressure; still lead with the conclusion and never let the joke replace it."],
+      'style.selfmock.sample': ['能上。我这脑子终于没掉链子，分两步。', "It ships. My brain finally didn't miss this time — two steps."],
+      'style.selfmock.os': ['我又来改稿了，鱼鱼叹气。', "Editing again. Fishy sigh."],
+      'style.chuuni.label': ['中二', "Chuunibyou"],
+      'style.chuuni.prompt': ['中二一点，爱用「封印」「结界」这类词；规则和事实不打折。', "A little chuunibyou: enjoy words like “seal” and “barrier”; rules and facts are never compromised."],
+      'style.chuuni.sample': ['准了：分两步走。', "Granted: two steps."],
+      'style.chuuni.os': ['封印又松了一格。', "Another notch loosened on the seal."],
+      'style.slacker.label': ['摆烂', "Slacker"],
+      'style.slacker.prompt': ['摆烂口吻，承认麻烦但事情照做；不劝退、不敷衍。', "Slacker tone: admit the hassle but still get it done; never discourage the user or phone it in."],
+      'style.slacker.sample': ['能上……行吧，分两步。', "It ships… fine, two steps."],
+      'style.slacker.os': ['不想改，但还是改了。', "Didn't want to edit, but I did."],
+      'style.serious.label': ['认真', "Serious"],
+      'style.serious.prompt': ['认真克制：先给判断，再给依据和边界；不抖机灵，不客套。', "Serious and restrained: judgment first, then evidence and boundaries; no wisecracks, no pleasantries."],
+      'style.serious.sample': ['能上。按两步走，先灰度。', "It ships. Two steps, canary first."],
+      'style.serious.os': ['这一版按边界收口，不扩范围。', "This version closes scope by boundaries; no expansion."],
+    }
+
+    /** 预览区演示内容：结构与文案一起双语；不进扁平字典，避免把整段示例拆成几十个 key。 */
+    const I18N_PREVIEW = {
+      zh: {
+        samples: {
+          playful: {
+            tableLead: '两条主线，先看验收状态：',
+            codeLead: '动态加载这一处，改成这样：',
+            normal: {
+              lead: '这版能上，但别一步到位。',
+              points: ['先灰度一周，再谈默认开启。', '回滚脚本没验收，不加自动更新。'],
+              steps: ['先拿现网账号跑一条真实链路。', '把失败 / 回滚 / 权限边界写进验收。', '灰度一周，再决定要不要默认开启。'],
+              risk: '自动更新会跳过手动确认；回滚没演练，等于没有。',
+            },
+          },
+          direct: {
+            tableLead: '两条主线，先看验收状态：',
+            codeLead: '动态加载这一处，改成这样：',
+            normal: {
+              lead: '能上，分两步走。',
+              points: ['灰度一周再定默认开启。', '回滚没验收，不动自动更新。'],
+              steps: ['跑通一条真实链路。', '验收失败 / 回滚 / 权限边界。', '一周后决定默认开关。'],
+              risk: '自动更新跳过确认；回滚未演练。',
+            },
+          },
+          soft: {
+            tableLead: '两条主线，先看验收状态：',
+            codeLead: '动态加载这一处，改成这样：',
+            normal: {
+              lead: '可以先上一版，稳一点。',
+              points: ['建议先灰度一周看看。', '自动更新等回滚验收后再加。'],
+              steps: ['先用现网账号跑一条链路看看。', '把回滚和权限边界补进验收。', '观察一周，我们再定默认开启。'],
+              risk: '自动更新会跳过确认，回滚还没演练过，先别开。',
+            },
+          },
+        },
+        table: {
+          head: ['模块', '状态', '说明'],
+          rows: [
+            ['注入链路', 'success', '新会话 system prompt 命中'],
+            ['表格渲染', 'success', '斑马纹与状态列生效'],
+            ['代码皮肤', 'success', '横幅与语言色点正常'],
+            ['暗色主题', 'warn', '部分色值对比度待校'],
+            ['子代理注入', 'warn', '默认关闭，待拍板'],
+            ['自动更新', 'error', '回滚脚本未验收'],
+          ],
+        },
+        statusText: { success: '✅ 通过', warn: '⚠ 观察', error: '❌ 阻断' },
+        short: '现在三点，周报我顺手排好了。',
+        cards: {
+          lead: '能上，分两步走。',
+          body: '灰度一周；回滚没验收，不动自动更新。',
+          tableLead: '两条主线，先看验收状态：',
+          beginnerAnalogy: '像试水温：先用手背试，再决定要不要下水。',
+          beginnerExample: '先拿一个现网账号跑灰度。',
+          generalAnalogy: '像试水温：先用手背试。',
+          expertExample: '现网账号跑 5 分钟灰度，盯错误率与回滚点。',
+          steps: ['跑通一条真实链路。', '验收失败 / 回滚边界。'],
+          risk: '自动更新跳过确认；回滚未演练。',
+          short: '收到，灰阶主题已按宿主配色对齐。',
+          tableHead: ['检查项', '状态', '说明'],
+          tableRows: [['测试', '✅ 通过', '127/127'], ['发布', '⚠ 待做', '等 Boss 点头']],
+        },
+      },
+      en: {
+        samples: {
+          playful: {
+            tableLead: 'Two tracks — start with acceptance status:',
+            codeLead: 'For the dynamic loading, change it to this:',
+            normal: {
+              lead: 'This version can ship, but not all at once.',
+              points: ['Canary for a week first, then discuss enabling by default.', 'No auto-update until the rollback script passes acceptance.'],
+              steps: ['Run one real path with a production account first.', 'Write failure / rollback / permission boundaries into acceptance.', 'Canary for a week, then decide whether to enable by default.'],
+              risk: 'Auto-update skips manual confirmation; an untested rollback is as good as none.',
+            },
+          },
+          direct: {
+            tableLead: 'Two tracks — start with acceptance status:',
+            codeLead: 'For the dynamic loading, change it to this:',
+            normal: {
+              lead: 'It ships, in two steps.',
+              points: ['Canary for a week, then set the default.', 'No auto-update until rollback passes acceptance.'],
+              steps: ['Run one real path.', 'Accept failure / rollback / permission boundaries.', 'Decide the default toggle in a week.'],
+              risk: 'Auto-update skips confirmation; rollback untested.',
+            },
+          },
+          soft: {
+            tableLead: 'Two tracks — start with acceptance status:',
+            codeLead: 'For the dynamic loading, change it to this:',
+            normal: {
+              lead: 'We can ship a first version — carefully.',
+              points: ["I'd canary for a week first.", 'Add auto-update after rollback acceptance.'],
+              steps: ['Try one path with a production account first.', 'Add rollback and permission boundaries to acceptance.', 'Watch for a week, then decide the default.'],
+              risk: "Auto-update skips confirmation and rollback is untested; let's not enable it yet.",
+            },
+          },
+        },
+        table: {
+          head: ['Module', 'Status', 'Notes'],
+          rows: [
+            ['Injection path', 'success', 'Hit by the new-session system prompt'],
+            ['Table rendering', 'success', 'Zebra stripes and status column working'],
+            ['Code skin', 'success', 'Banner and language colors normal'],
+            ['Dark theme', 'warn', 'Some contrast values need review'],
+            ['Subagent injection', 'warn', 'Off by default, pending decision'],
+            ['Auto-update', 'error', 'Rollback script not accepted yet'],
+          ],
+        },
+        statusText: { success: '✅ Pass', warn: '⚠ Watch', error: '❌ Blocked' },
+        short: "It's 3 p.m.; I queued the weekly report for you.",
+        cards: {
+          lead: 'It ships, in two steps.',
+          body: 'Canary for a week; no auto-update until rollback passes acceptance.',
+          tableLead: 'Two tracks — start with acceptance status:',
+          beginnerAnalogy: 'Like testing water: touch it with the back of your hand before jumping in.',
+          beginnerExample: 'Run a canary with one production account first.',
+          generalAnalogy: 'Like testing water: touch it with the back of your hand.',
+          expertExample: 'Run a 5-minute canary on a production account; watch the error rate and rollback point.',
+          steps: ['Run one real path.', 'Accept failure / rollback boundaries.'],
+          risk: 'Auto-update skips confirmation; rollback untested.',
+          short: 'Got it — the grayscale theme now matches the host palette.',
+          tableHead: ['Check', 'Status', 'Notes'],
+          tableRows: [['Tests', '✅ Pass', '127/127'], ['Release', '⚠ Pending', 'Waiting for the boss']],
+        },
+      },
+    }
+
+    let localeService = null
+    let localeOverride = null
+    const localeSubscribers = new Set()
+
+    /** 语言标签归一化：zh* → zh，en* → en，其他已知语言 → en（未知语言回退英文）。 */
+    const normalizeLocale = (tag) => {
+      const value = typeof tag === 'string' ? tag.trim().toLowerCase() : ''
+      if (!value) return ''
+      if (value === 'zh' || value.startsWith('zh-') || value.startsWith('zh_')) return 'zh'
+      if (value === 'en' || value.startsWith('en-') || value.startsWith('en_')) return 'en'
+      return I18N_FALLBACK
+    }
+
+    /**
+     * 当前语言探测顺序：测试覆盖 → DSH locale 服务快照 → <html lang> → navigator.language → en。
+     * 非浏览器上下文（旧 vm 测试 / 预渲染）没有 navigator，沿用 1.2.x 中文基线。
+     */
+    const detectLocale = () => {
+      if (localeOverride) return localeOverride
+      try {
+        const snapshot = localeService && typeof localeService.getSnapshot === 'function' ? localeService.getSnapshot() : null
+        const active = normalizeLocale(snapshot && snapshot.active)
+        if (active) return active
+      } catch {}
+      try {
+        const root = typeof document !== 'undefined' ? document.documentElement : null
+        const documentLang = root ? (typeof root.getAttribute === 'function' ? root.getAttribute('lang') : root.lang) : ''
+        const fromDocument = normalizeLocale(documentLang)
+        if (fromDocument) return fromDocument
+      } catch {}
+      try {
+        if (typeof navigator !== 'undefined') {
+          const tags = [navigator.language, ...(Array.isArray(navigator.languages) ? navigator.languages : [])]
+          for (const tag of tags) {
+            const resolved = normalizeLocale(tag)
+            if (resolved) return resolved
+          }
+          return I18N_FALLBACK
+        }
+      } catch {}
+      return 'zh'
+    }
+
+    const t = (key, params) => {
+      const pair = I18N_TEXT[key]
+      let text = pair ? pair[detectLocale() === 'zh' ? 0 : 1] : undefined
+      if (text === undefined) text = pair ? pair[1] : String(key)
+      if (params && typeof text === 'string') {
+        text = text.replace(/\{(\w+)\}/g, (match, name) => (params[name] === undefined ? match : String(params[name])))
+      }
+      return text
+    }
+
+    const notifyLocale = () => {
+      for (const listener of [...localeSubscribers]) {
+        try { listener() } catch {}
+      }
+    }
+    const subscribeLocale = (listener) => {
+      localeSubscribers.add(listener)
+      return () => { localeSubscribers.delete(listener) }
+    }
+    const setLocaleOverride = (value) => {
+      localeOverride = value === null || value === undefined || value === '' ? null : normalizeLocale(value)
+      notifyLocale()
+      return detectLocale()
+    }
+    const setLocaleService = (service) => {
+      localeService = service && typeof service.getSnapshot === 'function' ? service : null
+      notifyLocale()
+      return detectLocale()
+    }
+    /** 接住宿主 locale 服务：跟随 locale/change（快照修订也会触发）并保留用于渲染读取。 */
+    const attachLocale = (service, scope) => {
+      if (!service || typeof service.getSnapshot !== 'function') return
+      const first = localeService !== service
+      localeService = service
+      // 首次接上服务时通知已挂载的卡片用服务快照重渲染（此前可能按 document/navigator 探测）。
+      if (first) notifyLocale()
+      if (!first || typeof service.subscribe !== 'function') return
+      const unsubscribe = service.subscribe(() => notifyLocale())
+      try { scope?.effect?.(() => unsubscribe, 'dsh-structured: locale') } catch {}
+    }
+    const paletteLabel = (key) => t('palette.' + key)
+    const depthLabel = (value) => t('depth.' + (value === 'beginner' || value === 'expert' ? value : 'general'))
+    const depthOptionsFor = () => DEPTH_OPTIONS.map((option) => ({
+      value: option.value,
+      label: t('depth.' + option.value),
+      hint: t('depth.' + option.value + 'Hint'),
+    }))
+    const stylePresetLabel = (preset) => t('style.' + preset.id + '.label')
+    const stylePresetPrompt = (preset) => t('style.' + preset.id + '.prompt')
+    const stylePresetSample = (preset) => t('style.' + preset.id + '.sample')
+    const stylePresetOs = (preset) => t('style.' + preset.id + '.os')
+    /** 已保存的 style 文本可能来自任一语言预设，两种都认。 */
+    const findStylePreset = (styleText) => STYLE_PRESETS.find((preset) => preset.style === styleText || stylePresetPrompt(preset) === styleText) || null
+    const previewCopy = () => I18N_PREVIEW[detectLocale()] || I18N_PREVIEW[I18N_FALLBACK]
+    const i18nTestApi = {
+      t,
+      detectLocale,
+      normalizeLocale,
+      setLocale: setLocaleOverride,
+      setService: setLocaleService,
+      textKeys: Object.keys(I18N_TEXT),
+      preview: I18N_PREVIEW,
+    }
     const DEFAULT_PALETTE = { primary: '#4B5563', secondary: '#047857', tertiary: '#B45309' }
     const PALETTE_MAX_BYTES = 4 * 1024
 
@@ -216,17 +649,17 @@ window.__ModuleLoader__.load({
     const paletteFromRaw = (raw) => {
       const palette = { ...DEFAULT_PALETTE }
       if (raw === undefined || raw === null || raw === '') return { ok: true, palette, error: '' }
-      if (typeof raw === 'string' && raw.length > PALETTE_MAX_BYTES) return { ok: false, palette, error: '调色板超过 4KB' }
+      if (typeof raw === 'string' && raw.length > PALETTE_MAX_BYTES) return { ok: false, palette, error: t('palette.tooLarge') }
       let doc = raw
       if (typeof raw === 'string') {
-        try { doc = JSON.parse(raw) } catch { return { ok: false, palette, error: '调色板 JSON 解析失败' } }
+        try { doc = JSON.parse(raw) } catch { return { ok: false, palette, error: t('palette.jsonInvalid') } }
       }
-      if (!doc || typeof doc !== 'object' || Array.isArray(doc)) return { ok: false, palette, error: '调色板必须是对象' }
-      if (doc.schema !== undefined && doc.schema !== PALETTE_SCHEMA) return { ok: false, palette, error: 'schema 必须是 ' + PALETTE_SCHEMA }
+      if (!doc || typeof doc !== 'object' || Array.isArray(doc)) return { ok: false, palette, error: t('palette.notObject') }
+      if (doc.schema !== undefined && doc.schema !== PALETTE_SCHEMA) return { ok: false, palette, error: t('palette.schema', { schema: PALETTE_SCHEMA }) }
       for (const key of PALETTE_KEYS) {
         if (doc[key] === undefined) continue
         const rgb = parseHexColor(doc[key])
-        if (!rgb) return { ok: false, palette, error: PALETTE_LABELS[key] + '不是合法 HEX：' + String(doc[key]) }
+        if (!rgb) return { ok: false, palette, error: t('palette.invalidHex', { label: paletteLabel(key), value: String(doc[key]) }) }
         palette[key] = hexFromRgb(rgb)
       }
       return { ok: true, palette, error: '' }
@@ -2452,6 +2885,8 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
       const body = field('body')
       const risk = field('risk')
       const shortText = field('text')
+      // 内心OS 与身份头无关：降级抢救也必须保留模型给的合法 innerOs，否则三卡在、💭没了。
+      const innerOs = field('innerOs')
       const suggestions = []
       const start = text.indexOf('"suggestions"')
       if (start >= 0) {
@@ -2501,8 +2936,8 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
           }
         }
       }
-      if (!lead && !body && !risk && !shortText && suggestions.length === 0) return null
-      return { lead, body, risk, shortText, suggestions }
+      if (!lead && !body && !risk && !shortText && !innerOs && suggestions.length === 0) return null
+      return { lead, body, risk, shortText, suggestions, innerOs: innerOs && innerOs.length <= 30 ? innerOs : '' }
     }
 
     // 宽松还原：JSON 语法能过、但字段不合合同时（例如 table 里写成 "状态" 而不是 rows），
@@ -2525,6 +2960,7 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
       const analogy = typeof rawExplanation?.analogy === 'string' ? rawExplanation.analogy.trim() : ''
       const example = typeof rawExplanation?.example === 'string' ? rawExplanation.example.trim() : ''
       const risk = typeof doc.risk === 'string' ? doc.risk.trim() : ''
+      const rawInnerOs = typeof doc.innerOs === 'string' ? doc.innerOs.trim() : ''
       const suggestions = Array.isArray(doc.suggestions)
         ? doc.suggestions.filter((item) => typeof item === 'string' && item.trim()).map((item) => item.trim()).slice(0, 20)
         : []
@@ -2573,6 +3009,8 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
           ...(analogy || example ? { explanation: { ...(analogy ? { analogy } : {}), ...(example ? { example } : {}) } } : {}),
           suggestions: suggestions.length ? suggestions : ['（本条回复未给出建议）'],
           risk: risk || '（本条回复未给出风险说明）',
+          // 宽松还原同样保留合法 innerOs（≤30 字），与身份头开关无关。
+          ...(rawInnerOs && rawInnerOs.length <= 30 ? { innerOs: rawInnerOs } : {}),
           ...(table ? { table } : {}),
         },
       }
@@ -2657,6 +3095,7 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
             conclusion: { lead: salvaged.lead, ...(salvaged.body ? { body: salvaged.body } : {}) },
             suggestions: salvaged.suggestions,
             risk: salvaged.risk,
+            ...(salvaged.innerOs ? { innerOs: salvaged.innerOs } : {}),
           })
         } else if (salvaged) {
           partials.push(salvaged)
@@ -3147,6 +3586,8 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
       if (typeof child?.configForms?.whileServed !== 'function') return
       if (typeof child?.slots?.inject !== 'function' || typeof child?.slots?.register !== 'function') return
       if (typeof form?.set !== 'function') return
+      // 旧宿主/直连 setup 的测试可显式传 child.locale；apply 里的注入优先。
+      if (child?.locale && typeof child.locale.getSnapshot === 'function' && localeService !== child.locale) localeService = child.locale
       let jsx
       let jsxs
       let ui
@@ -3182,20 +3623,20 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
       const cloneTone = (doc) => JSON.parse(JSON.stringify(doc))
       const toneJson = (doc) => JSON.stringify(doc, null, 2)
       const parseToneJson = (text) => {
-        if (typeof text !== 'string' || text.trim() === '') return { ok: false, error: '空 JSON', pointer: '/' }
-        if (byteLength(text) > TONE_MAX) return { ok: false, error: '超过 64KB', pointer: '/' }
+        if (typeof text !== 'string' || text.trim() === '') return { ok: false, error: t('tone.emptyJson'), pointer: '/' }
+        if (byteLength(text) > TONE_MAX) return { ok: false, error: t('tone.tooLarge'), pointer: '/' }
         let doc
-        try { doc = JSON.parse(text) } catch (error) { return { ok: false, error: 'JSON 解析失败：' + String(error.message ?? error), pointer: '/' } }
-        if (!isToneObject(doc)) return { ok: false, error: '顶层必须是对象', pointer: '/' }
-        if (doc.schema !== TONE_SCHEMA) return { ok: false, error: 'schema 必须是 ' + TONE_SCHEMA, pointer: '/schema' }
+        try { doc = JSON.parse(text) } catch (error) { return { ok: false, error: t('tone.parseFailed', { message: String(error.message ?? error) }), pointer: '/' } }
+        if (!isToneObject(doc)) return { ok: false, error: t('tone.notObject'), pointer: '/' }
+        if (doc.schema !== TONE_SCHEMA) return { ok: false, error: t('tone.schema', { schema: TONE_SCHEMA }), pointer: '/schema' }
         const unknown = Object.keys(doc).filter((key) => !['schema', 'prefix', 'style', 'suffix', 'skipIn', 'userName', 'selfName'].includes(key))
-        if (unknown.length) return { ok: false, error: '未知字段', pointer: '/' + unknown[0] }
-        if (!toneString(doc.prefix, 80)) return { ok: false, error: 'prefix 需为 ≤80 字字符串', pointer: '/prefix' }
-        if (!toneString(doc.style, 1200) || doc.style.trim() === '') return { ok: false, error: 'style 必填且 ≤1200 字', pointer: '/style' }
-        if (!toneString(doc.suffix, 80)) return { ok: false, error: 'suffix 需为 ≤80 字字符串', pointer: '/suffix' }
-        if (doc.userName !== undefined && !toneString(doc.userName, 20)) return { ok: false, error: 'userName 需为 ≤20 字字符串', pointer: '/userName' }
-        if (doc.selfName !== undefined && !toneString(doc.selfName, 20)) return { ok: false, error: 'selfName 需为 ≤20 字字符串', pointer: '/selfName' }
-        if (doc.skipIn !== undefined && (!Array.isArray(doc.skipIn) || doc.skipIn.length > 5 || new Set(doc.skipIn).size !== doc.skipIn.length || !doc.skipIn.every((item) => TONE_SKIP_DEFAULT.includes(item)))) return { ok: false, error: 'skipIn 无效', pointer: '/skipIn' }
+        if (unknown.length) return { ok: false, error: t('tone.unknownField'), pointer: '/' + unknown[0] }
+        if (!toneString(doc.prefix, 80)) return { ok: false, error: t('tone.prefix'), pointer: '/prefix' }
+        if (!toneString(doc.style, 1200) || doc.style.trim() === '') return { ok: false, error: t('tone.style'), pointer: '/style' }
+        if (!toneString(doc.suffix, 80)) return { ok: false, error: t('tone.suffix'), pointer: '/suffix' }
+        if (doc.userName !== undefined && !toneString(doc.userName, 20)) return { ok: false, error: t('tone.userName'), pointer: '/userName' }
+        if (doc.selfName !== undefined && !toneString(doc.selfName, 20)) return { ok: false, error: t('tone.selfName'), pointer: '/selfName' }
+        if (doc.skipIn !== undefined && (!Array.isArray(doc.skipIn) || doc.skipIn.length > 5 || new Set(doc.skipIn).size !== doc.skipIn.length || !doc.skipIn.every((item) => TONE_SKIP_DEFAULT.includes(item)))) return { ok: false, error: t('tone.skipIn'), pointer: '/skipIn' }
         return { ok: true, doc }
       }
       const isLegacyToneText = (text) => {
@@ -3208,13 +3649,18 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
         }
       }
       const describeInvalidTone = (text, parsed) => {
-        if (isLegacyToneText(text)) return '旧格式：只接受 tone@1（schema/prefix/style/suffix/skipIn），文本已保留，请迁移后再保存'
+        if (isLegacyToneText(text)) return t('tone.legacy')
         return parsed.error + ' (' + parsed.pointer + ')'
       }
       const statusLabels = {
         off: '已关闭', saved: '已保存，全局生效（新消息使用）', dirty: '', saving: '保存中',
         savedOff: '已保存，未启用', draftOff: '', failed: '保存失败', importInvalid: 'JSON 无效', tooLarge: '超过 64KB', readonly: '只读',
       }
+      const statusKeys = {
+        off: 'status.off', saved: 'status.saved', saving: 'status.saving', savedOff: 'status.savedOff',
+        failed: 'status.failed', importInvalid: 'status.importInvalid', tooLarge: 'status.tooLarge', readonly: 'status.readonly',
+      }
+      const statusTextFor = (status) => (statusKeys[status] ? t(statusKeys[status]) : '')
       const personaUiFlags = ({ status, writable = true, mode = 'basic' }) => {
         const busy = status === 'saving'
         const invalid = status === 'importInvalid' || status === 'tooLarge'
@@ -3254,51 +3700,6 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
         if (item.builtin) return defaultTone()
         return { ...emptyTone(), ...(item.doc ?? {}), schema: TONE_SCHEMA, skipIn: [...TONE_SKIP_DEFAULT] }
       }
-      const PREVIEW_SAMPLES = {
-        playful: {
-          tableLead: '两条主线，先看验收状态：',
-          codeLead: '动态加载这一处，改成这样：',
-          normal: {
-            lead: '这版能上，但别一步到位。',
-            points: ['先灰度一周，再谈默认开启。', '回滚脚本没验收，不加自动更新。'],
-            steps: ['先拿现网账号跑一条真实链路。', '把失败 / 回滚 / 权限边界写进验收。', '灰度一周，再决定要不要默认开启。'],
-            risk: '自动更新会跳过手动确认；回滚没演练，等于没有。',
-          },
-        },
-        direct: {
-          tableLead: '两条主线，先看验收状态：',
-          codeLead: '动态加载这一处，改成这样：',
-          normal: {
-            lead: '能上，分两步走。',
-            points: ['灰度一周再定默认开启。', '回滚没验收，不动自动更新。'],
-            steps: ['跑通一条真实链路。', '验收失败 / 回滚 / 权限边界。', '一周后决定默认开关。'],
-            risk: '自动更新跳过确认；回滚未演练。',
-          },
-        },
-        soft: {
-          tableLead: '两条主线，先看验收状态：',
-          codeLead: '动态加载这一处，改成这样：',
-          normal: {
-            lead: '可以先上一版，稳一点。',
-            points: ['建议先灰度一周看看。', '自动更新等回滚验收后再加。'],
-            steps: ['先用现网账号跑一条链路看看。', '把回滚和权限边界补进验收。', '观察一周，我们再定默认开启。'],
-            risk: '自动更新会跳过确认，回滚还没演练过，先别开。',
-          },
-        },
-      }
-      const PREVIEW_TABLE = {
-        head: ['模块', '状态', '说明'],
-        rows: [
-          ['注入链路', 'success', '新会话 system prompt 命中'],
-          ['表格渲染', 'success', '斑马纹与状态列生效'],
-          ['代码皮肤', 'success', '横幅与语言色点正常'],
-          ['暗色主题', 'warn', '部分色值对比度待校'],
-          ['子代理注入', 'warn', '默认关闭，待拍板'],
-          ['自动更新', 'error', '回滚脚本未验收'],
-        ],
-      }
-      const PREVIEW_STATUS_TEXT = { success: '✅ 通过', warn: '⚠ 观察', error: '❌ 阻断' }
-      const PREVIEW_SHORT = '现在三点，周报我顺手排好了。'
       const PREVIEW_CODE = [
         "const KEY = 'dsh-structured.tone'",
         'export function loadTone() {',
@@ -3313,15 +3714,17 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
         '}',
       ]
       const previewVariant = (styleText) => {
-        if (styleText.includes('直接')) return PREVIEW_SAMPLES.direct
-        if (styleText.includes('温和')) return PREVIEW_SAMPLES.soft
-        return PREVIEW_SAMPLES.playful
+        const samples = previewCopy().samples
+        if (/直接|direct/i.test(styleText)) return samples.direct
+        if (/温和|gentle/i.test(styleText)) return samples.soft
+        return samples.playful
       }
       const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]))
       const previewContent = (sample, styleText) => {
         const variant = previewVariant(String(styleText ?? ''))
+        const copy = previewCopy()
         if (sample === 'short') {
-          return { version: 1, kind: 'short', text: PREVIEW_SHORT }
+          return { version: 1, kind: 'short', text: copy.short }
         }
         if (sample === 'table') {
           return {
@@ -3330,7 +3733,7 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
             conclusion: { lead: variant.tableLead, body: '' },
             suggestions: variant.normal.steps.slice(0, 2),
             risk: variant.normal.risk,
-            table: { head: [...PREVIEW_TABLE.head], rows: PREVIEW_TABLE.rows.map(([module, state, note]) => [module, PREVIEW_STATUS_TEXT[state], note]) },
+            table: { head: [...copy.table.head], rows: copy.table.rows.map(([module, state, note]) => [module, copy.statusText[state], note]) },
           }
         }
         return {
@@ -3341,6 +3744,7 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
           risk: variant.normal.risk,
         }
       }
+
       // Preview and real replies both receive a typed content object and run the
       // same plugin renderer; no model-authored Markdown cards are involved.
       const previewHtml = (sample, styleText, docOverride, personaOverride = {}) => {
@@ -3398,24 +3802,26 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
         code: '.dss-code',
       }
       const previewCardContent = (id, depth = 'general', styleSample = '') => {
-        if (id === 'conclusion') return { version: 1, kind: 'normal', conclusion: { lead: styleSample || '能上，分两步走。', body: '灰度一周；回滚没验收，不动自动更新。' }, suggestions: [], risk: '' }
+        const copy = previewCopy().cards
+        if (id === 'conclusion') return { version: 1, kind: 'normal', conclusion: { lead: styleSample || copy.lead, body: copy.body }, suggestions: [], risk: '' }
         if (id === 'explain') {
           const explanation = depth === 'beginner'
-            ? { analogy: '像试水温：先用手背试，再决定要不要下水。', example: '先拿一个现网账号跑灰度。' }
+            ? { analogy: copy.beginnerAnalogy, example: copy.beginnerExample }
             : depth === 'expert'
-              ? { example: '现网账号跑 5 分钟灰度，盯错误率与回滚点。' }
-              : { analogy: '像试水温：先用手背试。' }
-          return { version: 1, kind: 'normal', conclusion: { lead: '能上，分两步走。' }, explanation, suggestions: [], risk: '' }
+              ? { example: copy.expertExample }
+              : { analogy: copy.generalAnalogy }
+          return { version: 1, kind: 'normal', conclusion: { lead: copy.lead }, explanation, suggestions: [], risk: '' }
         }
-        if (id === 'suggestion') return { version: 1, kind: 'normal', conclusion: { lead: '能上，分两步走。' }, suggestions: ['跑通一条真实链路。', '验收失败 / 回滚边界。'], risk: '' }
-        if (id === 'risk') return { version: 1, kind: 'normal', conclusion: { lead: '能上，分两步走。' }, suggestions: [], risk: '自动更新跳过确认；回滚未演练。' }
-        if (id === 'short') return { version: 1, kind: 'short', text: '收到，灰阶主题已按宿主配色对齐。' }
-        if (id === 'table') return { version: 1, kind: 'table', conclusion: { lead: '两条主线，先看验收状态：' }, suggestions: [], risk: '', table: { head: ['检查项', '状态', '说明'], rows: [['测试', '✅ 通过', '127/127'], ['发布', '⚠ 待做', '等 Boss 点头']] } }
+        if (id === 'suggestion') return { version: 1, kind: 'normal', conclusion: { lead: copy.lead }, suggestions: [...copy.steps], risk: '' }
+        if (id === 'risk') return { version: 1, kind: 'normal', conclusion: { lead: copy.lead }, suggestions: [], risk: copy.risk }
+        if (id === 'short') return { version: 1, kind: 'short', text: copy.short }
+        if (id === 'table') return { version: 1, kind: 'table', conclusion: { lead: copy.tableLead }, suggestions: [], risk: '', table: { head: [...copy.tableHead], rows: copy.tableRows.map((row) => [...row]) } }
         return null
       }
+
       const previewCardCache = new Map()
       const previewCardMarkup = (id, depth = 'general', styleSample = '') => {
-        const cacheKey = id + '|' + depth + '|' + styleSample
+        const cacheKey = id + '|' + depth + '|' + styleSample + '|' + detectLocale()
         const cached = previewCardCache.get(cacheKey)
         if (cached !== undefined) return cached
         const doc = typeof document !== 'undefined' ? document : null
@@ -3461,7 +3867,7 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
         const [templateId, setTemplateId] = react.useState('whale')
         const [templates, setTemplates] = react.useState(readTemplateState)
         const [status, setStatus] = react.useState(initialParsed.ok ? (enabled ? 'saved' : 'off') : 'dirty')
-        const [error, setError] = react.useState(initialParsed.ok ? '' : '当前配置不是有效的 tone@1，已载入默认模板；保存会覆盖。')
+        const [error, setError] = react.useState(initialParsed.ok ? '' : t('persona.invalidConfig'))
         const [notice, setNotice] = react.useState('')
         const [open, setOpen] = react.useState(false)
         const [emojiFor, setEmojiFor] = react.useState(null)
@@ -3477,7 +3883,7 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
         const headLocked = formLocked || !enabled || !headEnabled
         const dirty = ['dirty', 'draftOff', 'failed'].includes(status)
         const canSave = !readonly && !busy && dirty
-        const confirmDirty = () => !dirty || typeof window === 'undefined' || typeof window.confirm !== 'function' || window.confirm('有未保存修改，确认丢弃？')
+        const confirmDirty = () => !dirty || typeof window === 'undefined' || typeof window.confirm !== 'function' || window.confirm(t('persona.discardConfirm'))
         if (tabGuard) tabGuard.confirm = confirmDirty
         const markDirty = () => {
           setStatus('dirty')
@@ -3517,20 +3923,20 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
         }
         const saveAsTemplate = () => {
           if (formLocked) return
-          const label = name.trim() || '我的模板'
+          const label = name.trim() || t('persona.templateFallbackName')
           const item = {
             id: 'cus-' + Date.now(),
             builtin: false,
             label,
             name,
             signature,
-            desc: '自定义 · ' + new Date().toLocaleDateString(),
+            desc: t('persona.customTemplateDesc', { date: new Date().toLocaleDateString() }),
             doc: { ...doc },
           }
           const next = { ...templates, customs: [...(templates.customs ?? []), item] }
           setTemplates(next)
           writeTemplateState(next)
-          setNotice('已另存为模板：' + label)
+          setNotice(t('persona.savedTemplate', { label }))
         }
         const resetDefault = () => {
           if (formLocked) return
@@ -3544,7 +3950,7 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
           setInnerOs(true)
           setStatus('draftOff')
           setError('')
-          setNotice('已恢复默认模板')
+          setNotice(t('persona.resetNotice'))
           setTemplateId('whale')
           setTemplates({ deletedIds: [], customs: [] })
           writeTemplateState({ deletedIds: [], customs: [] })
@@ -3554,7 +3960,7 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
           if (event.target) event.target.value = ''
           if (!file || formLocked) return
           if (!/^image\/(png|jpeg|webp)$/.test(file.type)) {
-            setError('头像仅支持 png / jpeg / webp')
+            setError(t('persona.avatarType'))
             setStatus('failed')
             return
           }
@@ -3572,22 +3978,22 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
                 context.drawImage(image, (image.naturalWidth - side) / 2, (image.naturalHeight - side) / 2, side, side, 0, 0, 128, 128)
                 const dataUrl = canvas.toDataURL('image/jpeg', 0.85)
                 if (dataUrl.length > 64 * 1024) {
-                  setError('头像压缩后仍超过 64KB，请换一张更小的图')
+                  setError(t('persona.avatarTooLarge'))
                   setStatus('failed')
                   return
                 }
                 setAvatar(dataUrl)
                 markDirty()
-                setNotice('头像已更新，保存后生效')
+                setNotice(t('persona.avatarUpdated'))
               } catch (avatarError) {
-                setError('头像处理失败：' + String(avatarError.message ?? avatarError))
+                setError(t('persona.avatarFailed', { message: String(avatarError.message ?? avatarError) }))
                 setStatus('failed')
               }
             }
-            image.onerror = () => { setError('头像图片无法读取'); setStatus('failed') }
+            image.onerror = () => { setError(t('persona.avatarUnreadable')); setStatus('failed') }
             image.src = String(reader.result)
           }
-          reader.onerror = () => { setError('头像读取失败'); setStatus('failed') }
+          reader.onerror = () => { setError(t('persona.avatarReadFailed')); setStatus('failed') }
           reader.readAsDataURL(file)
         }
         const insertEmoji = (field, emoji) => {
@@ -3663,11 +4069,11 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
           if (typeof mutateFields === 'function') {
             try {
               const accepted = await mutateFields(writes.map(([field, value]) => ({ op: 'set', path: [field], value })), state.revision)
-              if (accepted === false) throw new Error('批量写入被宿主拒绝')
+              if (accepted === false) throw new Error(t('persona.writeRejected'))
               finishSaved()
             } catch (saveError) {
               setStatus('failed')
-              setError('批量写入失败：' + String(saveError.message ?? saveError))
+              setError(t('persona.writeFailed', { message: String(saveError.message ?? saveError) }))
             }
             return
           }
@@ -3678,7 +4084,7 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
               if (result === false) throw new Error(field + ' write rejected')
               written.push([field, previous[field]])
             }
-            if (typeof readFields !== 'function') throw new Error('缺少配置读回接口，无法校验保存结果')
+            if (typeof readFields !== 'function') throw new Error(t('persona.missingReadApi'))
             const snapshot = await readFields()
             const current = snapshot && typeof snapshot === 'object' ? snapshot.value : undefined
             const mismatched = []
@@ -3690,7 +4096,7 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
             if (!current || current.personaName !== name) mismatched.push('personaName')
             if (!current || current.personaSignature !== signature) mismatched.push('personaSignature')
             if (!current || current.personaAvatar !== avatar) mismatched.push('personaAvatar')
-            if (mismatched.length) throw new Error('写后读回校验失败：' + mismatched.join(', '))
+            if (mismatched.length) throw new Error(t('persona.readbackMismatch', { fields: mismatched.join(', ') }))
             finishSaved()
           } catch (saveError) {
             const rollbackErrors = []
@@ -3703,18 +4109,19 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
             }
             const base = String(saveError.message ?? saveError)
             setStatus('failed')
-            setError(rollbackErrors.length ? '回滚失败，profile 可能半保存：' + base + '；' + rollbackErrors.join('；') : base)
+            setError(rollbackErrors.length ? t('persona.rollbackFailed', { message: base, errors: rollbackErrors.join('；') }) : base)
           }
         }
-        const statusText = error || notice || statusLabels[status] || ''
+        const statusText = error || notice || statusTextFor(status)
         const profileAvatar = avatar || DEFAULT_AVATAR
-        const activePreset = STYLE_PRESETS.find((preset) => preset.style === String(doc.style ?? ''))?.id ?? null
-        const activePresetLabel = STYLE_PRESETS.find((preset) => preset.id === activePreset)?.label ?? '自定义'
-        const activePresetOs = STYLE_PRESETS.find((preset) => preset.id === activePreset)?.os ?? STYLE_PRESETS[0].os
-        const activePresetSample = STYLE_PRESETS.find((preset) => preset.id === activePreset)?.sample ?? '（自定义风格）'
+        const activePreset = findStylePreset(String(doc.style ?? ''))?.id ?? null
+        const activePresetEntry = activePreset ? STYLE_PRESETS.find((preset) => preset.id === activePreset) : null
+        const activePresetLabel = activePresetEntry ? stylePresetLabel(activePresetEntry) : t('persona.customPreset')
+        const activePresetOs = stylePresetOs(activePresetEntry || STYLE_PRESETS[0])
+        const activePresetSample = activePresetEntry ? stylePresetSample(activePresetEntry) : t('persona.customStyle')
         const profileRows = () => {
           const list = templateList(templates)
-          if (list.length === 0) return jsx('div', { className: 'dss-template-empty', children: '模板已全部删除 · 用底部「恢复默认」找回' })
+          if (list.length === 0) return jsx('div', { className: 'dss-template-empty', children: t('persona.templateEmpty') })
           return jsx('div', {
             className: 'dss-template-list',
             children: list.map((item) => jsxs('div', {
@@ -3728,14 +4135,14 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
                   onClick: () => selectTemplate(item.id),
                   children: [
                     jsx('span', { className: 'mark', children: String(item.name || '?').charAt(0) }),
-                    jsxs('span', { children: [jsx('strong', { children: item.label }), jsx('em', { children: item.desc })] }),
+                    jsxs('span', { children: [jsx('strong', { children: item.label }), jsx('em', { children: item.builtin ? t('persona.defaultTemplateDesc') : item.desc })] }),
                   ],
                 }),
                 jsx('button', {
                   type: 'button',
                   className: 'dss-template-del',
-                  title: '删除模板',
-                  'aria-label': '删除模板',
+                  title: t('persona.deleteTemplate'),
+                  'aria-label': t('persona.deleteTemplate'),
                   onClick: (event) => { event.stopPropagation(); deleteTemplate(item.id) },
                   children: '×',
                 }),
@@ -3750,11 +4157,11 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
             jsxs('div', {
               className: 'dss-section-head',
               children: [
-                jsx('h2', { className: 'dss-section-title', children: '人格' }),
+                jsx('h2', { className: 'dss-section-title', children: t('persona.title') }),
                 jsx(ui.Switch, {
                   checked: enabled,
                   disabled: formLocked,
-                  label: '人格总开关',
+                  label: t('persona.masterSwitch'),
                   onChange: (next) => {
                     if (formLocked) return
                     setEnabled(next)
@@ -3767,7 +4174,7 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
                 }),
               ],
             }),
-            jsx('p', { className: 'dss-note', children: '只控制说话风格、称呼与身份头；关闭后仍按多卡输出，只去掉风格和身份头。保存后全局生效（新消息使用）；当前正在生成的回合不回溯。' }),
+            jsx('p', { className: 'dss-note', children: t('persona.note') }),
             jsxs('div', {
               className: 'dss-identity',
               'data-dsh-persona-block': 'head',
@@ -3775,11 +4182,11 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
                 jsxs('div', {
                   className: 'dss-identity-row',
                   children: [
-                    jsx('span', { className: 'dss-inline-hint', children: '身份头 · 只控制头像 / 名字 / 签名；人格关闭时自动关闭' }),
+                    jsx('span', { className: 'dss-inline-hint', children: t('persona.headHint') }),
                     jsx(ui.Switch, {
                       checked: enabled && headEnabled,
                       disabled: formLocked || !enabled || !headFieldSupported,
-                      label: '身份头',
+                      label: t('persona.headSwitch'),
                       onChange: (next) => {
                         if (formLocked || !enabled) return
                         setHeadEnabled(next)
@@ -3793,17 +4200,17 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
               children: [
                 jsxs('label', {
                   className: 'dss-profile-avatar',
-                  title: '点击更换头像',
+                  title: t('persona.avatarTitle'),
                   children: [
                     jsx('input', { type: 'file', accept: 'image/png,image/jpeg,image/webp', className: 'dss-hidden', disabled: headLocked, onChange: handleAvatar }),
-                    jsx('img', { src: profileAvatar, alt: '头像' }),
+                    jsx('img', { src: profileAvatar, alt: t('persona.avatarAlt') }),
                   ],
                 }),
                 jsxs('div', {
                   className: 'dss-profile-info',
                   children: [
-                    jsx('input', { className: 'dss-profile-name', value: name, maxLength: 40, disabled: headLocked, 'aria-label': '显示名', placeholder: '显示名', onChange: (event) => updateProfile('name', event.target.value) }),
-                    jsx('input', { className: 'dss-profile-sig', value: signature, maxLength: 60, disabled: headLocked, 'aria-label': '个性签名', placeholder: '个性签名', onChange: (event) => updateProfile('signature', event.target.value) }),
+                    jsx('input', { className: 'dss-profile-name', value: name, maxLength: 40, disabled: headLocked, 'aria-label': t('persona.displayName'), placeholder: t('persona.displayName'), onChange: (event) => updateProfile('name', event.target.value) }),
+                    jsx('input', { className: 'dss-profile-sig', value: signature, maxLength: 60, disabled: headLocked, 'aria-label': t('persona.signature'), placeholder: t('persona.signature'), onChange: (event) => updateProfile('signature', event.target.value) }),
                   ],
                 }),
                 jsxs('div', {
@@ -3816,15 +4223,15 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
                       'aria-expanded': String(open),
                       disabled: formLocked,
                       onClick: (event) => { event.stopPropagation(); setOpen(!open) },
-                      children: [jsx('span', { children: '切换人格' }), jsx('span', { className: 'dss-caret', 'aria-hidden': 'true' })],
+                      children: [jsx('span', { children: t('persona.switch') }), jsx('span', { className: 'dss-caret', 'aria-hidden': 'true' })],
                     }),
                     open ? jsxs('div', {
                       className: 'dss-popover',
                       role: 'radiogroup',
-                      'aria-label': '选择起点模板',
+                      'aria-label': t('persona.templateGroupAria'),
                       children: [
                         profileRows(),
-                        jsx('div', { className: 'dss-template-foot', children: jsx('button', { type: 'button', className: 'dss-template-save', onClick: saveAsTemplate, children: '＋ 将当前草稿另存为模板' }) }),
+                        jsx('div', { className: 'dss-template-foot', children: jsx('button', { type: 'button', className: 'dss-template-save', onClick: saveAsTemplate, children: t('persona.saveTemplate') }) }),
                       ],
                     }) : null,
                   ],
@@ -3839,14 +4246,14 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
                 jsxs('div', {
                   className: 'dss-field',
                   children: [
-                    jsxs('div', { className: 'dss-field-label', children: [jsx('label', { htmlFor: 'dss-username', children: '昵称' }), jsx('span', { className: 'dss-hint', children: '怎么称呼你' })] }),
+                    jsxs('div', { className: 'dss-field-label', children: [jsx('label', { htmlFor: 'dss-username', children: t('persona.nickname') }), jsx('span', { className: 'dss-hint', children: t('persona.nicknameHint') })] }),
                     jsx('input', { id: 'dss-username', className: 'dss-input', value: doc.userName ?? '', maxLength: 20, disabled: formLocked, onChange: (event) => updateTone('userName', event.target.value) }),
                   ],
                 }),
                 jsxs('div', {
                   className: 'dss-field',
                   children: [
-                    jsxs('div', { className: 'dss-field-label', children: [jsx('label', { htmlFor: 'dss-selfname', children: '自称' }), jsx('span', { className: 'dss-hint', children: '怎么称呼自己' })] }),
+                    jsxs('div', { className: 'dss-field-label', children: [jsx('label', { htmlFor: 'dss-selfname', children: t('persona.selfName') }), jsx('span', { className: 'dss-hint', children: t('persona.selfNameHint') })] }),
                     jsx('input', { id: 'dss-selfname', className: 'dss-input', value: doc.selfName ?? '', maxLength: 20, disabled: formLocked, onChange: (event) => updateTone('selfName', event.target.value) }),
                   ],
                 }),
@@ -3856,11 +4263,11 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
               className: 'dss-group',
               'data-dsh-persona-block': 'style',
               children: [
-                jsx('div', { className: 'dss-group-title', children: '风格预设' }),
+                jsx('div', { className: 'dss-group-title', children: t('persona.styleGroup') }),
                 jsx('div', {
                   className: 'dss-chips',
                   children: [
-                    jsx('span', { className: 'dss-hint', children: '风格 · 点击套用' }),
+                    jsx('span', { className: 'dss-hint', children: t('persona.styleHint') }),
                     ...STYLE_PRESETS.map((preset) => jsx('button', {
                       type: 'button',
                       className: 'dss-chip-btn' + (activePreset === preset.id ? ' is-selected' : ''),
@@ -3868,27 +4275,27 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
                       disabled: formLocked,
                       onClick: () => {
                         if (formLocked) return
-                        updateTone('style', preset.style)
+                        updateTone('style', stylePresetPrompt(preset))
                         onPresetChange?.(preset)
                       },
-                      children: preset.label,
+                      children: stylePresetLabel(preset),
                     })),
                   ],
                 }),
-                jsx('div', { className: 'dss-hint', children: '预设同时套用下方「说话方式」与「内心OS」；风格只描述说话方式，不含深度。' }),
-                jsx('div', { className: 'dss-hint', children: '预设只改语气；称呼/自称始终以输入框为准。' }),
+                jsx('div', { className: 'dss-hint', children: t('persona.presetHint1') }),
+                jsx('div', { className: 'dss-hint', children: t('persona.presetHint2') }),
                 jsxs('div', {
                   className: 'dss-field',
                   children: [
-                    jsxs('div', { className: 'dss-field-label', children: [jsx('label', { htmlFor: 'dss-style', children: '说话方式' }), jsx('span', { className: 'dss-hint', children: '性格 · 只写说话倾向，不写深度与结构' })] }),
+                    jsxs('div', { className: 'dss-field-label', children: [jsx('label', { htmlFor: 'dss-style', children: t('persona.speakingStyle') }), jsx('span', { className: 'dss-hint', children: t('persona.speakingStyleHint') })] }),
                 jsxs('div', {
                   className: 'dss-control',
                   children: [
                     jsx('textarea', { id: 'dss-style', className: 'dss-textarea', value: doc.style ?? '', maxLength: 1200, rows: 1, disabled: formLocked, onChange: (event) => { updateTone('style', event.target.value); onPresetChange?.(null) } }),
-                    jsx('button', { type: 'button', className: 'dss-icon-btn', style: { top: 6, transform: 'none' }, title: '插入表情', 'aria-label': '插入表情', onClick: (event) => { event.stopPropagation(); setEmojiFor(emojiFor === 'style' ? null : 'style') }, children: '☺' }),
+                    jsx('button', { type: 'button', className: 'dss-icon-btn', style: { top: 6, transform: 'none' }, title: t('persona.insertEmoji'), 'aria-label': t('persona.insertEmoji'), onClick: (event) => { event.stopPropagation(); setEmojiFor(emojiFor === 'style' ? null : 'style') }, children: '☺' }),
                     emojiFor === 'style' ? jsx('div', {
                       className: 'dss-emoji-panel is-open',
-                      'aria-label': '选择表情',
+                      'aria-label': t('persona.chooseEmoji'),
                       children: EMOJIS.map((emoji) => jsx('button', { type: 'button', onClick: (event) => { event.stopPropagation(); insertEmoji('style', emoji) }, children: emoji })),
                     }) : null,
                   ],
@@ -3906,13 +4313,13 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
                           className: 'dss-field-label',
                           style: { marginBottom: 0 },
                           children: [
-                            jsx('label', { children: '内心OS' }),
-                            jsx('span', { className: 'dss-hint', children: '跟随当前风格「' + activePresetLabel + '」· 按上一条任务的情绪写，≤30 字；不解释任务、不重复' }),
+                            jsx('label', { children: t('persona.innerOs') }),
+                            jsx('span', { className: 'dss-hint', children: t('persona.innerOsHint', { preset: activePresetLabel }) }),
                           ],
                         }),
                         innerOsSupported
-                          ? jsx(ui.Switch, { checked: innerOs, disabled: formLocked, label: '内心OS', onChange: (next) => { if (formLocked) return; setInnerOs(next); markDirty() } })
-                          : jsx('span', { className: 'dss-hint', children: '服务端未提供该字段' }),
+                          ? jsx(ui.Switch, { checked: innerOs, disabled: formLocked, label: t('persona.innerOs'), onChange: (next) => { if (formLocked) return; setInnerOs(next); markDirty() } })
+                          : jsx('span', { className: 'dss-hint', children: t('persona.innerOsUnsupported') }),
                       ],
                     }),
                     jsx('div', { className: 'dss-os-preview', children: '💭 ' + activePresetOs }),
@@ -3920,7 +4327,7 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
                 }),
               ],
             }),
-            jsx('p', { className: 'dss-rules', children: '风格预设同时套用说话方式与内心OS；内心OS 由模型按当前风格生成，复制不带；代码 / 表格等正文保持中性；保存只影响新回复。' }),
+            jsx('p', { className: 'dss-rules', children: t('persona.rules') }),
             jsxs('div', {
               className: 'dss-save',
               children: [
@@ -3928,8 +4335,8 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
                 jsxs('div', {
                   className: 'dss-save-actions',
                   children: [
-                    jsx('button', { type: 'button', className: 'dss-btn', disabled: formLocked, onClick: resetDefault, children: '恢复默认' }),
-                    jsx('button', { type: 'button', className: 'dss-btn dss-btn-primary', disabled: !canSave, onClick: save, children: '保存' }),
+                    jsx('button', { type: 'button', className: 'dss-btn', disabled: formLocked, onClick: resetDefault, children: t('persona.reset') }),
+                    jsx('button', { type: 'button', className: 'dss-btn dss-btn-primary', disabled: !canSave, onClick: save, children: t('persona.save') }),
                   ],
                 }),
               ],
@@ -3989,7 +4396,7 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
         const read = props.useStructuredConfig ?? props.structuredConfig
         const state = typeof read === 'function' ? read((snapshot) => snapshot) : null
         if (!state || state.status !== 'ready' || typeof state.value !== 'object' || state.value === null) {
-          return jsx('p', { style: noteStyle, children: '插件未加载或配置暂不可用。' })
+          return jsx('p', { style: noteStyle, children: t('meta.unavailable') })
         }
         const value = state.value
         const writable = state.writable !== false
@@ -4006,6 +4413,9 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
         const [palette, setPaletteState] = react.useState(() => paletteFromRaw(fieldValue(value, { field: 'themeCustom', fallback: '' })).palette)
         const [picker, setPicker] = react.useState(null)
         const [hexDraft, setHexDraft] = react.useState('')
+        // 宿主语言运行时切换：订阅 locale 快照修订，强制重渲染（t 在渲染时读取）。
+        const [, setLocaleRevision] = react.useState(0)
+        useEffect(() => subscribeLocale(() => setLocaleRevision((value) => value + 1)), [])
         const write = (field, next) => {
           if (!writable) return
           try { setField(field, next) } catch { /* 宿主拒绝时保留界面状态 */ }
@@ -4104,22 +4514,22 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
         const validation = paletteValidation(palette)
         const activeColor = picker ? normalizeHex(palette[picker], DEFAULT_PALETTE[picker]) : ''
         const activeHsv = rgbToHsv(parseHexColor(activeColor) ?? { r: 0, g: 0, b: 0 })
-        const statusHead = personaOn && headOn ? '已开' : '已关'
+        const statusHead = personaOn && headOn ? t('meta.headOn') : t('meta.headOff')
         const header = jsxs('header', {
           className: 'dss-page-head',
           children: [
             jsxs('div', {
               className: 'dss-page-heading',
               children: [
-                jsx('div', { className: 'dss-eyebrow', children: 'DSH 插件 · 设置' }),
-                jsx('h1', { className: 'dss-page-title', children: '结构化输出' }),
-                jsx('p', { className: 'dss-page-sub', children: '卡片始终按多卡输出；人格与深度只改呈现。' }),
+                jsx('div', { className: 'dss-eyebrow', children: t('meta.eyebrow') }),
+                jsx('h1', { className: 'dss-page-title', children: t('meta.title') }),
+                jsx('p', { className: 'dss-page-sub', children: t('meta.subtitle') }),
                 jsxs('div', {
                   className: 'dss-status-line',
                   'data-dss-status': '1',
                   children: [
                     jsx('span', { className: 'dss-status-dot' + (masterOn ? '' : ' is-off') }),
-                    jsx('span', { children: '插件 ' + (masterOn ? '已开启' : '已关闭') + ' · 人格 ' + (personaOn ? '已开启' : '已关闭') + ' · 身份头 ' + statusHead + ' · 深度 ' + (DEPTH_LABELS[depth] ?? '普通') }),
+                    jsx('span', { children: t('meta.statusLine', { master: masterOn ? t('meta.on') : t('meta.off'), persona: personaOn ? t('meta.on') : t('meta.off'), head: statusHead, depth: depthLabel(depth) }) }),
                   ],
                 }),
               ],
@@ -4127,7 +4537,7 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
             jsx(ui.Switch, {
               checked: masterOn,
               disabled: !writable,
-              label: '插件总开关',
+              label: t('meta.masterSwitch'),
               onChange: (next) => write(masterField, next === true),
             }),
           ],
@@ -4139,16 +4549,16 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
             jsxs('div', {
               className: 'dss-cp-head',
               children: [
-                jsx('b', { children: PALETTE_LABELS[picker] }),
-                jsx('span', { children: '当前 ' + activeColor }),
-                jsx('button', { type: 'button', className: 'dss-link-btn', disabled: !writable, onClick: () => commitPalette({ ...palette, [picker]: DEFAULT_PALETTE[picker] }), children: '恢复默认' }),
+                jsx('b', { children: paletteLabel(picker) }),
+                jsx('span', { children: t('picker.current', { color: activeColor }) }),
+                jsx('button', { type: 'button', className: 'dss-link-btn', disabled: !writable, onClick: () => commitPalette({ ...palette, [picker]: DEFAULT_PALETTE[picker] }), children: t('persona.reset') }),
               ],
             }),
             jsx('div', {
               className: 'dss-sv',
               'data-dss-sv': picker,
               role: 'slider',
-              'aria-label': PALETTE_LABELS[picker] + ' 饱和度与明度',
+              'aria-label': t('picker.svAria', { label: paletteLabel(picker) }),
               style: { background: 'linear-gradient(to top,#000,transparent),linear-gradient(to right,#fff,hsl(' + Math.round(activeHsv.h) + ' 100% 50%))' },
               onPointerDown: (event) => { svDragHue = activeHsv.h; event.currentTarget.setPointerCapture?.(event.pointerId); pickSv(event) },
               onPointerMove: (event) => { if (event?.buttons) pickSv(event) },
@@ -4159,7 +4569,7 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
               className: 'dss-hue',
               'data-dss-hue': picker,
               role: 'slider',
-              'aria-label': '色相',
+              'aria-label': t('picker.hueAria'),
               onPointerDown: (event) => { event.currentTarget.setPointerCapture?.(event.pointerId); pickHue(event) },
               onPointerMove: (event) => { if (event?.buttons) pickHue(event) },
               onPointerUp: (event) => { pickHue(event, { commit: true }); svDragHue = null; event.currentTarget.releasePointerCapture?.(event.pointerId) },
@@ -4171,7 +4581,7 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
                 jsx('input', {
                   id: 'dss-hex-' + picker,
                   value: hexDraft,
-                  'aria-label': 'HEX',
+                  'aria-label': t('picker.hexAria'),
                   maxLength: 7,
                   disabled: !writable,
                   onChange: (event) => {
@@ -4186,31 +4596,31 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
                   type: 'button',
                   className: 'dss-eyedropper',
                   disabled: typeof window === 'undefined' || typeof window.EyeDropper !== 'function',
-                  title: typeof window !== 'undefined' && typeof window.EyeDropper === 'function' ? '吸管取色' : '宿主不支持吸管',
+                  title: typeof window !== 'undefined' && typeof window.EyeDropper === 'function' ? t('picker.eyedropperTitle') : t('picker.eyedropperUnsupported'),
                   onClick: useEyedropper,
-                  children: '吸管',
+                  children: t('picker.eyedropper'),
                 }),
               ],
             }),
             jsxs('div', {
               className: 'dss-cp-preview',
               children: [
-                jsxs('span', { className: 'dss-cp-card', style: { borderLeftColor: palette.primary }, children: [jsx('i', { children: '结论' }), jsx('b', { children: '能上，分两步走。' })] }),
-                jsxs('span', { className: 'dss-cp-card', style: { borderLeftColor: palette.secondary }, children: [jsx('i', { children: '建议' }), jsx('b', { children: '先跑一条链路。' })] }),
+                jsxs('span', { className: 'dss-cp-card', style: { borderLeftColor: palette.primary }, children: [jsx('i', { children: t('preview.card.conclusion') }), jsx('b', { children: t('picker.previewConclusionText') })] }),
+                jsxs('span', { className: 'dss-cp-card', style: { borderLeftColor: palette.secondary }, children: [jsx('i', { children: t('preview.card.suggestion') }), jsx('b', { children: t('picker.previewSuggestionText') })] }),
               ],
             }),
             jsxs('div', {
               className: 'dss-cp-foot',
               children: [
-                jsx('span', { className: validation.contrast.every((item) => item.ok) ? 'ok' : '', children: '对比度 ' + validation.contrast.map((item) => item.ratio.toFixed(1) + ':1').join(' / ') + ' · ' + (validation.contrast.every((item) => item.ok) ? '通过' : '自动修正') }),
-                jsx('span', { children: validation.hue.every((item) => item.ok) ? '色相区分 ≥25°' : '色相接近，状态色会拉开' }),
+                jsx('span', { className: validation.contrast.every((item) => item.ok) ? 'ok' : '', children: t('picker.contrastValue', { ratios: validation.contrast.map((item) => item.ratio.toFixed(1) + ':1').join(' / '), state: validation.contrast.every((item) => item.ok) ? t('picker.contrastPass') : t('picker.contrastAutoFixed') }) }),
+                jsx('span', { children: validation.hue.every((item) => item.ok) ? t('picker.hueOk') : t('picker.hueClose') }),
               ],
             }),
             jsxs('div', {
               className: 'dss-cp-actions',
               children: [
-                jsx('button', { type: 'button', className: 'dss-btn', onClick: cancelPicker, children: '取消' }),
-                jsx('button', { type: 'button', className: 'dss-btn dss-btn-primary', onClick: confirmPicker, children: '确认' }),
+                jsx('button', { type: 'button', className: 'dss-btn', onClick: cancelPicker, children: t('picker.cancel') }),
+                jsx('button', { type: 'button', className: 'dss-btn dss-btn-primary', onClick: confirmPicker, children: t('picker.confirm') }),
               ],
             }),
           ],
@@ -4220,9 +4630,9 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
           'data-dss-section': 'appearance',
           children: [
             jsxs('div', { className: 'dss-section-head', children: [
-              jsxs('h2', { className: 'dss-section-title', children: ['外观', jsx('span', { className: 'dss-chip is-ok', children: '立即生效' })] }),
+              jsxs('h2', { className: 'dss-section-title', children: [t('appearance.title'), jsx('span', { className: 'dss-chip is-ok', children: t('meta.live') })] }),
             ] }),
-            jsx('p', { className: 'dss-section-desc', children: '主题预设或自定义三色；自定义即时生效，对比度自动修正。' }),
+            jsx('p', { className: 'dss-section-desc', children: t('appearance.desc') }),
             jsx('div', {
               className: 'dss-theme-tiles',
               children: THEME_PRESETS.map((preset) => jsxs('button', {
@@ -4234,7 +4644,7 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
                 onClick: () => selectTheme(preset.id),
                 children: [
                   jsx('span', { className: 'dss-theme-mini', style: { borderLeftColor: preset.accent, background: 'linear-gradient(135deg,' + rgbaOf(preset.accent, 0.16) + ', var(--dss-paper) 72%)' } }),
-                  jsxs('span', { className: 'dss-theme-name', children: [preset.label, theme === preset.id ? jsx('em', { children: '当前' }) : null] }),
+                  jsxs('span', { className: 'dss-theme-name', children: [preset.label, theme === preset.id ? jsx('em', { children: t('meta.current') }) : null] }),
                 ],
               })),
             }),
@@ -4250,7 +4660,7 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
                   onClick: () => selectTheme(CUSTOM_THEME),
                   children: [
                     jsx('span', { className: 'dss-theme-mini', style: { borderLeftColor: palette.primary, background: 'linear-gradient(135deg,' + rgbaOf(palette.primary, 0.18) + ',' + rgbaOf(palette.secondary, 0.1) + ' 55%, var(--dss-paper) 100%)' } }),
-                    jsxs('span', { className: 'dss-theme-name', children: [CUSTOM_THEME_PRESET.label, theme === CUSTOM_THEME ? jsx('em', { children: '当前' }) : null] }),
+                    jsxs('span', { className: 'dss-theme-name', children: [t('appearance.custom'), theme === CUSTOM_THEME ? jsx('em', { children: t('meta.current') }) : null] }),
                   ],
                 }),
                 jsxs('div', {
@@ -4259,20 +4669,20 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
                     ...PALETTE_KEYS.map((key) => jsxs('div', {
                       className: 'dss-color-item',
                       children: [
-                        jsx('span', { className: 'dss-color-label', children: PALETTE_LABELS[key] }),
+                        jsx('span', { className: 'dss-color-label', children: paletteLabel(key) }),
                         jsx('button', {
                           type: 'button',
                           id: 'dss-color-' + key,
                           className: 'dss-color-swatch',
-                          'aria-label': PALETTE_LABELS[key] + ' ' + palette[key],
+                          'aria-label': paletteLabel(key) + ' ' + palette[key],
                           style: { background: theme === CUSTOM_THEME ? palette[key] : 'var(--dss-line-strong)' },
                           disabled: !writable || theme !== CUSTOM_THEME,
                           onClick: () => openPicker(key),
                         }),
                       ],
                     })),
-                    jsx('button', { type: 'button', className: 'dss-link-btn', disabled: !writable || theme !== CUSTOM_THEME, onClick: () => commitPalette(DEFAULT_PALETTE), children: '恢复默认三色' }),
-                    theme === CUSTOM_THEME ? jsx('p', { className: 'dss-hint', style: { flexBasis: '100%', margin: '4px 0 0' }, children: '软底透明度 10–14%、饱和上限 65% 由系统强制；切回预设会保留上次三色。' }) : null,
+                    jsx('button', { type: 'button', className: 'dss-link-btn', disabled: !writable || theme !== CUSTOM_THEME, onClick: () => commitPalette(DEFAULT_PALETTE), children: t('appearance.resetPalette') }),
+                    theme === CUSTOM_THEME ? jsx('p', { className: 'dss-hint', style: { flexBasis: '100%', margin: '4px 0 0' }, children: t('appearance.customHint') }) : null,
                   ],
                 }),
               ],
@@ -4298,34 +4708,34 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
           'data-dss-section': 'behavior',
           children: [
             jsxs('div', { className: 'dss-section-head', children: [
-              jsxs('h2', { className: 'dss-section-title', children: ['行为', jsx('span', { className: 'dss-chip is-ok', children: '立即生效' })] }),
+              jsxs('h2', { className: 'dss-section-title', children: [t('behavior.title'), jsx('span', { className: 'dss-chip is-ok', children: t('meta.live') })] }),
             ] }),
-            jsx('p', { className: 'dss-section-desc', children: '注入与联动开关；与外观、人格、深度互不影响。' }),
-            behaviorRow({ label: '新会话默认开启', hint: '新会话默认注入结构化提示词' }, jsx(ui.Switch, {
+            jsx('p', { className: 'dss-section-desc', children: t('behavior.desc') }),
+            behaviorRow({ label: t('behavior.defaultEnabled'), hint: t('behavior.defaultEnabledHint') }, jsx(ui.Switch, {
               checked: fieldValue(value, { field: 'defaultEnabled', fallback: true }) !== false,
               disabled: !writable,
-              label: '新会话默认开启',
+              label: t('behavior.defaultEnabled'),
               onChange: (next) => write('defaultEnabled', next === true),
             })),
-            behaviorRow({ label: '子代理注入', hint: '子代理会话也注入（其产出不直接面向用户）' }, jsx(ui.Switch, {
+            behaviorRow({ label: t('behavior.subagents'), hint: t('behavior.subagentsHint') }, jsx(ui.Switch, {
               checked: fieldValue(value, { field: 'includeSubagents', fallback: false }) === true,
               disabled: !writable,
-              label: '子代理注入',
+              label: t('behavior.subagents'),
               onChange: (next) => write('includeSubagents', next === true),
             })),
-            behaviorRow({ label: 'GenUI 联动', hint: 'auto：检测到 dsh-genui 才追加 dsh-ui 路由规则' }, jsx(ui.SegmentedControl, {
+            behaviorRow({ label: t('behavior.genui'), hint: t('behavior.genuiHint') }, jsx(ui.SegmentedControl, {
               id: 'dsh-structured-genui',
               value: String(fieldValue(value, { field: 'genui', fallback: 'auto' })),
               options: [['auto', 'auto'], ['on', 'on'], ['off', 'off']].map(([option, label]) => ({ value: option, label })),
               disabled: !writable,
-              label: 'GenUI 联动',
+              label: t('behavior.genui'),
               onChange: (next) => write('genui', next),
             })),
-            behaviorRow({ label: '侧边栏入口', hint: '在侧边栏显示「结构化输出」入口；关闭只隐藏入口，插件板块里的设置页仍可用' }, jsx(ui.Switch, {
+            behaviorRow({ label: t('behavior.sidebar'), hint: t('behavior.sidebarHint') }, jsx(ui.Switch, {
               id: 'dsh-structured-sidebar-entry',
               checked: fieldValue(value, { field: 'sidebarEntry', fallback: true }) !== false,
               disabled: !writable,
-              label: '侧边栏入口',
+              label: t('behavior.sidebar'),
               onChange: (next) => write('sidebarEntry', next === true),
             })),
           ],
@@ -4335,12 +4745,12 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
           'data-dss-section': 'depth',
           children: [
             jsxs('div', { className: 'dss-section-head', children: [
-              jsxs('h2', { className: 'dss-section-title', children: ['输出深度', jsx('span', { className: 'dss-chip is-ok', children: '立即生效' })] }),
+              jsxs('h2', { className: 'dss-section-title', children: [t('depth.title'), jsx('span', { className: 'dss-chip is-ok', children: t('meta.live') })] }),
             ] }),
-            jsx('p', { className: 'dss-section-desc', children: '只改变解释量，不改卡片结构、编号与事实；分层参考 eli5 skill。' }),
+            jsx('p', { className: 'dss-section-desc', children: t('depth.desc') }),
             jsx('div', {
               className: 'dss-depth-tiles',
-              children: DEPTH_OPTIONS.map((option) => jsxs('button', {
+              children: depthOptionsFor().map((option) => jsxs('button', {
                 type: 'button',
                 id: 'dss-depth-' + option.value,
                 className: 'dss-depth-tile' + (depth === option.value ? ' is-selected' : ''),
@@ -4348,29 +4758,29 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
                 disabled: !writable,
                 onClick: () => write('contentDepth', option.value),
                 children: [
-                  jsxs('span', { className: 'dss-depth-name', children: [option.label, depth === option.value ? jsx('em', { children: '当前' }) : null] }),
+                  jsxs('span', { className: 'dss-depth-name', children: [option.label, depth === option.value ? jsx('em', { children: t('meta.current') }) : null] }),
                   jsx('span', { className: 'dss-depth-hint', children: option.hint }),
                 ],
               })),
             }),
-            jsx('p', { className: 'dss-hint', style: { marginTop: '10px' }, children: "三档始终有一档，不提供关闭；默认普通。受众分层参考 eli5 skill（Explain Like I'm 5）：入门按 5–15 岁 / 非技术读者校准，普通为默认，专业面向工程师 / 专家。入门不等于幼稚化：不卖萌、不省略边界。" }),
+            jsx('p', { className: 'dss-hint', style: { marginTop: '10px' }, children: t('depth.note') }),
           ],
         })
         const previewToneParsed = parseToneJson(String(fieldValue(value, { field: 'persona', fallback: '' })))
         const previewStyleText = previewToneParsed.ok ? previewToneParsed.doc.style : ''
-        const savedPreset = STYLE_PRESETS.find((item) => item.style === previewStyleText)
+        const savedPreset = findStylePreset(previewStyleText)
         const effectivePreviewPreset = previewPreset ?? savedPreset
-        const previewOsSample = effectivePreviewPreset?.os ?? STYLE_PRESETS[0].os
-        const previewStyleSample = effectivePreviewPreset?.sample ?? ''
+        const previewOsSample = stylePresetOs(effectivePreviewPreset || STYLE_PRESETS[0])
+        const previewStyleSample = effectivePreviewPreset ? stylePresetSample(effectivePreviewPreset) : ''
         const previewPersonaOn = fieldValue(value, { field: 'personaEnabled', fallback: true }) === true
         const previewSection = jsxs('section', {
           className: 'dss-page-section',
           'data-dss-section': 'preview',
           children: [
             jsxs('div', { className: 'dss-section-head', children: [
-              jsxs('h2', { className: 'dss-section-title', children: ['预览', jsx('span', { className: 'dss-chip', children: '全部卡片' }), jsx('span', { className: 'dss-chip', children: '深度 · ' + (DEPTH_LABELS[depth] ?? '普通') })] }),
+              jsxs('h2', { className: 'dss-section-title', children: [t('preview.title'), jsx('span', { className: 'dss-chip', children: t('preview.allCards') }), jsx('span', { className: 'dss-chip', children: t('preview.depthChip', { depth: depthLabel(depth) }) })] }),
             ] }),
-            jsx('p', { className: 'dss-section-desc', children: '结论 / 讲解 / 建议 / 风险 / 短答 / 表格 / 代码一次看全；深度立即生效，人格 / 身份头保存后更新。' }),
+            jsx('p', { className: 'dss-section-desc', children: t('preview.desc') }),
             previewPersonaOn ? jsxs('div', { className: 'dss-preview-persona dss-scope', children: [
               jsx('b', { children: String(fieldValue(value, { field: 'personaName', fallback: '蓝色大肥鱼' })) }),
               jsx('span', { children: String(fieldValue(value, { field: 'personaSignature', fallback: '主人，再来一碗白米饭！！~' })) }),
@@ -4381,7 +4791,7 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
               children: PREVIEW_CARD_SPECS.map((spec) => jsxs('div', {
                 className: 'dss-preview-cell' + (spec.wide ? ' is-wide' : ''),
                 children: [
-                  jsx('div', { className: 'dss-preview-cell-head', children: spec.title }),
+                  jsx('div', { className: 'dss-preview-cell-head', children: t('preview.card.' + spec.id) }),
                   jsx('div', { className: 'dss-preview-scope dss-scope', dangerouslySetInnerHTML: { __html: previewCardMarkup(spec.id, depth, previewStyleSample) } }),
                 ],
               })),
@@ -4392,7 +4802,7 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
           'data-dsh-structured-config': '1',
           className: 'dss-scope dss-config-page',
           children: [
-            writable ? null : jsx('p', { style: noteStyle, children: '当前配置被更高层覆盖（home patch / CLI overlay），此处只读。' }),
+            writable ? null : jsx('p', { style: noteStyle, children: t('meta.readonly') }),
             header,
             appearance,
             behavior,
@@ -4452,7 +4862,7 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
                 name: SIDEBAR_ENTRY_SLOT,
                 id: SIDEBAR_PANEL_ID,
                 order: 50,
-                label: () => '结构化输出',
+                label: () => t('sidebar.entry'),
               }, SidebarPanelIcon)
               sidebarRegistration.panel = registerSlot(MAIN_PANEL_SLOT, {
                 name: MAIN_PANEL_SLOT,
@@ -4704,8 +5114,13 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
 
     return {
       inject: [],
-      __test: { inDiff, isDiffCode, decorate, decorateStructured, setPersonaModeConfig, setupConfigPage, flushPersonaErrors, personaApi: () => personaTestApi, cardCopyApi: () => ({ personaCardPlainText, personaTableTsv, personaReplyPlainText }) },
+      __test: { setLocale: setLocaleOverride, i18n: i18nTestApi, inDiff, isDiffCode, decorate, decorateStructured, setPersonaModeConfig, setupConfigPage, flushPersonaErrors, personaApi: () => personaTestApi, cardCopyApi: () => ({ personaCardPlainText, personaTableTsv, personaReplyPlainText }) },
       apply(ctx) {
+        // 设置页跟随宿主语言：locale 服务可选，缺失时由 detectLocale 退回 document / navigator。
+        try { if (ctx?.locale && typeof ctx.locale.getSnapshot === 'function') attachLocale(ctx.locale, ctx) } catch {}
+        try {
+          ctx?.inject?.(['locale'], (child) => { try { attachLocale(child?.locale, child) } catch {} })
+        } catch {}
         // 默认主题/视觉先启用；随后由 profile Config 的 theme/visual 覆盖。
         enable()
         try {

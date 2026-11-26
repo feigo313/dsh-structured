@@ -665,3 +665,75 @@ test('sidebar：sidebarEntry 切换时即时卸载 / 重新注册入口', () => 
   assert.equal(registrations.filter((options) => options.name === 'main').length, 2)
   assert.equal(JSON.stringify(removed), JSON.stringify(['sidebar.panellist', 'main']))
 })
+
+test('i18n：默认 / zh 宿主下设置页保持中文文案', () => {
+  served = true
+  const { require: fakeRequire } = fakeRuntime()
+  const module = loadClient(makeDom(), fakeRequire)
+  const snapshot = { status: 'ready', writable: true, value: { theme: 'deepseek', personaEnabled: true } }
+  const form = { set() { return Promise.resolve(true) }, getSnapshot() { return snapshot }, subscribe() { return () => {} } }
+  const { slots, get } = collectRegistration()
+  module.__test.setupConfigPage(makeChild(form, slots), form)
+  assert.equal(module.__test.i18n.detectLocale(), 'zh')
+  assert.equal(module.__test.i18n.normalizeLocale('zh-CN'), 'zh')
+  assert.equal(module.__test.setLocale('zh'), 'zh')
+  const { component } = get()
+  const flat = flatten(component({ view: 'page', useStructuredConfig: (selector) => selector(snapshot), setField: () => {} }))
+  const text = flat.map((element) => textOf(element.props?.children)).join(' ')
+  assert.match(text, /结构化输出/)
+  assert.match(text, /侧边栏入口/)
+  assert.match(text, /输出深度/)
+  const persona = module.__test.personaApi().PersonaEditor({ state: snapshot, setField: () => Promise.resolve(true), mutateFields: null, readFields: () => snapshot })
+  const personaText = flatten(persona).map((element) => textOf(element.props?.children)).join(' ')
+  assert.match(personaText, /内心OS/)
+  assert.match(personaText, /风格预设/)
+  assert.match(personaText, /保存/)
+})
+
+test('i18n：en 宿主下设置页渲染英文，未知语言回退英文', () => {
+  served = true
+  const { require: fakeRequire } = fakeRuntime()
+  const module = loadClient(makeDom(), fakeRequire)
+  assert.equal(module.__test.i18n.normalizeLocale('en-US'), 'en')
+  assert.equal(module.__test.i18n.normalizeLocale('ja'), 'en')
+  assert.equal(module.__test.i18n.normalizeLocale('fr-FR'), 'en')
+  assert.equal(module.__test.setLocale('en'), 'en')
+  const snapshot = { status: 'ready', writable: true, value: { theme: 'deepseek', personaEnabled: true } }
+  const form = { set() { return Promise.resolve(true) }, getSnapshot() { return snapshot }, subscribe() { return () => {} } }
+  const { slots, get } = collectRegistration()
+  module.__test.setupConfigPage(makeChild(form, slots), form)
+  const { component } = get()
+  const flat = flatten(component({ view: 'page', useStructuredConfig: (selector) => selector(snapshot), setField: () => {} }))
+  const text = flat.map((element) => textOf(element.props?.children)).join(' ')
+  assert.match(text, /Structured Output/)
+  assert.match(text, /Appearance/)
+  assert.match(text, /Sidebar entry/)
+  assert.match(text, /Output depth/)
+  assert.match(text, /Preview/)
+  const switchLabels = flat.filter((element) => element.type?.name === 'Switch').map((element) => element.props.label)
+  assert.ok(switchLabels.includes('Plugin master switch'))
+  assert.ok(switchLabels.includes('Subagent injection'))
+  assert.ok(switchLabels.includes('Sidebar entry'))
+  const persona = module.__test.personaApi().PersonaEditor({ state: snapshot, setField: () => Promise.resolve(true), mutateFields: null, readFields: () => snapshot })
+  const personaText = flatten(persona).map((element) => textOf(element.props?.children)).join(' ')
+  assert.match(personaText, /Inner OS/)
+  assert.match(personaText, /Style presets/)
+  assert.match(personaText, /Speaking style/)
+  assert.match(personaText, /Nickname/)
+  assert.match(personaText, /Save/)
+  assert.doesNotMatch(personaText, /内心OS|风格预设|保存/)
+})
+
+test('i18n：host locale 服务与 <html lang> 可决定语言', () => {
+  served = true
+  const { require: fakeRequire } = fakeRuntime()
+  const dom = makeDom()
+  const module = loadClient(dom, fakeRequire)
+  const service = { getSnapshot: () => ({ active: 'en-GB' }) }
+  module.__test.i18n.setService(service)
+  assert.equal(module.__test.i18n.detectLocale(), 'en')
+  module.__test.i18n.setService(null)
+  module.__test.setLocale(null)
+  dom.documentElement.getAttribute = (name) => (name === 'lang' ? 'zh-CN' : null)
+  assert.equal(module.__test.i18n.detectLocale(), 'zh')
+})

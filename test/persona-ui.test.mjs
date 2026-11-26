@@ -2082,3 +2082,86 @@ test('PersonaMode：身份头关仍出卡，只去掉头像 / 名字 / 签名', 
   assert.equal(fresh.flow.querySelectorAll('[data-dsh-persona-head]').length, 0, 'no head on new messages')
   assert.equal(fresh.markdown.querySelectorAll('[data-dsh-structured-card-type]').length, 3, 'new messages still render cards')
 })
+
+test('1.2.3 PersonaMode：身份头关闭时 normal 回复仍渲染内心OS 💭 尾缀', () => {
+  const harness = makeHarness(baseState, async () => true)
+  const persona = { prefix: 'Boss，', suffix: '——完' }
+  const tone = JSON.stringify({ schema: 'dsh-structured/tone@1', ...persona, style: '搞怪', skipIn: ['code', 'diff', 'error', 'short', 'table'] })
+  // 身份头关闭，但内心OS 子开关保持开启。
+  harness.plugin.__test.setPersonaModeConfig({
+    personaEnabled: true,
+    personaHeadEnabled: false,
+    personaInnerOsEnabled: true,
+    persona: tone,
+    personaName: '鲸鱼',
+    personaSignature: 'S',
+    personaAvatar: '',
+  })
+  const flow = harness.document.createElement('div')
+  flow.setAttribute('data-chat-flow-kind', 'assistant-step')
+  flow.setAttribute('data-chat-node-key', 'inneros-headoff')
+  const slot = harness.document.createElement('div')
+  slot.setAttribute('data-slot', 'conversation.chat.node')
+  const markdown = harness.document.createElement('div')
+  markdown.className = '_markdown_preview'
+  markdown.innerHTML = personaEnvelope({
+    version: 1,
+    kind: 'normal',
+    conclusion: { lead: '能上', body: '先灰度一周' },
+    suggestions: ['跑通一条真实链路'],
+    risk: '回滚未演练',
+    innerOs: '这次别再拖到明天。',
+  })
+  slot.appendChild(markdown)
+  flow.appendChild(slot)
+  harness.document.body.appendChild(flow)
+  harness.plugin.__test.decorate(flow)
+
+  assert.equal(flow.querySelectorAll('[data-dsh-persona-head]').length, 0, 'head stays hidden')
+  assert.equal(markdown.querySelectorAll('[data-dsh-structured-card-type]').length, 3, 'three cards still render')
+  const suffix = markdown.querySelector('.dss-persona-suffix')
+  assert.ok(suffix, 'innerOs suffix must render when head is off')
+  assert.match(suffix.textContent, /^💭 /)
+})
+
+test('1.2.3 PersonaMode：信封降级抢救时保留 💭 内心OS（身份头关闭）', () => {
+  const harness = makeHarness(baseState, async () => true)
+  const tone = JSON.stringify({ schema: 'dsh-structured/tone@1', prefix: '', suffix: '', style: '搞怪', skipIn: ['code', 'diff', 'error', 'short', 'table'] })
+  harness.plugin.__test.setPersonaModeConfig({
+    personaEnabled: true,
+    personaHeadEnabled: false,
+    personaInnerOsEnabled: true,
+    persona: tone,
+    personaName: '鲸鱼',
+    personaSignature: 'S',
+    personaAvatar: '',
+  })
+  const flow = harness.document.createElement('div')
+  flow.setAttribute('data-chat-flow-kind', 'assistant-step')
+  flow.setAttribute('data-chat-node-key', 'inneros-salvage')
+  const slot = harness.document.createElement('div')
+  slot.setAttribute('data-slot', 'conversation.chat.node')
+  const markdown = harness.document.createElement('div')
+  markdown.className = '_markdown_preview'
+  // 模型多写一个未定义字段 → 严格合同拒绝、走降级抢救；innerOs 本身合法。
+  markdown.innerHTML = personaEnvelope({
+    version: 1,
+    kind: 'normal',
+    conclusion: { lead: '能上', body: '先灰度一周' },
+    suggestions: ['跑通一条真实链路'],
+    risk: '回滚未演练',
+    innerOs: '这次别再拖到明天。',
+    mood: '谨慎',
+  })
+  slot.appendChild(markdown)
+  flow.appendChild(slot)
+  harness.document.body.appendChild(flow)
+  harness.plugin.__test.decorate(flow)
+  harness.flushPersonaErrors()
+
+  assert.equal(markdown.querySelectorAll('[data-dsh-structured-card-type]').length, 3, 'salvage still renders three cards')
+  assert.equal(flow.querySelectorAll('[data-dsh-persona-head]').length, 0, 'head hidden')
+  const suffix = markdown.querySelector('.dss-persona-suffix')
+  assert.ok(suffix, 'salvage path must keep innerOs suffix')
+  assert.match(suffix.textContent, /^💭 这次别再拖到明天。$/)
+})

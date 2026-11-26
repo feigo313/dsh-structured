@@ -1,55 +1,57 @@
 # dsh-structured
 
-让 DSH 的每条实质回复默认结构化：**首句给结论，内容用表格 / 清单 / 步骤排出来**；1.0 起再加一层人格模式：**身份头 / 三卡 / 收尾由插件渲染，模型只交内容**。按会话开关，默认开启；规则可用 `style.md` 整份覆盖（人格开启时不注入）。
+**English** | [中文](README.zh.md)
 
-它解决的是一个实测问题：只靠 `~/.dsh/AGENTS.md` 第 7 节的提示词规则，56 条符合触发条件的回复里只有 21 条真的结构化（37.5%），长上下文下继续衰减。本插件把同一条规则放进**每次请求都会重新求值的 system prompt section**，并在末尾追加一句轻量提醒，不依赖模型记住历史。
+Makes every substantive DSH reply structured by default: **lead with the conclusion, then lay the content out as tables / lists / steps**; since 1.0 it adds a Persona layer on top: **the Persona header / three cards / closing are rendered by the plugin, and the model only supplies the content**. Toggled per session, enabled by default; the rules can be fully overridden with `style.md` (not injected while Persona is on).
 
-路线图：Phase 1 结构化已完成；Phase 2 做视觉热点规范引导与卡片系统，见 [`docs/ROADMAP.md`](docs/ROADMAP.md)。
+It solves a measured problem: with only the prompt rules in section 7 of `~/.dsh/AGENTS.md`, only 21 of 56 replies that met the trigger condition were actually structured (37.5%), and adherence decayed further in long contexts. This plugin puts the same rule into a **system prompt section that is re-evaluated on every request**, and appends a lightweight reminder at the end, so it does not depend on the model remembering history.
 
-## 判定优先级
+Roadmap: Phase 1 (structured output) is complete; Phase 2 covers visual hotspot guidance and the card system, see [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
-1. 老板读得快不快
-2. 会不会打断会话（稳定性）
-3. token 成本
-4. 实现优雅
+## Decision priority
 
-对应到实现：1.2.0 起每次请求注入内容合同（多卡形状 + 输出深度）、人格风格段（可关）与尾部提醒；任何异常都放行原请求；不接管 GenUI，不改 agent 循环。
+1. How fast the boss can read it
+2. Whether it interrupts the session (stability)
+3. Token cost
+4. Implementation elegance
 
-## 安装
+Mapped to implementation: since 1.2.0 every request injects a content contract (multi-card shapes + Depth), a persona style section (switchable), and a tail reminder; any exception lets the original request through; it does not take over GenUI or modify the agent loop.
 
-要求：DSH 0.2.x – 0.3.x（`@deepseek-ai/cordis` 4.x），Node ≥ 22；desktop `0.2.2-rc.5` 已实测（2026-11-26）。
+## Installation
 
-**默认目标就是 desktop profile。** 插件只硬依赖 `systemPrompt`（desktop 由 `@deepseek-ai/dsh-base` 提供），`commands` 是可选服务；不依赖 Electron/headless 专有 API，也没有 profile 分支。安装前先跑一次预检：
+Requirements: DSH 0.2.x – 0.3.x (`@deepseek-ai/cordis` 4.x), Node ≥ 22; desktop `0.2.2-rc.5` has been tested (2026-11-26).
+
+**The default target is the desktop profile.** The plugin only hard-depends on `systemPrompt` (provided by `@deepseek-ai/dsh-base` on desktop); `commands` is an optional service; it does not rely on Electron/headless-only APIs and has no profile branches. Run the preflight once before installing:
 
 ```powershell
 node scripts/desktop-check.mjs
 ```
 
-`desktop` 由 Electron 独占只影响 **CLI 的 `--profile desktop` 子命令**，不影响插件本身；推荐走插件管理入口，或退出 Desktop 后手工 pnpm（方式二）。
+The fact that `desktop` is exclusively owned by Electron only affects **the CLI's `--profile desktop` subcommand**, not the plugin itself; use the plugin management entry point, or quit Desktop and run manual pnpm (option 2).
 
-### 方式一：插件市场
+### Option 1: Plugin marketplace
 
-在 DSH 插件管理里搜索 `dsh-structured` 安装（已上架 awesome-dsh-plugin 市场）。桌面端由应用侧加载 client，不需要浏览器刷新。
+Search for `dsh-structured` in DSH plugin management and install (it is listed in the awesome-dsh-plugin marketplace). On desktop the client is loaded by the app; no browser refresh is needed.
 
-### 方式二：npm
+### Option 2: npm
 
 ```powershell
 dsh plugin --profile <profile> add dsh-structured@1.2.0
 ```
 
-`dsh plugin add` 会转发给 profile 里的 pnpm；1.1.5 起已在本机 desktop profile 用 registry 源安装实测（pnpm 会自动把新版本加进 `minimumReleaseAgeExclude`）。
+`dsh plugin add` forwards to the profile's pnpm; since 1.1.5 it has been tested installing from the registry source in this machine's desktop profile (pnpm automatically adds the new version to `minimumReleaseAgeExclude`).
 
-desktop profile 由 Electron 独占，使用插件管理搜索/安装，不要跑 `--profile desktop`。
+The desktop profile is exclusively owned by Electron; use plugin management to search/install instead of running `--profile desktop`.
 
-### 方式三：GitHub Release
+### Option 3: GitHub Release
 
-从 GitHub Releases 下载最新版的 `dsh-structured-<version>.tgz`（当前 1.2.0），在插件管理里选择本地包；不使用 npm 时，市场 YAML 的 `tarball` 指向该 release。
+Download the latest `dsh-structured-<version>.tgz` (currently 1.2.0) from GitHub Releases and pick the local package in plugin management; when not using npm, the marketplace YAML's `tarball` points at that release.
 
-### 开发方式：本地 tgz / 手工 pnpm（desktop profile）
+### Development: local tgz / manual pnpm (desktop profile)
 
-本地包只用于开发验证：在 DSH 插件管理里选择仓库根的 `dsh-structured-<version>.tgz`，或 `plugin_manager.install_bundle` 指向该文件。手工 pnpm 方式如下。
+Local packages are only for development validation: either pick the repo-root `dsh-structured-<version>.tgz` in DSH plugin management, or point `plugin_manager.install_bundle` at that file. The manual pnpm route is below.
 
-`desktop` profile 由 Electron 独占：**全局 `dsh plugin --profile desktop ...` 会被 CLI 直接拒绝**（`profile "desktop" is managed exclusively by the Electron application`）。不要用那条命令。要先**完全退出 Desktop**，再在 profile 目录里手工 pnpm：
+The `desktop` profile is exclusively owned by Electron: **a global `dsh plugin --profile desktop ...` is rejected by the CLI** (`profile "desktop" is managed exclusively by the Electron application`). Do not use that command. First **fully quit Desktop**, then run pnpm manually in the profile directory:
 
 ```powershell
 $dir = Join-Path $env:DSH_HOME 'profiles\desktop'
@@ -58,11 +60,11 @@ Copy-Item "$dir\pnpm-lock.yaml" "$dir\pnpm-lock.yaml.bak-before-dsh-structured"
 Copy-Item "$dir\cordis.patch.yml" "$dir\cordis.patch.yml.bak-before-dsh-structured"
 
 Set-Location $dir
-$tgz = "dsh-structured-0.9.1.tgz"   # 把 tgz 放到当前目录，或写成实际路径
+$tgz = "dsh-structured-0.9.1.tgz"   # put the tgz in the current directory, or use its actual path
 pnpm add $tgz
 ```
 
-手工 pnpm **不会**自动改 bundle 列表，需要把 `dsh-structured` 加进 `$dir\package.json` 的 `dsh.profile.bundles`（只加一次，不要重复）：
+Manual pnpm **does not** update the bundle list; add `dsh-structured` to `dsh.profile.bundles` in `$dir\package.json` (once; do not duplicate):
 
 ```json
 {
@@ -70,254 +72,258 @@ pnpm add $tgz
 }
 ```
 
-启动 Desktop。
+Start Desktop.
 
-开发期用独立测试 profile 时，`dsh plugin --profile <测试 profile> add <tgz>` 可以正常使用，并且会自动追加 bundle 行；新 profile 可用 `dsh <name> --from-default-profile headless "..."` 创建。
+When using a separate test profile during development, `dsh plugin --profile <test profile> add <tgz>` works normally and appends the bundle line automatically; a new profile can be created with `dsh <name> --from-default-profile headless "..."`.
 
-### Desktop 兼容性依据
+### Desktop compatibility evidence
 
-- 预检：`node scripts/desktop-check.mjs` 全部 PASS —— desktop profile 已初始化、bundle 栈含 `dsh-base`/`dsh-web-app`、`files` 含 `cordis.patch.yml`、`main`/`exports` 指向存在文件、`dsh.client.platform: web` 与 `exports["./client"]` 就位、`engines.dsh`/`dsh.compatibility.dshReleases` 已声明、运行时只 import `node:`、无 Electron 专有 API、无 profile 分支、状态走 `DSH_HOME`。
-- **desktop 是主目标，Web 只做兼容。** 本会话本身运行在 desktop profile，`systemPrompt` 与 `commands` 由 live host 的 Service 查询确认；`dsh.client.platform: web` 是 DSH 客户端模块的格式（desktop 的 Web UI 也加载它），不代表 Web 优先。
-- desktop 实装实测：desktop profile 已切到 registry `1.2.0`（重启 Desktop 后生效，见 `docs/ACCEPTANCE-1.2.0.md`）；desktop 会话最新 `system/message` 命中注入（可用 `scripts/session-inspect.mjs` 复跑）。
-- 视觉层由 desktop 应用侧加载，验收以应用内实际渲染为准；不要求用户手动刷新。
+- Preflight: `node scripts/desktop-check.mjs` passes everything — the desktop profile is initialized, the bundle stack contains `dsh-base`/`dsh-web-app`, `files` contains `cordis.patch.yml`, `main`/`exports` point at existing files, `dsh.client.platform: web` and `exports["./client"]` are in place, `engines.dsh`/`dsh.compatibility.dshReleases` are declared, the runtime imports only `node:`, there are no Electron-only APIs, no profile branches, and state goes through `DSH_HOME`.
+- **desktop is the primary target; Web is compatibility only.** This session itself runs on the desktop profile, with `systemPrompt` and `commands` confirmed by live host Service queries; `dsh.client.platform: web` is the DSH client module format (desktop's Web UI loads it too), and does not mean Web comes first.
+- desktop installation verified: the desktop profile has been switched to registry `1.2.0` (effective after restarting Desktop, see `docs/ACCEPTANCE-1.2.0.md`); the latest desktop session's `system/message` hits the injection (re-runnable with `scripts/session-inspect.mjs`).
+- The visual layer is loaded by the desktop app; acceptance is based on actual in-app rendering; users are not asked to refresh manually.
 
-### 兼容性门禁
+### Compatibility gates
 
-本包声明 `@deepseek-ai/schemastery` peer：`Config`（theme/themeCustom/contentDepth/defaultEnabled/includeSubagents/genui + personaEnabled/personaHeadEnabled/personaInnerOsEnabled/persona/personaRevision/personaName/personaSignature/personaAvatar；`visual` / `tailReminder` 仅兼容保留）用它生成设置表单；这是 host 提供的服务，不是门禁。真正门禁是 `engines.dsh`（`>=0.1.7-rc.2 <0.4.0-0 || >=0.2.1-rc.0 <0.2.2`，覆盖 0.3.x 与 0.2.1 预发布），`dsh-app-boot` 在有 `engines.dsh` 时读取它；`dsh.compatibility.dshReleases` 是 advisory。实测 DSH CLI `0.1.7-rc.2`、desktop `0.2.1-rc.2`、`0.2.1-rc.5` 与 `0.2.2-rc.5`（2026-11-22，宿主 FileVersion 实读；桌面加载 1.2.0：单页设置 / 卡片 / 表格 / 主题渲染正常（2026-11-26 实机））；`0.2.1-rc.3` / `0.3.0-rc.1` 为声明性兼容（插件依赖的 systemPrompt / commands / configForms / plugins.bundle.config 均为宿主稳定服务面，未见破坏性变更公告）。
+This package declares the `@deepseek-ai/schemastery` peer: `Config` (theme/themeCustom/contentDepth/defaultEnabled/includeSubagents/genui + personaEnabled/personaHeadEnabled/personaInnerOsEnabled/persona/personaRevision/personaName/personaSignature/personaAvatar; `visual` / `tailReminder` are kept for compatibility only) is used to generate the settings form; this is a host-provided service, not a gate. The real gate is `engines.dsh` (`>=0.1.7-rc.2 <0.4.0-0 || >=0.2.1-rc.0 <0.2.2`, covering 0.3.x and 0.2.1 prereleases), read by `dsh-app-boot` when `engines.dsh` is present; `dsh.compatibility.dshReleases` is advisory. Tested against DSH CLI `0.1.7-rc.2`, desktop `0.2.1-rc.2`, `0.2.1-rc.5` and `0.2.2-rc.5` (2026-11-22, host FileVersion read directly; desktop loading 1.2.0: single-page settings / cards / tables / theme render correctly (2026-11-26 on a real machine)); `0.2.1-rc.3` / `0.3.0-rc.1` are declarative compatibility (the systemPrompt / commands / configForms / plugins.bundle.config surfaces the plugin relies on are stable host services, with no breaking-change announcements).
 
-## 使用
+## Usage
 
 ```text
-/structured            # 查看本会话状态
-/structured off        # 关闭本会话（下一轮生效）
-/structured on         # 重新开启
-/structured status     # 同 /structured
+/structured            # show this session's state
+/structured off        # turn this session off (effective next turn)
+/structured on         # turn it back on
+/structured status     # same as /structured
 ```
 
-- 开关按会话独立，状态落在 `$DSH_HOME/dsh-structured/state.json`（tmp + rename 原子写）。
-- 新会话默认开启；`defaultEnabled: false` 可改默认值（见配置）。
-- 视觉层固定开启（1.2.0 起不再提供 `visual` 开关，字段仅兼容保留），不写 `state.json`；`/structured on|off` 只控制提示词注入，不影响视觉层。
-- 自定义规则：写 `$DSH_HOME/dsh-structured/style.md`，**非空即整份覆盖**内置文本，保存后下一轮生效；文件为空或删除时回落内置。
-- **用 `style.md` 承载长期设定（可选）**：`style.md` 的内容会被原样放进每次请求的 section，代价是**整份覆盖**内置文本；想同时保留结构规则，把 `src/index.js` 的 `BUILTIN_STYLE_TEXT` 全文抄进去再追加。注意互斥：**persona 开启时 `style.md` 不注入**（PersonaMode 只注入内容合同）；要长期设定请迁移到语气设置页的性格字段，或显式关闭人格后再用 `style.md`。
-- 内置文本与 `~/.dsh/AGENTS.md` 第 7 节同源：首句结论、组件化正文、一段一主题、禁过程叙事与复述、证据优先、短答不套卡；清晰优先，不设硬性篇幅上限。
+- The toggle is per session; state lives in `$DSH_HOME/dsh-structured/state.json` (atomic tmp + rename writes).
+- New sessions are enabled by default; `defaultEnabled: false` changes the default (see Configuration).
+- The visual layer is always on (since 1.2.0 the `visual` switch is no longer provided; the field is kept for compatibility only) and is not written to `state.json`; `/structured on|off` only controls prompt injection and does not affect the visual layer.
+- Custom rules: write `$DSH_HOME/dsh-structured/style.md`; **if non-empty it fully overrides** the built-in text, effective from the next turn after saving; if the file is empty or deleted it falls back to built-in.
+- **Using `style.md` for long-term settings (optional)**: its content is placed verbatim into every request's section, at the cost of **fully overriding** the built-in text; to keep the structural rules as well, copy the entire `BUILTIN_STYLE_TEXT` from `src/index.js` and append your own. Note the mutual exclusion: **`style.md` is not injected while persona is on** (PersonaMode only injects the content contract); move long-term settings to the personality fields on the tone settings page, or explicitly turn Persona off and use `style.md` afterwards.
+- The built-in text shares its source with section 7 of `~/.dsh/AGENTS.md`: conclusion first, component-based body, one topic per paragraph, no process narration or restatement, evidence first, no cards for short answers; clarity comes first, with no hard length cap.
 
-### 人格 / 语气风格（Tone）
+### Persona / Tone style
 
-- 1.2.0 起设置页只有一个页面，「人格」分区取代旧版第二个 tab：档案行（头像 / 名称 / 签名）+ 风格预设 + 昵称 / 自称 / 说话方式 + 内心OS 开关 + 身份头子开关；开场 / 收尾输入已移除，样式预览与结论卡预览同页。**没有 JSON 编辑入口**（内部仍是 tone@1 canonical JSON）。昵称（userName）是「模型怎么称呼你」，自称（selfName）是「模型怎么称呼自己」；性格只写说话倾向，不写任务规则。**1.0 起默认开启，显式关闭保持关闭**。
-- 档案行：头像 88px 可点击上传（png / jpeg / webp，前端居中裁方并压到 128px JPEG dataURL）、名称、个性签名；名称 / 签名实时绑定预览身份行。
-- 存储为 profile Config：`personaEnabled` + `personaHeadEnabled` + `personaInnerOsEnabled` + `persona:string` + `personaRevision:number` + `personaName` + `personaSignature` + `personaAvatar`；不读 `persona.md`，不引入文件路径。保存时一次批量写这些字段（旧宿主走顺序写 + 写后读回 + 补偿回滚）；保存后全局生效（新消息使用），不需要每次重启；**安装/升级 1.0 后完整重启 Desktop 一次**。
-- tone JSON 只有 `schema / prefix / style / suffix / skipIn / userName / selfName`；`schema` 必须是 `dsh-structured/tone@1`。作者/许可/来源/署名链不在 JSON，见 `NOTICE-WHALE` / `LICENSE-WHALE`。
-- 历史 tone 里若仍有 `prefix` / `suffix`，仍按原样渲染（1.2.0 设置页不再提供这两个输入）；性格只写语言风格（角色 / 语气 / 句式 / 称呼），`code / diff / error / short / table` 按 `skipIn` 跳过。结构 / 事实 / 安全永远优先。
-- 模板只保留默认「蓝色大肥鱼」+ 用户另存的模板；「切换人格」弹层支持行内删除，删空提示用「恢复默认」找回。模板存当前五字段 + 名称 + 签名 + 头像，不自动选中。
-- 蓝色大肥鱼是社区二创模板，非 DeepSeek 官方；模板单独 CC-BY-NC-SA-4.0，不打包美术。64KB 硬拒；非法 tone JSON 拒绝保存。
+- Since 1.2.0 the settings page is a single page; the "Persona" section replaces the old second tab: profile row (avatar / name / signature) + style presets + nickname / self-name / speaking style + Inner OS switch + Persona header sub-switch; the opening / closing inputs have been removed, and the style preview and conclusion card preview are on the same page. **There is no JSON editing entry** (internally it is still tone@1 canonical JSON). The nickname (userName) is "what the model calls you"; the self-name (selfName) is "what the model calls itself"; the personality describes speaking tendencies only, not task rules. **On by default since 1.0; an explicit off stays off**.
+- Profile row: an 88px avatar that can be clicked to upload (png / jpeg / webp, center-cropped to a square and compressed to a 128px JPEG dataURL on the front end), name, and personal signature; name / signature bind live to the preview identity row.
+- Stored as profile Config: `personaEnabled` + `personaHeadEnabled` + `personaInnerOsEnabled` + `persona:string` + `personaRevision:number` + `personaName` + `personaSignature` + `personaAvatar`; it does not read `persona.md` and introduces no file paths. Saving writes these fields in one batch (on older hosts: sequential writes + read-back + compensating rollback); after saving it takes effect globally (for new messages) without a restart each time; **after installing/upgrading 1.0, fully restart Desktop once**.
+- The tone JSON has only `schema / prefix / style / suffix / skipIn / userName / selfName`; `schema` must be `dsh-structured/tone@1`. Author/license/source/attribution chains are not in the JSON; see `NOTICE-WHALE` / `LICENSE-WHALE`.
+- If a historical tone still has `prefix` / `suffix`, they are still rendered as-is (the 1.2.0 settings page no longer offers these two inputs); the personality only writes language style (role / tone / sentence pattern / forms of address), and `code / diff / error / short / table` are skipped per `skipIn`. Structure / facts / safety always come first.
+- Templates keep only the default "Blue Big Fat Fish" plus the templates the user saves separately; the "switch Persona" dialog supports inline deletion, and when everything is deleted it prompts you to restore the default. A template stores the current five fields + name + signature + avatar, and is not auto-selected.
+- Blue Big Fat Fish is a community-made derivative template, not official DeepSeek; the template is licensed separately under CC-BY-NC-SA-4.0 and does not bundle the artwork. 64KB is a hard reject; invalid tone JSON is rejected on save.
 
-### 代码 / diff 例外
+### Code / diff exceptions
 
-- ` ```diff ` / ` ```patch ` 代码块、`[data-diff]`、`.md-diff`、`[class*="_diff_"]` 与 GenUI diff 区域**不套**插件的代码块/表格 chrome；diff 行色与宿主渲染保持原样。`data-diff`/类名守卫是防御性选择器，当前 host 是否真实可达未单独 live 验证。
-- 当回复主要是代码、代码 diff、文件修改或补丁时，代码块或 diff 卡可以直接作为第一块，不强制标题卡；仍不写过程叙事。
-- `/structured off` 仍只控制提示词；视觉层固定开启（`visual` 字段仅兼容保留）。
+- `diff` / `patch` fenced code blocks, `[data-diff]`, `.md-diff`, `[class*="_diff_"]` and GenUI diff regions do **not** get the plugin's code-block/table chrome; diff line colors and host rendering stay as-is. The `data-diff`/class-name guards are defensive selectors; whether they are actually reachable in the current host has not been verified live separately.
+- When a reply is mainly code, a code diff, file changes, or patches, the code block or diff card can be the first block directly; a title card is not mandatory. Process narration is still not written.
+- `/structured off` still only controls prompt injection; the visual layer is always on (the `visual` field is kept for compatibility only).
 
-### 视觉层（desktop 主目标；web 兼容）
+### Visual layer (desktop primary target; web compatible)
 
-客户端半区会给对话 markdown 加一层 v5「软面卡片台」皮肤：12px 圆角卡 + 3px 彩色左条 + 同构渐变面；结论 / 下一步 / 风险三色线标题；表格浅色 tint 表头、首列 600 墨字、状态单元格按 `data-dsh-structured-status-cell` 上浅底 + 左侧 3px 色条（1.1.0 起不再插入胶囊节点，**不改宿主受控子树**）；代码浅色卡 + 线标题「代码 · 语言」+ 双方框复制钮；深色跟随宿主 `body[data-ds-dark-theme]`，卡面 / 表头 / 代码面 / 状态色都有深色同构。只给宿主节点加 class/attribute，不改消息内容；headless / CLI 不加载 client 半区。
+The client half adds a v5 "soft-surface card deck" skin to conversation markdown: 12px rounded cards + 3px colored left bar + isomorphic gradient surface; conclusion / next-step / risk three-color title lines; tables get a light tinted header, a 600-weight ink first column, and status cells get a light background + 3px colored left bar via `data-dsh-structured-status-cell` (since 1.1.0 no pill nodes are inserted, and **the host's controlled subtree is not modified**); code gets a light card + title line "Code · language" + a bordered copy button; dark mode follows the host's `body[data-ds-dark-theme]`, with isomorphic dark variants for card surfaces / table headers / code surfaces / status colors. It only adds classes/attributes to host nodes and does not change message content; headless / CLI does not load the client half.
 
-- **列宽按内容分配**：`decorate` 逐列统计最大显示宽度（CJK / emoji 记 2、ASCII 记 1，含表头），≤12 单位的列贴内容（`data-dsh-structured-col="narrow"`，`width:1%;white-space:nowrap`），其余列交给 auto 布局；3 列以上且中间明显更长时尾列封顶 32%（`data-dsh-structured-tail="capped"`）。流式半截表不测量；`.dss-table-wrap` 允许横向滚动，窄窗（≤560px）表格保底 520px 宽。
-- **卡片级复制**（1.1.1）：结论 / 建议 / 风险 / 表格 / 整条回复五档一键复制，内容是净文本（不含卡标签、身份头、开场收尾），表格输出 TSV；按钮常驻半透明、hover / 键盘聚焦加深，触屏常显。
-- **结论卡要点列表**（1.1.8）：`conclusion.points` 收 1–4 条，每条只放一个事实（≤32 字），渲染成 A/B/C 字母圆圈；`conclusion.body` 只用于历史消息兼容。建议卡用 1/2/3 编号，风险卡固定一句话；确有多个风险时改用表格，不再往风险卡里堆句子。
-- **卡片正文的行内标记**（1.1.3）：`**粗体**` 与 `` `代码` `` 会渲染成真正的 `strong` / `code` 节点（此前会把星号原样显示），`textContent` 仍是不带标记的净文本，复制得到干净内容。
+- **Column widths allocated by content**: `decorate` measures the maximum display width per column (CJK / emoji count as 2, ASCII as 1, header included); columns of ≤12 units hug their content (`data-dsh-structured-col="narrow"`, `width:1%;white-space:nowrap`) and the remaining columns are left to auto layout; with 3+ columns and a clearly longer middle column, the last column is capped at 32% (`data-dsh-structured-tail="capped"`). Streaming half-tables are not measured; `.dss-table-wrap` allows horizontal scrolling, and tables keep a minimum width of 520px in narrow windows (≤560px).
+- **Card-level copy** (1.1.1): one-click copy at five levels — conclusion / suggestion / risk / table / whole reply; the content is plain text (without card labels, Persona header, opening or closing), and tables output TSV; buttons are always visible at half opacity and darken on hover / keyboard focus, staying visible on touch screens.
+- **Conclusion card bullet points** (1.1.8): `conclusion.points` accepts 1–4 items, each holding a single fact (≤32 characters), rendered as A/B/C letter circles; `conclusion.body` is only for compatibility with historical messages. Suggestion cards use 1/2/3 numbering; the risk card is always one sentence; when there really are multiple risks, use a table instead of piling sentences into the risk card.
+- **Inline markup in card bodies** (1.1.3): bold (`**...**`) and code spans (`code`) render as real `strong` / `code` nodes (previously the asterisks were shown literally); `textContent` is still the plain text without markup, so copying yields clean content.
 
-`theme` 提供 `dsh`/`deepseek`（默认）/`codex`/`anthropic`/`custom` 五个配置值；`custom` 用 `themeCustom` 的主 / 副 / 辅三色自动派生，仅选自定义时可编辑，带 HSV 拾色器与对比度 / 色相校验。1.1.2 起三套彩色主题各有一套完整配色（DeepSeek 蓝调 / Codex 绿调 / Anthropic 土褐调），保持原样；1.1.7 新增 `dsh`（黑白原色）：面板 / 卡面 / 正文 / 边框全部映射 DSH 宿主 alias 变量，明暗随宿主切换；状态也用灰阶 + 符号区分，不引入彩色。设置页主题分段里 `DSH` 排在最前，默认仍是 DeepSeek。**卡面结构保持一套**——圆角、边框、阴影、底色结构完全一致，主题只通过配色表达；表头底色、表格左边条、表头文字、状态色、序号圆点、复制成功勾全部走主题变量，切主题时整组一起变。设置页的「样式预览」用同一份卡面材质展示普通 / 表格 / 代码三态。
+`theme` offers five config values: `dsh` / `deepseek` (default) / `codex` / `anthropic` / `custom`; `custom` derives automatically from the primary / secondary / accent colors in `themeCustom`, is editable only when custom is selected, and comes with an HSV picker plus contrast / hue validation. Since 1.1.2 the three colored themes each have a complete palette (DeepSeek blue / Codex green / Anthropic earth brown), kept as-is; 1.1.7 added `dsh` (black-and-white primaries): panels / card surfaces / body text / borders all map to DSH host alias variables, switching with the host's light/dark mode; status is also distinguished by grayscale + symbols, with no color introduced. In the settings page's theme segment, `DSH` comes first; the default is still DeepSeek. **The card structure stays one set** — corner radius, borders, shadows, and background structure are identical; themes differ only in color. Table header background, table left bar, header text, status colors, index dots, and the copy-success check all use theme variables and switch together with the theme. The settings page's "style preview" shows normal / table / code states with the same card material.
 
-设计与分阶段计划见 [`docs/VISUAL-PLAN.md`](docs/VISUAL-PLAN.md)，视觉热点/层级诊断见 [`docs/VISUAL-CRITIQUE.md`](docs/VISUAL-CRITIQUE.md)，卡片类型与热点预算见 [`docs/CARD-SYSTEM.md`](docs/CARD-SYSTEM.md)。视觉层固定开启（`visual` 字段仅兼容保留）；`/structured on|off` 只控制提示词注入。
+Design and phased plan: [`docs/VISUAL-PLAN.md`](docs/VISUAL-PLAN.md); visual hotspot/hierarchy critique: [`docs/VISUAL-CRITIQUE.md`](docs/VISUAL-CRITIQUE.md); card types and hotspot budget: [`docs/CARD-SYSTEM.md`](docs/CARD-SYSTEM.md). The visual layer is always on (the `visual` field is kept for compatibility only); `/structured on|off` only controls prompt injection.
 
-Phase 2 已落地 2.1–2.4：卡片类型（结论/判断/指标/风险/下一步/验收/重点）、`data-dsh-structured-card-type` 归属标记、GenUI 软联动（检测到才追加 `dsh-ui` 路由，未检测走纯 markdown fallback，不硬依赖）。
+Phase 2 has shipped 2.1–2.4: card types (conclusion / judgment / metrics / risk / next step / acceptance / key point), `data-dsh-structured-card-type` ownership markers, and soft GenUI linkage (a `dsh-ui` route is appended only when detected; otherwise it falls back to plain markdown, with no hard dependency).
 
 ## Screenshots
 
-**1.2.0 实机截图**（2026-11-26，真实 Desktop 界面；已裁切到设置面板，不含会话内容、工作区与会话列表）：
+**1.2.0 real-machine screenshots** (2026-11-26, actual Desktop UI; cropped to the settings panel, with no session content, workspace, or session list):
 
-![1.2.0 单页设置页：外观 / 行为 / 人格 / 输出深度 / 预览](assets/screenshots/13-settings-1.2.0.png)
+![1.2.0 single-page settings: Appearance / Behavior / Persona / Depth / Preview](assets/screenshots/13-settings-1.2.0.png)
 
-![自定义三色 HSV 拾色器：饱和度面板 + 色相条 + HEX + 吸管 + 对比度校验](assets/screenshots/14-color-picker-1.2.0.png)
+![Custom three-color HSV picker: saturation panel + hue bar + HEX + eyedropper + contrast validation](assets/screenshots/14-color-picker-1.2.0.png)
 
-以下为 1.1.10 时代渲染示意图：用插件真实 CSS 与默认头像复现卡片，不含任何会话内容；表格编号图是那一版的效果。
+The following are rendering illustrations from the 1.1.10 era: cards were reproduced with the plugin's real CSS and the default avatar, without any session content; the table numbering image shows that version's effect.
 
-![结论卡要点列表](assets/screenshots/01-title-card.png)
+![Conclusion card with bullet points](assets/screenshots/01-title-card.png)
 
-![表格卡三层编号：结论 A/B、表行 a/b、建议 1/2](assets/screenshots/12-layered-index.png)
+![Three-level table card numbering: conclusion A/B, table rows a/b, suggestions 1/2](assets/screenshots/12-layered-index.png)
 
-![明色主题与表格](assets/screenshots/09-theme-light.png)
+![Light theme and tables](assets/screenshots/09-theme-light.png)
 
-![暗色主题](assets/screenshots/09-theme-dark.png)
+![Dark theme](assets/screenshots/09-theme-dark.png)
 
-![暗色主题下的多条风险表格](assets/screenshots/10-theme-dark.png)
+![Multiple risk tables in dark theme](assets/screenshots/10-theme-dark.png)
 
 <details>
-<summary>历史实机图（1.0 时代 / 1.1.6）</summary>
+<summary>Historical real-machine screenshots (1.0 era / 1.1.6)</summary>
 
-![人格表格回复（1.1.6 实机）](assets/screenshots/06-status-table.png)
+![Persona table reply (1.1.6 real machine)](assets/screenshots/06-status-table.png)
 
-![代码块回复（1.0.4 实机）](assets/screenshots/07-code-block.png)
+![Code-block reply (1.0.4 real machine)](assets/screenshots/07-code-block.png)
 
-![语气风格设置页（1.0 时代历史实机图）](assets/screenshots/11-config-page.png)
+![Tone style settings page (historical 1.0-era real-machine screenshot)](assets/screenshots/11-config-page.png)
 
 </details>
 
-`screenshots.json` 列出全部 10 张：前两张是 1.2.0 实机设置页与拾色器（已脱敏裁切），其后五张是 1.1.10 时代的插件真实 CSS 渲染示意图（表格编号图为那一版的效果），最后三张为历史实机图（`11-config-page.png` 为 1.0 时代历史实机图）；渲染图不是实机截图，不宣称「本机实测」。
+`screenshots.json` lists all 10: the first two are the 1.2.0 real-machine settings page and color picker (redacted crops), the next five are rendering illustrations with the plugin's real CSS from the 1.1.10 era (the table numbering image shows that version's effect), and the last three are historical real-machine screenshots (`11-config-page.png` is a historical 1.0-era real-machine screenshot); the rendered illustrations are not real screenshots and are not claimed as "tested on this machine".
 
-### 配置
+### Configuration
 
-**首选：插件板块 → dsh-structured → 设置页**（1.2.0 起为单页；旧版是「结构化输出 / 语气风格」两 tab）。页面分区：标题行总开关 → 外观 → 行为 → 人格 → 输出深度 → 预览。改完写入 active profile 的 Cordis patch。
+**Preferred: Plugin section → dsh-structured → Settings page** (a single page since 1.2.0; older versions had two tabs, "Structured Output / Tone style"). Page sections: title-row master switch → Appearance → Behavior → Persona → Depth → Preview. Changes are written to the active profile's Cordis patch.
 
 ```text
-主题 / Theme           dsh | deepseek | codex | anthropic | custom
-自定义三色 / themeCustom  palette@1 JSON；仅 theme=custom 时启用
-输出深度 / Content depth  beginner | general | expert（默认 general；无关闭）
-新会话默认开启           开关
-子代理注入 / Subagents   开关
-GenUI 联动              auto | on | off
-人格 / Persona          区总开关
-身份头 / Identity head    子开关（仅人格开时可用）
-内心OS / Inner OS        开关
-风格预设 / Style preset   同时套用说话方式 + 内心OS
+Theme                  dsh | deepseek | codex | anthropic | custom
+themeCustom            palette@1 JSON; enabled only when theme=custom
+Depth / contentDepth   beginner | general | expert (default general; no off)
+Default on for new sessions   toggle
+Subagents              toggle
+GenUI                  auto | on | off
+Persona                section master switch
+Persona header         sub-switch (available only while Persona is on)
+Inner OS               toggle
+Style preset           applies speaking style + Inner OS together
 ```
 
-视觉层固定开启；「尾部提醒」固定注入，均不再提供开关。会话级开关仍用 `/structured on | off`。外观顶部是 DSH / DeepSeek / Codex / Anthropic 四套默认主题，自定义单独一行。
+The visual layer is always on; the "tail reminder" is always injected; neither offers a toggle anymore. The per-session toggle is still `/structured on | off`. At the top of Appearance are the four default themes DSH / DeepSeek / Codex / Anthropic; custom is on a separate row.
 
-底层方式：在 profile 的 `cordis.patch.yml` 里覆盖同一行（注意：config 是整份替换，不是深合并）：
+Under the hood: override the same entry in the profile's `cordis.patch.yml` (note: config is replaced as a whole, not deep-merged):
 
 ```yaml
 - id: dsh-structured
   config:
     theme: deepseek        # dsh | deepseek | codex | anthropic | custom
-    themeCustom: ''        # palette@1 JSON；仅 theme=custom 时由客户端使用
+    themeCustom: ''        # palette@1 JSON; used by the client only when theme=custom
     contentDepth: general  # beginner | general | expert
-    defaultEnabled: true   # 新会话默认开启
-    includeSubagents: false # 子代理会话不注入（它的产出不直接面向用户）
-    genui: auto            # auto | on | off；auto 检测到 GenUI 才追加 dsh-ui 路由
-    personaEnabled: true   # 人格区总开关（只注入根会话/lead）
-    personaHeadEnabled: true # 身份头子开关；人格关时恒关
-    personaInnerOsEnabled: true # 内心OS；卡片外 💭 尾缀
-    persona: '{"schema":"dsh-structured/tone@1",...}' # 内部 canonical tone@1，不暴露裸编辑
+    defaultEnabled: true   # new sessions enabled by default
+    includeSubagents: false # do not inject into subagent sessions (their output is not shown to the user directly)
+    genui: auto            # auto | on | off; auto appends the dsh-ui route only when GenUI is detected
+    personaEnabled: true   # Persona section master switch (injects only in root/lead sessions)
+    personaHeadEnabled: true # Persona header sub-switch; always off while Persona is off
+    personaInnerOsEnabled: true # Inner OS; 💭 suffix outside the card
+    persona: '{"schema":"dsh-structured/tone@1",...}' # internal canonical tone@1, no raw editing exposed
     personaName: 蓝色大肥鱼
     personaSignature: 主人，再来一碗白米饭！！~
-    personaAvatar: ''      # 空值使用内置鲸鱼头像；自定义值为 128px JPEG dataURL
+    personaAvatar: ''      # empty uses the built-in whale avatar; custom values are 128px JPEG dataURLs
 ```
 
-`theme`、`themeCustom`、`contentDepth`、`defaultEnabled`、`includeSubagents`、`genui`、`personaEnabled`、`personaHeadEnabled`、`personaInnerOsEnabled`、`persona`、`personaRevision`、`personaName`、`personaSignature`、`personaAvatar` 都是 `.volatile()` 配置：设置页与标准 bundle 表单都可编辑，写入走 active profile 的 Cordis patch，home patch / CLI overlay 优先。若快照的 `writable` 为 false，说明当前配置被上层覆盖，控件只读并提示。`visual` / `tailReminder` 仍保留字段兼容旧配置，但 1.2.0 固定开启、设置页不再提供开关。`/structured on|off` 只影响 `state.json` 里的按会话提示词开关。
+`theme`, `themeCustom`, `contentDepth`, `defaultEnabled`, `includeSubagents`, `genui`, `personaEnabled`, `personaHeadEnabled`, `personaInnerOsEnabled`, `persona`, `personaRevision`, `personaName`, `personaSignature` and `personaAvatar` are all `.volatile()` config: editable from both the settings page and the standard bundle form, written to the active profile's Cordis patch, with home patch / CLI overlay taking precedence. If a snapshot's `writable` is false, the current config is overridden by a higher layer: the controls are read-only and show a hint. `visual` / `tailReminder` retain their fields for compatibility with old configs, but have been fixed on since 1.2.0 and no longer offer switches on the settings page. `/structured on|off` only affects the per-session prompt toggle in `state.json`.
 
-## 验证注入生效
+## Verifying that injection works
 
-会话日志是 `$DSH_HOME/sessions/<cwd-group>/<session-id>/session.v4.jsonl.zstd`（独立 zstd 帧拼接，普通 grep 读不了）。仓库自带读取脚本：
+Session logs are `$DSH_HOME/sessions/<cwd-group>/<session-id>/session.v4.jsonl.zstd` (independent zstd frames concatenated; plain grep cannot read them). The repo ships a reader script:
 
 ```powershell
-# 最近一个会话里搜注入文本（开启状态应命中 1 条）
+# search the most recent session for the injected text (1 hit expected while enabled)
 node scripts/session-inspect.mjs --grep "结构化输出（本会话已启用"
 
-# 指定会话
+# specify a session
 node scripts/session-inspect.mjs --session session-xxxx --grep "结构化输出（本会话已启用"
 
-# 只看最新一条 system/message（验证「关掉后下一轮 0 命中」）
+# only inspect the latest system/message (to verify "0 hits on the next turn after turning it off")
 node scripts/session-inspect.mjs --session session-xxxx --last-system --grep "结构化输出（本会话已启用"
 ```
 
-开启时应看到：
+When enabled you should see:
 
 ```text
 搜索："结构化输出（本会话已启用" → 命中 1 条 system/message
 ```
 
-关闭后（`/structured off` 或把该会话在 `state.json` 里置为 `false`），同一个会话下一轮应看到 `命中 0 条`。`/structured` 只控制提示词注入；视觉层固定开启。
+The reader script prints in Chinese; that line means: search → 1 hit in system/message. After turning it off (`/structured off`, or setting that session to `false` in `state.json`), the same session should show 0 hits on the next turn. `/structured` only controls prompt injection; the visual layer is always on.
 
-> 以上命令在仓库根执行。已装到 profile 时，脚本路径是 `<profile>\node_modules\dsh-structured\scripts\`；把命令里的 `scripts/` 换成 `node_modules/dsh-structured/scripts/` 即可。
+> Run the commands above from the repo root. When installed into a profile, the script path is `<profile>\node_modules\dsh-structured\scripts\`; replace `scripts/` in the commands with `node_modules/dsh-structured/scripts/`.
 
-## 卸载 / 回滚
+## Uninstall / rollback
 
-一条命令（仓库根执行；已装到 profile 时用 `<profile>\\node_modules\\dsh-structured\\scripts\\uninstall.mjs`）：
+One command (run from the repo root; when installed into a profile use `<profile>\node_modules\dsh-structured\scripts\uninstall.mjs`):
 
 ```powershell
 node scripts/uninstall.mjs --profile <profile> --dry-run
 node scripts/uninstall.mjs --profile <profile>
 ```
 
-它会先执行 `dsh plugin --profile <profile> remove dsh-structured`（移除依赖、bundle 行和 `node_modules`），再删除 `$DSH_HOME/dsh-structured`（state.json / style.md）。只删这两个目标，不碰其他插件。
+It first runs `dsh plugin --profile <profile> remove dsh-structured` (removing the dependency, the bundle line and `node_modules`), then deletes `$DSH_HOME/dsh-structured` (state.json / style.md). It only deletes these two targets and does not touch other plugins.
 
-手工 pnpm 回滚：退出 Desktop，按 `package.json` / `pnpm-lock.yaml` 备份恢复，或 `pnpm remove dsh-structured`；如果 `dsh.profile.bundles` 里还有这一行，手工删掉。重新打开 Desktop（应用重新加载，不是浏览器刷新）。
+Manual pnpm rollback: quit Desktop, restore from the `package.json` / `pnpm-lock.yaml` backups, or run `pnpm remove dsh-structured`; if the line is still in `dsh.profile.bundles`, delete it manually. Reopen Desktop (the app reloads; this is not a browser refresh).
 
-卸载后检查：`node_modules` 下没有 `dsh-structured`，`package.json` 里没有依赖与 bundle 行，`$DSH_HOME/dsh-structured` 不存在。
+Post-uninstall checks: no `dsh-structured` under `node_modules`, no dependency or bundle line in `package.json`, and `$DSH_HOME/dsh-structured` does not exist.
 
-## 效果指标
+## Effectiveness metrics
 
-口径固定、可复跑：`scripts/measure-prose.mjs`。
+Fixed methodology, reproducible: `scripts/measure-prose.mjs`.
 
-- **实质回复**：去掉代码块后可见字符 ≥ 120，且句子数 ≥ 2。
-- **结构化**：≥2 行表格 / ≥2 个清单项 / ≥2 个标题 / ≥1 个 `dsh-ui` 组件块。
-- **散文违规**：实质回复但没有结构化，且句子数 ≥ 3。
-- **散文率**：散文违规数 ÷ 实质回复数。
+- **Substantive reply**: ≥ 120 visible characters after removing code blocks, and ≥ 2 sentences.
+- **Structured**: ≥ 2 table rows / ≥ 2 list items / ≥ 2 headings / ≥ 1 `dsh-ui` component block.
+- **Prose violation**: a substantive reply that is not structured and has ≥ 3 sentences.
+- **Prose rate**: prose violations ÷ substantive replies.
 
 ```powershell
-# 最近 14 天的会话
+# sessions from the last 14 days
 node scripts/measure-prose.mjs --since-days 14 --verbose
 
-# 指定会话（A/B 对照时最常用）
+# specific sessions (most common for A/B comparisons)
 node scripts/measure-prose.mjs --sessions session-a,session-b --json
 ```
 
-同一测试 profile、同一模型、同一组 12 条 prompts 的配对采样结果见 [`docs/METRICS.md`](docs/METRICS.md)。核心数字：
+Paired sampling results on the same test profile, same model, same set of 12 prompts are in [`docs/METRICS.md`](docs/METRICS.md). Core numbers:
 
-| 样本 | 口径 | 散文率 |
+| Sample | Methodology | Prose rate |
 | --- | --- | ---: |
-| 改前历史（737 会话 / 5727 条实质回复） | 首屏 300 字符 | **38.7%** |
-| 改前历史（同一批） | 整篇 | 16.8% |
-| 改后（12 个新会话） | 首屏 / 整篇 | **0.0%**（0/12） |
+| History before the change (737 sessions / 5727 substantive replies) | first 300 characters | **38.7%** |
+| History before the change (same batch) | full text | 16.8% |
+| After the change (12 new sessions) | first screen / full text | **0.0%** (0/12) |
 
-任务书给定的人工基线是 37.5%（21/56），与首屏口径的 38.7% 基本一致。同 prompt 配对对照里 baseline 也是 0%，说明这批短问题本身就能被 AGENTS.md 覆盖；插件可证明的作用是 12/12 请求都带规则段与尾部提醒。完整的样本、命令、长上下文试点和局限都在 `docs/METRICS.md`。
+The manual baseline given in the task book is 37.5% (21/56), essentially consistent with the 38.7% first-screen figure. In the paired same-prompt comparison the baseline is also 0%, which means this batch of short questions can already be covered by AGENTS.md; what the plugin can prove is that 12/12 requests carried the rules section and the tail reminder. The complete samples, commands, long-context pilot and limitations are in `docs/METRICS.md`.
 
-## 设计边界（这些是刻意不做）
+## Design boundaries (deliberately not done)
 
-- **不用 `agent/pre-step` 往请求里 append 消息**。DSH v4 要求 `source.kind` 属于宿主注册的 producer，自造 kind 会让整回合失败：`format v4 message requires a producer-owned source kind`。
-- **不 append 消息、不改 agent 循环、不改工具权限、不接管 GenUI**。GenUI 负责组件渲染，本插件只负责「强制形状 + 注入规则」。
-- **fail-open 是红线**：section 求值、`style.md` 读取、状态读写、`/structured` 处理全程 try/catch；section 求值失败返回空串，本轮不结构化但请求照常放行。
-- `interpolate: false`：`style.md` 里出现 `{{...}}` 也不会触发严格变量插值而打断组装。
-- 子代理默认不注入：子代理产出由父代理消费，不是用户可见回复，注入只会浪费上下文。PersonaMode 更进一步：人格只注入根会话（lead），子代理 / 委派 / 聊天 fork 会话一律硬排除，不受 `includeSubagents` 影响。
+- **Do not use `agent/pre-step` to append messages to the request.** DSH v4 requires `source.kind` to belong to a host-registered producer; inventing a kind makes the whole turn fail: `format v4 message requires a producer-owned source kind`.
+- **Do not append messages, modify the agent loop, change tool permissions, or take over GenUI.** GenUI handles component rendering; this plugin only handles "enforced shape + injected rules".
+- **fail-open is a red line**: section evaluation, `style.md` reading, state reads/writes and `/structured` handling are all wrapped in try/catch; a failed section evaluation returns an empty string, so the turn is not structured but the request still goes through.
+- `interpolate: false`: `{{...}}` in `style.md` will not trigger strict variable interpolation and break assembly.
+- Subagents are not injected by default: subagent output is consumed by the parent agent, not a user-visible reply, so injecting would only waste context. PersonaMode goes further: Persona is injected only into root sessions (lead); subagent / delegated / chat-fork sessions are always hard-excluded, regardless of `includeSubagents`.
 
-## 目录
+## Layout
 
 ```text
-src/index.js                 host 入口（systemPrompt section + 会话开关 + 命令）
-src/client.js                client 模块（视觉层 + 结论卡 + 语义装饰）
-lib/index.js                 host 构建产物
-lib/client.js                client 构建产物
-cordis.patch.yml             bundle 装配清单
-scripts/build.mjs            构建
-scripts/uninstall.mjs        卸载后清理状态目录
-scripts/session-inspect.mjs  验证 system prompt 注入
-scripts/desktop-check.mjs    desktop 兼容性预检
-scripts/measure-prose.mjs    散文率统计（可复跑）
-scripts/lib/session-log.mjs  v4 会话日志 zstd 帧读取
-test/structured.test.mjs     单元测试 + 边界测试
-test/client-visual.test.mjs  client visual 配置开关测试
-test/client-cards.test.mjs   严格卡片识别 DOM 测试
-docs/METRICS.md              A/B 指标与原始明细
-docs/ROADMAP.md              Phase 1/2 路线图与 Phase 2 任务
-docs/CARD-SYSTEM.md          卡片类型、anatomy 与热点预算
-docs/DESIGN-REFERENCES.md    视觉引导参考与反例
-docs/VISUAL-PLAN.md          视觉排版方案与阶段计划
-docs/VISUAL-CRITIQUE.md      视觉诊断与热点预算
-ACCEPTANCE.md                3 行验收记录
+src/index.js                 host entry (systemPrompt section + session toggle + commands)
+src/client.js                client module (visual layer + conclusion cards + semantic decoration)
+lib/index.js                 host build output
+lib/client.js                client build output
+cordis.patch.yml             bundle assembly manifest
+scripts/build.mjs            build
+scripts/uninstall.mjs        state-directory cleanup after uninstall
+scripts/session-inspect.mjs  verify system prompt injection
+scripts/desktop-check.mjs    desktop compatibility preflight
+scripts/measure-prose.mjs    prose-rate measurement (reproducible)
+scripts/lib/session-log.mjs  v4 session log zstd frame reader
+test/structured.test.mjs     unit tests + boundary tests
+test/client-visual.test.mjs  client visual config switch tests
+test/client-cards.test.mjs   strict card recognition DOM tests
+docs/METRICS.md              A/B metrics and raw details
+docs/ROADMAP.md              Phase 1/2 roadmap and Phase 2 tasks
+docs/CARD-SYSTEM.md          card types, anatomy and hotspot budget
+docs/DESIGN-REFERENCES.md    visual guidance references and counterexamples
+docs/VISUAL-PLAN.md          visual layout plan and phases
+docs/VISUAL-CRITIQUE.md      visual critique and hotspot budget
+ACCEPTANCE.md                3-line acceptance record
 ```
 
-## 已知限制
+## Known limitations
 
-- 注入是概率性约束，不是格式校验：模型仍可能忽略；指标文档记录了实测比例。1.1.3 起对「信封写短」（少一层 `}`、缺 `suggestions` / `risk`）按配平补括号并允许缺段渲染——缺哪段少哪张卡，结论卡照出，不再整条降级成普通文字。
-- 人格模式与通用结构化尾部提醒互斥，1.1.2 起改为注入只讲信封的专用提醒；重开 Desktop 后生效（宿主侧改动不走客户端热更新）。
-- 状态目录按 `DSH_HOME` 共享，不区分 profile；测试 profile 的开关会落到同一个 `state.json`。
-- 视觉层是渐进增强，只在 desktop 客户端生效（Web 客户端作为同源兼容面，不单独验收）；headless / CLI 不加载 client 半区，host 注入不受影响。
-- 视觉层依赖宿主内部 class 名（`[class*="_markdown_"]`、`.md-code-block`）；宿主升级后若改名，会自动退化为原生 markdown，需要按 `docs/VISUAL-PLAN.md` 跑一次视觉回归。
-- `style.md` 是整份覆盖，不做片段合并。1.0 输出语气使用“语气风格”设置页（profile Config JSON，`dsh-structured/tone@1`），**不读 `persona.md`**；旧 `1.0-PERSONA-SPEC.md` 已标 SUPERSEDED。不碰 AGENTS/soul，不开放文件路径入口。
-- 裸 `$...$` 由宿主按 `singleDollarTextMath` 解析成行内公式；需要显示美元符号时用 `\$` 转义或放进反引号；插件不改写消息内容，也不替宿主决定公式语义。0.9.7 起 `BUILTIN_STYLE_TEXT` 增加该规避规则；issue #2 已关闭。
+- Injection is a probabilistic constraint, not format validation: the model can still ignore it; the metrics doc records the measured ratios. Since 1.1.3, a "short Envelope" (one `}` missing, or `suggestions` / `risk` missing) is repaired by balancing brackets and allowed to render with missing sections — whichever section is missing, that card is skipped, the conclusion card still renders, and the reply is no longer degraded wholesale to plain text.
+- Persona mode and the generic structured tail reminder are mutually exclusive; since 1.1.2 it injects a dedicated reminder that talks only about the Envelope; effective after reopening Desktop (host-side changes do not go through client hot updates).
+- The state directory is shared per `DSH_HOME` and not split by profile; a test profile's toggle lands in the same `state.json`.
+- The visual layer is progressive enhancement and only takes effect in the desktop client (the Web client is a same-source compatibility surface and is not accepted separately); headless / CLI does not load the client half, and host injection is unaffected.
+- The visual layer depends on host internal class names (`[class*="_markdown_"]`, `.md-code-block`); if a host upgrade renames them, it degrades automatically to native markdown, and a visual regression should be run per `docs/VISUAL-PLAN.md`.
+- `style.md` is a full override, with no fragment merging. Since 1.0, output tone uses the "Tone style" settings page (profile Config JSON, `dsh-structured/tone@1`), and **does not read `persona.md`**; the old `1.0-PERSONA-SPEC.md` is marked SUPERSEDED. It does not touch AGENTS/soul and does not expose a file-path entry.
+- A bare `$...$` is parsed by the host as inline math per `singleDollarTextMath`; to display a dollar sign, escape it with `\$` or put it in backticks; the plugin does not rewrite message content or decide formula semantics for the host. Since 0.9.7 `BUILTIN_STYLE_TEXT` includes this avoidance rule; issue #2 is closed.
 
-## 致谢
+## Credits
 
-- 人格模式的点子来自 [@cvopisso](https://github.com/cvopisso) 在 issue [#1](https://github.com/feigo313/dsh-structured/issues/1) 的提议——"您可能无意间创造出了目前 DSH 最强的人格插件"。1.0 把它做成了可开关的默认模式：模型只交 persona 内容块，身份头 / 三卡 / 收尾由插件渲染。谢谢。
-- 渲染问题由 [@ayyyyyyyya](https://github.com/ayyyyyyyya) 在 issue [#2](https://github.com/feigo313/dsh-structured/issues/2) 反馈，0.9.7 起修复 `$` 公式解析边界。
+- The Persona mode idea came from [@cvopisso](https://github.com/cvopisso)'s proposal in issue [#1](https://github.com/feigo313/dsh-structured/issues/1) — "you may have accidentally created the strongest Persona plugin for DSH today". 1.0 turned it into a switchable default mode: the model only supplies Persona content blocks, and the Persona header / three cards / closing are rendered by the plugin. Thank you.
+- Rendering issues were reported by [@ayyyyyyyya](https://github.com/ayyyyyyyya) in issue [#2](https://github.com/feigo313/dsh-structured/issues/2); since 0.9.7 the `$` formula parsing boundary is fixed.
+
+---
+
+**Package version:** this repository currently ships **1.3.0** (`package.json`). The install examples above keep the `1.2.0` release they were verified against.

@@ -19,12 +19,12 @@ test('pack：鲸鱼娘 JSON/许可/署名随包，1.0 草稿不随包', () => {
   assert.equal(files.includes('test/fixtures/persona-gate/no-persona.md'), false, 'pack should exclude old gate fixture')
   assert.equal(files.includes('test/fixtures/persona-gate/persona-append.md'), false, 'pack should exclude old gate fixture')
   assert.equal(files.includes('test/fixtures/persona-gate/style-override.md'), false, 'pack should exclude old gate fixture')
-  assert.equal(files.length, 61, 'pack file count must match new screenshots (1.2.0)')
+  assert.equal(files.length, 64, 'pack file count must match 1.3.0 (README.zh + I18N + ACCEPTANCE-1.2.2)')
   // 体积断言带 16 KB 容差：tar 条目的平台元数据（权限位等）让同一内容在
   // Linux CI 与本地 Windows 上相差 ~137 B，精确字节断言跨平台不稳定。
   // 本地基线为 2026-11-26 1.2.0 尾部提醒固定 / 自定义主题 / 人格称呼硬约束后的 pack；CI 以容差校验。
-  const PINNED_SIZE = 1830526
-  const PINNED_UNPACKED = 2734302
+  const PINNED_SIZE = 1865727
+  const PINNED_UNPACKED = 2844345
   const TOLERANCE = 16384
   assert.ok(
     Math.abs(parsed[0].size - PINNED_SIZE) <= TOLERANCE,

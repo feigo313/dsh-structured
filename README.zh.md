@@ -1,0 +1,329 @@
+# dsh-structured
+
+[English](README.md) | **中文**
+
+让 DSH 的每条实质回复默认结构化：**首句给结论，内容用表格 / 清单 / 步骤排出来**；1.0 起再加一层人格模式：**身份头 / 三卡 / 收尾由插件渲染，模型只交内容**。按会话开关，默认开启；规则可用 `style.md` 整份覆盖（人格开启时不注入）。
+
+它解决的是一个实测问题：只靠 `~/.dsh/AGENTS.md` 第 7 节的提示词规则，56 条符合触发条件的回复里只有 21 条真的结构化（37.5%），长上下文下继续衰减。本插件把同一条规则放进**每次请求都会重新求值的 system prompt section**，并在末尾追加一句轻量提醒，不依赖模型记住历史。
+
+路线图：Phase 1 结构化已完成；Phase 2 做视觉热点规范引导与卡片系统，见 [`docs/ROADMAP.md`](docs/ROADMAP.md)。
+
+## 判定优先级
+
+1. 老板读得快不快
+2. 会不会打断会话（稳定性）
+3. token 成本
+4. 实现优雅
+
+对应到实现：1.2.0 起每次请求注入内容合同（多卡形状 + 输出深度）、人格风格段（可关）与尾部提醒；任何异常都放行原请求；不接管 GenUI，不改 agent 循环。
+
+## 安装
+
+要求：DSH 0.2.x – 0.3.x（`@deepseek-ai/cordis` 4.x），Node ≥ 22；desktop `0.2.2-rc.5` 已实测（2026-11-26）。
+
+**默认目标就是 desktop profile。** 插件只硬依赖 `systemPrompt`（desktop 由 `@deepseek-ai/dsh-base` 提供），`commands` 是可选服务；不依赖 Electron/headless 专有 API，也没有 profile 分支。安装前先跑一次预检：
+
+```powershell
+node scripts/desktop-check.mjs
+```
+
+`desktop` 由 Electron 独占只影响 **CLI 的 `--profile desktop` 子命令**，不影响插件本身；推荐走插件管理入口，或退出 Desktop 后手工 pnpm（方式二）。
+
+### 方式一：插件市场
+
+在 DSH 插件管理里搜索 `dsh-structured` 安装（已上架 awesome-dsh-plugin 市场）。桌面端由应用侧加载 client，不需要浏览器刷新。
+
+### 方式二：npm
+
+```powershell
+dsh plugin --profile <profile> add dsh-structured@1.2.0
+```
+
+`dsh plugin add` 会转发给 profile 里的 pnpm；1.1.5 起已在本机 desktop profile 用 registry 源安装实测（pnpm 会自动把新版本加进 `minimumReleaseAgeExclude`）。
+
+desktop profile 由 Electron 独占，使用插件管理搜索/安装，不要跑 `--profile desktop`。
+
+### 方式三：GitHub Release
+
+从 GitHub Releases 下载最新版的 `dsh-structured-<version>.tgz`（当前 1.2.0），在插件管理里选择本地包；不使用 npm 时，市场 YAML 的 `tarball` 指向该 release。
+
+### 开发方式：本地 tgz / 手工 pnpm（desktop profile）
+
+本地包只用于开发验证：在 DSH 插件管理里选择仓库根的 `dsh-structured-<version>.tgz`，或 `plugin_manager.install_bundle` 指向该文件。手工 pnpm 方式如下。
+
+`desktop` profile 由 Electron 独占：**全局 `dsh plugin --profile desktop ...` 会被 CLI 直接拒绝**（`profile "desktop" is managed exclusively by the Electron application`）。不要用那条命令。要先**完全退出 Desktop**，再在 profile 目录里手工 pnpm：
+
+```powershell
+$dir = Join-Path $env:DSH_HOME 'profiles\desktop'
+Copy-Item "$dir\package.json" "$dir\package.json.bak-before-dsh-structured"
+Copy-Item "$dir\pnpm-lock.yaml" "$dir\pnpm-lock.yaml.bak-before-dsh-structured"
+Copy-Item "$dir\cordis.patch.yml" "$dir\cordis.patch.yml.bak-before-dsh-structured"
+
+Set-Location $dir
+$tgz = "dsh-structured-0.9.1.tgz"   # 把 tgz 放到当前目录，或写成实际路径
+pnpm add $tgz
+```
+
+手工 pnpm **不会**自动改 bundle 列表，需要把 `dsh-structured` 加进 `$dir\package.json` 的 `dsh.profile.bundles`（只加一次，不要重复）：
+
+```json
+{
+  "dsh": { "profile": { "bundles": ["...", "dsh-structured"] } }
+}
+```
+
+启动 Desktop。
+
+开发期用独立测试 profile 时，`dsh plugin --profile <测试 profile> add <tgz>` 可以正常使用，并且会自动追加 bundle 行；新 profile 可用 `dsh <name> --from-default-profile headless "..."` 创建。
+
+### Desktop 兼容性依据
+
+- 预检：`node scripts/desktop-check.mjs` 全部 PASS —— desktop profile 已初始化、bundle 栈含 `dsh-base`/`dsh-web-app`、`files` 含 `cordis.patch.yml`、`main`/`exports` 指向存在文件、`dsh.client.platform: web` 与 `exports["./client"]` 就位、`engines.dsh`/`dsh.compatibility.dshReleases` 已声明、运行时只 import `node:`、无 Electron 专有 API、无 profile 分支、状态走 `DSH_HOME`。
+- **desktop 是主目标，Web 只做兼容。** 本会话本身运行在 desktop profile，`systemPrompt` 与 `commands` 由 live host 的 Service 查询确认；`dsh.client.platform: web` 是 DSH 客户端模块的格式（desktop 的 Web UI 也加载它），不代表 Web 优先。
+- desktop 实装实测：desktop profile 已切到 registry `1.2.0`（重启 Desktop 后生效，见 `docs/ACCEPTANCE-1.2.0.md`）；desktop 会话最新 `system/message` 命中注入（可用 `scripts/session-inspect.mjs` 复跑）。
+- 视觉层由 desktop 应用侧加载，验收以应用内实际渲染为准；不要求用户手动刷新。
+
+### 兼容性门禁
+
+本包声明 `@deepseek-ai/schemastery` peer：`Config`（theme/themeCustom/contentDepth/defaultEnabled/includeSubagents/genui + personaEnabled/personaHeadEnabled/personaInnerOsEnabled/persona/personaRevision/personaName/personaSignature/personaAvatar；`visual` / `tailReminder` 仅兼容保留）用它生成设置表单；这是 host 提供的服务，不是门禁。真正门禁是 `engines.dsh`（`>=0.1.7-rc.2 <0.4.0-0 || >=0.2.1-rc.0 <0.2.2`，覆盖 0.3.x 与 0.2.1 预发布），`dsh-app-boot` 在有 `engines.dsh` 时读取它；`dsh.compatibility.dshReleases` 是 advisory。实测 DSH CLI `0.1.7-rc.2`、desktop `0.2.1-rc.2`、`0.2.1-rc.5` 与 `0.2.2-rc.5`（2026-11-22，宿主 FileVersion 实读；桌面加载 1.2.0：单页设置 / 卡片 / 表格 / 主题渲染正常（2026-11-26 实机））；`0.2.1-rc.3` / `0.3.0-rc.1` 为声明性兼容（插件依赖的 systemPrompt / commands / configForms / plugins.bundle.config 均为宿主稳定服务面，未见破坏性变更公告）。
+
+## 使用
+
+```text
+/structured            # 查看本会话状态
+/structured off        # 关闭本会话（下一轮生效）
+/structured on         # 重新开启
+/structured status     # 同 /structured
+```
+
+- 开关按会话独立，状态落在 `$DSH_HOME/dsh-structured/state.json`（tmp + rename 原子写）。
+- 新会话默认开启；`defaultEnabled: false` 可改默认值（见配置）。
+- 视觉层固定开启（1.2.0 起不再提供 `visual` 开关，字段仅兼容保留），不写 `state.json`；`/structured on|off` 只控制提示词注入，不影响视觉层。
+- 自定义规则：写 `$DSH_HOME/dsh-structured/style.md`，**非空即整份覆盖**内置文本，保存后下一轮生效；文件为空或删除时回落内置。
+- **用 `style.md` 承载长期设定（可选）**：`style.md` 的内容会被原样放进每次请求的 section，代价是**整份覆盖**内置文本；想同时保留结构规则，把 `src/index.js` 的 `BUILTIN_STYLE_TEXT` 全文抄进去再追加。注意互斥：**persona 开启时 `style.md` 不注入**（PersonaMode 只注入内容合同）；要长期设定请迁移到语气设置页的性格字段，或显式关闭人格后再用 `style.md`。
+- 内置文本与 `~/.dsh/AGENTS.md` 第 7 节同源：首句结论、组件化正文、一段一主题、禁过程叙事与复述、证据优先、短答不套卡；清晰优先，不设硬性篇幅上限。
+
+### 人格 / 语气风格（Tone）
+
+- 1.2.0 起设置页只有一个页面，「人格」分区取代旧版第二个 tab：档案行（头像 / 名称 / 签名）+ 风格预设 + 昵称 / 自称 / 说话方式 + 内心OS 开关 + 身份头子开关；开场 / 收尾输入已移除，样式预览与结论卡预览同页。**没有 JSON 编辑入口**（内部仍是 tone@1 canonical JSON）。昵称（userName）是「模型怎么称呼你」，自称（selfName）是「模型怎么称呼自己」；性格只写说话倾向，不写任务规则。**1.0 起默认开启，显式关闭保持关闭**。
+- 档案行：头像 88px 可点击上传（png / jpeg / webp，前端居中裁方并压到 128px JPEG dataURL）、名称、个性签名；名称 / 签名实时绑定预览身份行。
+- 存储为 profile Config：`personaEnabled` + `personaHeadEnabled` + `personaInnerOsEnabled` + `persona:string` + `personaRevision:number` + `personaName` + `personaSignature` + `personaAvatar`；不读 `persona.md`，不引入文件路径。保存时一次批量写这些字段（旧宿主走顺序写 + 写后读回 + 补偿回滚）；保存后全局生效（新消息使用），不需要每次重启；**安装/升级 1.0 后完整重启 Desktop 一次**。
+- tone JSON 只有 `schema / prefix / style / suffix / skipIn / userName / selfName`；`schema` 必须是 `dsh-structured/tone@1`。作者/许可/来源/署名链不在 JSON，见 `NOTICE-WHALE` / `LICENSE-WHALE`。
+- 历史 tone 里若仍有 `prefix` / `suffix`，仍按原样渲染（1.2.0 设置页不再提供这两个输入）；性格只写语言风格（角色 / 语气 / 句式 / 称呼），`code / diff / error / short / table` 按 `skipIn` 跳过。结构 / 事实 / 安全永远优先。
+- 模板只保留默认「蓝色大肥鱼」+ 用户另存的模板；「切换人格」弹层支持行内删除，删空提示用「恢复默认」找回。模板存当前五字段 + 名称 + 签名 + 头像，不自动选中。
+- 蓝色大肥鱼是社区二创模板，非 DeepSeek 官方；模板单独 CC-BY-NC-SA-4.0，不打包美术。64KB 硬拒；非法 tone JSON 拒绝保存。
+
+### 代码 / diff 例外
+
+- ` ```diff ` / ` ```patch ` 代码块、`[data-diff]`、`.md-diff`、`[class*="_diff_"]` 与 GenUI diff 区域**不套**插件的代码块/表格 chrome；diff 行色与宿主渲染保持原样。`data-diff`/类名守卫是防御性选择器，当前 host 是否真实可达未单独 live 验证。
+- 当回复主要是代码、代码 diff、文件修改或补丁时，代码块或 diff 卡可以直接作为第一块，不强制标题卡；仍不写过程叙事。
+- `/structured off` 仍只控制提示词；视觉层固定开启（`visual` 字段仅兼容保留）。
+
+### 视觉层（desktop 主目标；web 兼容）
+
+客户端半区会给对话 markdown 加一层 v5「软面卡片台」皮肤：12px 圆角卡 + 3px 彩色左条 + 同构渐变面；结论 / 下一步 / 风险三色线标题；表格浅色 tint 表头、首列 600 墨字、状态单元格按 `data-dsh-structured-status-cell` 上浅底 + 左侧 3px 色条（1.1.0 起不再插入胶囊节点，**不改宿主受控子树**）；代码浅色卡 + 线标题「代码 · 语言」+ 双方框复制钮；深色跟随宿主 `body[data-ds-dark-theme]`，卡面 / 表头 / 代码面 / 状态色都有深色同构。只给宿主节点加 class/attribute，不改消息内容；headless / CLI 不加载 client 半区。
+
+- **列宽按内容分配**：`decorate` 逐列统计最大显示宽度（CJK / emoji 记 2、ASCII 记 1，含表头），≤12 单位的列贴内容（`data-dsh-structured-col="narrow"`，`width:1%;white-space:nowrap`），其余列交给 auto 布局；3 列以上且中间明显更长时尾列封顶 32%（`data-dsh-structured-tail="capped"`）。流式半截表不测量；`.dss-table-wrap` 允许横向滚动，窄窗（≤560px）表格保底 520px 宽。
+- **卡片级复制**（1.1.1）：结论 / 建议 / 风险 / 表格 / 整条回复五档一键复制，内容是净文本（不含卡标签、身份头、开场收尾），表格输出 TSV；按钮常驻半透明、hover / 键盘聚焦加深，触屏常显。
+- **结论卡要点列表**（1.1.8）：`conclusion.points` 收 1–4 条，每条只放一个事实（≤32 字），渲染成 A/B/C 字母圆圈；`conclusion.body` 只用于历史消息兼容。建议卡用 1/2/3 编号，风险卡固定一句话；确有多个风险时改用表格，不再往风险卡里堆句子。
+- **卡片正文的行内标记**（1.1.3）：`**粗体**` 与 `` `代码` `` 会渲染成真正的 `strong` / `code` 节点（此前会把星号原样显示），`textContent` 仍是不带标记的净文本，复制得到干净内容。
+
+`theme` 提供 `dsh`/`deepseek`（默认）/`codex`/`anthropic`/`custom` 五个配置值；`custom` 用 `themeCustom` 的主 / 副 / 辅三色自动派生，仅选自定义时可编辑，带 HSV 拾色器与对比度 / 色相校验。1.1.2 起三套彩色主题各有一套完整配色（DeepSeek 蓝调 / Codex 绿调 / Anthropic 土褐调），保持原样；1.1.7 新增 `dsh`（黑白原色）：面板 / 卡面 / 正文 / 边框全部映射 DSH 宿主 alias 变量，明暗随宿主切换；状态也用灰阶 + 符号区分，不引入彩色。设置页主题分段里 `DSH` 排在最前，默认仍是 DeepSeek。**卡面结构保持一套**——圆角、边框、阴影、底色结构完全一致，主题只通过配色表达；表头底色、表格左边条、表头文字、状态色、序号圆点、复制成功勾全部走主题变量，切主题时整组一起变。设置页的「样式预览」用同一份卡面材质展示普通 / 表格 / 代码三态。
+
+设计与分阶段计划见 [`docs/VISUAL-PLAN.md`](docs/VISUAL-PLAN.md)，视觉热点/层级诊断见 [`docs/VISUAL-CRITIQUE.md`](docs/VISUAL-CRITIQUE.md)，卡片类型与热点预算见 [`docs/CARD-SYSTEM.md`](docs/CARD-SYSTEM.md)。视觉层固定开启（`visual` 字段仅兼容保留）；`/structured on|off` 只控制提示词注入。
+
+Phase 2 已落地 2.1–2.4：卡片类型（结论/判断/指标/风险/下一步/验收/重点）、`data-dsh-structured-card-type` 归属标记、GenUI 软联动（检测到才追加 `dsh-ui` 路由，未检测走纯 markdown fallback，不硬依赖）。
+
+## Screenshots
+
+**1.2.0 实机截图**（2026-11-26，真实 Desktop 界面；已裁切到设置面板，不含会话内容、工作区与会话列表）：
+
+![1.2.0 单页设置页：外观 / 行为 / 人格 / 输出深度 / 预览](assets/screenshots/13-settings-1.2.0.png)
+
+![自定义三色 HSV 拾色器：饱和度面板 + 色相条 + HEX + 吸管 + 对比度校验](assets/screenshots/14-color-picker-1.2.0.png)
+
+以下为 1.1.10 时代渲染示意图：用插件真实 CSS 与默认头像复现卡片，不含任何会话内容；表格编号图是那一版的效果。
+
+![结论卡要点列表](assets/screenshots/01-title-card.png)
+
+![表格卡三层编号：结论 A/B、表行 a/b、建议 1/2](assets/screenshots/12-layered-index.png)
+
+![明色主题与表格](assets/screenshots/09-theme-light.png)
+
+![暗色主题](assets/screenshots/09-theme-dark.png)
+
+![暗色主题下的多条风险表格](assets/screenshots/10-theme-dark.png)
+
+<details>
+<summary>历史实机图（1.0 时代 / 1.1.6）</summary>
+
+![人格表格回复（1.1.6 实机）](assets/screenshots/06-status-table.png)
+
+![代码块回复（1.0.4 实机）](assets/screenshots/07-code-block.png)
+
+![语气风格设置页（1.0 时代历史实机图）](assets/screenshots/11-config-page.png)
+
+</details>
+
+`screenshots.json` 列出全部 10 张：前两张是 1.2.0 实机设置页与拾色器（已脱敏裁切），其后五张是 1.1.10 时代的插件真实 CSS 渲染示意图（表格编号图为那一版的效果），最后三张为历史实机图（`11-config-page.png` 为 1.0 时代历史实机图）；渲染图不是实机截图，不宣称「本机实测」。
+
+### 配置
+
+**首选：插件板块 → dsh-structured → 设置页**（1.2.0 起为单页；旧版是「结构化输出 / 语气风格」两 tab）。页面分区：标题行总开关 → 外观 → 行为 → 人格 → 输出深度 → 预览。改完写入 active profile 的 Cordis patch。
+
+```text
+主题 / Theme           dsh | deepseek | codex | anthropic | custom
+自定义三色 / themeCustom  palette@1 JSON；仅 theme=custom 时启用
+输出深度 / Content depth  beginner | general | expert（默认 general；无关闭）
+新会话默认开启           开关
+子代理注入 / Subagents   开关
+GenUI 联动              auto | on | off
+人格 / Persona          区总开关
+身份头 / Identity head    子开关（仅人格开时可用）
+内心OS / Inner OS        开关
+风格预设 / Style preset   同时套用说话方式 + 内心OS
+```
+
+视觉层固定开启；「尾部提醒」固定注入，均不再提供开关。会话级开关仍用 `/structured on | off`。外观顶部是 DSH / DeepSeek / Codex / Anthropic 四套默认主题，自定义单独一行。
+
+底层方式：在 profile 的 `cordis.patch.yml` 里覆盖同一行（注意：config 是整份替换，不是深合并）：
+
+```yaml
+- id: dsh-structured
+  config:
+    theme: deepseek        # dsh | deepseek | codex | anthropic | custom
+    themeCustom: ''        # palette@1 JSON；仅 theme=custom 时由客户端使用
+    contentDepth: general  # beginner | general | expert
+    defaultEnabled: true   # 新会话默认开启
+    includeSubagents: false # 子代理会话不注入（它的产出不直接面向用户）
+    genui: auto            # auto | on | off；auto 检测到 GenUI 才追加 dsh-ui 路由
+    personaEnabled: true   # 人格区总开关（只注入根会话/lead）
+    personaHeadEnabled: true # 身份头子开关；人格关时恒关
+    personaInnerOsEnabled: true # 内心OS；卡片外 💭 尾缀
+    persona: '{"schema":"dsh-structured/tone@1",...}' # 内部 canonical tone@1，不暴露裸编辑
+    personaName: 蓝色大肥鱼
+    personaSignature: 主人，再来一碗白米饭！！~
+    personaAvatar: ''      # 空值使用内置鲸鱼头像；自定义值为 128px JPEG dataURL
+```
+
+`theme`、`themeCustom`、`contentDepth`、`defaultEnabled`、`includeSubagents`、`genui`、`personaEnabled`、`personaHeadEnabled`、`personaInnerOsEnabled`、`persona`、`personaRevision`、`personaName`、`personaSignature`、`personaAvatar` 都是 `.volatile()` 配置：设置页与标准 bundle 表单都可编辑，写入走 active profile 的 Cordis patch，home patch / CLI overlay 优先。若快照的 `writable` 为 false，说明当前配置被上层覆盖，控件只读并提示。`visual` / `tailReminder` 仍保留字段兼容旧配置，但 1.2.0 固定开启、设置页不再提供开关。`/structured on|off` 只影响 `state.json` 里的按会话提示词开关。
+
+## 验证注入生效
+
+会话日志是 `$DSH_HOME/sessions/<cwd-group>/<session-id>/session.v4.jsonl.zstd`（独立 zstd 帧拼接，普通 grep 读不了）。仓库自带读取脚本：
+
+```powershell
+# 最近一个会话里搜注入文本（开启状态应命中 1 条）
+node scripts/session-inspect.mjs --grep "结构化输出（本会话已启用"
+
+# 指定会话
+node scripts/session-inspect.mjs --session session-xxxx --grep "结构化输出（本会话已启用"
+
+# 只看最新一条 system/message（验证「关掉后下一轮 0 命中」）
+node scripts/session-inspect.mjs --session session-xxxx --last-system --grep "结构化输出（本会话已启用"
+```
+
+开启时应看到：
+
+```text
+搜索："结构化输出（本会话已启用" → 命中 1 条 system/message
+```
+
+关闭后（`/structured off` 或把该会话在 `state.json` 里置为 `false`），同一个会话下一轮应看到 `命中 0 条`。`/structured` 只控制提示词注入；视觉层固定开启。
+
+> 以上命令在仓库根执行。已装到 profile 时，脚本路径是 `<profile>\node_modules\dsh-structured\scripts\`；把命令里的 `scripts/` 换成 `node_modules/dsh-structured/scripts/` 即可。
+
+## 卸载 / 回滚
+
+一条命令（仓库根执行；已装到 profile 时用 `<profile>\\node_modules\\dsh-structured\\scripts\\uninstall.mjs`）：
+
+```powershell
+node scripts/uninstall.mjs --profile <profile> --dry-run
+node scripts/uninstall.mjs --profile <profile>
+```
+
+它会先执行 `dsh plugin --profile <profile> remove dsh-structured`（移除依赖、bundle 行和 `node_modules`），再删除 `$DSH_HOME/dsh-structured`（state.json / style.md）。只删这两个目标，不碰其他插件。
+
+手工 pnpm 回滚：退出 Desktop，按 `package.json` / `pnpm-lock.yaml` 备份恢复，或 `pnpm remove dsh-structured`；如果 `dsh.profile.bundles` 里还有这一行，手工删掉。重新打开 Desktop（应用重新加载，不是浏览器刷新）。
+
+卸载后检查：`node_modules` 下没有 `dsh-structured`，`package.json` 里没有依赖与 bundle 行，`$DSH_HOME/dsh-structured` 不存在。
+
+## 效果指标
+
+口径固定、可复跑：`scripts/measure-prose.mjs`。
+
+- **实质回复**：去掉代码块后可见字符 ≥ 120，且句子数 ≥ 2。
+- **结构化**：≥2 行表格 / ≥2 个清单项 / ≥2 个标题 / ≥1 个 `dsh-ui` 组件块。
+- **散文违规**：实质回复但没有结构化，且句子数 ≥ 3。
+- **散文率**：散文违规数 ÷ 实质回复数。
+
+```powershell
+# 最近 14 天的会话
+node scripts/measure-prose.mjs --since-days 14 --verbose
+
+# 指定会话（A/B 对照时最常用）
+node scripts/measure-prose.mjs --sessions session-a,session-b --json
+```
+
+同一测试 profile、同一模型、同一组 12 条 prompts 的配对采样结果见 [`docs/METRICS.md`](docs/METRICS.md)。核心数字：
+
+| 样本 | 口径 | 散文率 |
+| --- | --- | ---: |
+| 改前历史（737 会话 / 5727 条实质回复） | 首屏 300 字符 | **38.7%** |
+| 改前历史（同一批） | 整篇 | 16.8% |
+| 改后（12 个新会话） | 首屏 / 整篇 | **0.0%**（0/12） |
+
+任务书给定的人工基线是 37.5%（21/56），与首屏口径的 38.7% 基本一致。同 prompt 配对对照里 baseline 也是 0%，说明这批短问题本身就能被 AGENTS.md 覆盖；插件可证明的作用是 12/12 请求都带规则段与尾部提醒。完整的样本、命令、长上下文试点和局限都在 `docs/METRICS.md`。
+
+## 设计边界（这些是刻意不做）
+
+- **不用 `agent/pre-step` 往请求里 append 消息**。DSH v4 要求 `source.kind` 属于宿主注册的 producer，自造 kind 会让整回合失败：`format v4 message requires a producer-owned source kind`。
+- **不 append 消息、不改 agent 循环、不改工具权限、不接管 GenUI**。GenUI 负责组件渲染，本插件只负责「强制形状 + 注入规则」。
+- **fail-open 是红线**：section 求值、`style.md` 读取、状态读写、`/structured` 处理全程 try/catch；section 求值失败返回空串，本轮不结构化但请求照常放行。
+- `interpolate: false`：`style.md` 里出现 `{{...}}` 也不会触发严格变量插值而打断组装。
+- 子代理默认不注入：子代理产出由父代理消费，不是用户可见回复，注入只会浪费上下文。PersonaMode 更进一步：人格只注入根会话（lead），子代理 / 委派 / 聊天 fork 会话一律硬排除，不受 `includeSubagents` 影响。
+
+## 目录
+
+```text
+src/index.js                 host 入口（systemPrompt section + 会话开关 + 命令）
+src/client.js                client 模块（视觉层 + 结论卡 + 语义装饰）
+lib/index.js                 host 构建产物
+lib/client.js                client 构建产物
+cordis.patch.yml             bundle 装配清单
+scripts/build.mjs            构建
+scripts/uninstall.mjs        卸载后清理状态目录
+scripts/session-inspect.mjs  验证 system prompt 注入
+scripts/desktop-check.mjs    desktop 兼容性预检
+scripts/measure-prose.mjs    散文率统计（可复跑）
+scripts/lib/session-log.mjs  v4 会话日志 zstd 帧读取
+test/structured.test.mjs     单元测试 + 边界测试
+test/client-visual.test.mjs  client visual 配置开关测试
+test/client-cards.test.mjs   严格卡片识别 DOM 测试
+docs/METRICS.md              A/B 指标与原始明细
+docs/ROADMAP.md              Phase 1/2 路线图与 Phase 2 任务
+docs/CARD-SYSTEM.md          卡片类型、anatomy 与热点预算
+docs/DESIGN-REFERENCES.md    视觉引导参考与反例
+docs/VISUAL-PLAN.md          视觉排版方案与阶段计划
+docs/VISUAL-CRITIQUE.md      视觉诊断与热点预算
+ACCEPTANCE.md                3 行验收记录
+```
+
+## 已知限制
+
+- 注入是概率性约束，不是格式校验：模型仍可能忽略；指标文档记录了实测比例。1.1.3 起对「信封写短」（少一层 `}`、缺 `suggestions` / `risk`）按配平补括号并允许缺段渲染——缺哪段少哪张卡，结论卡照出，不再整条降级成普通文字。
+- 人格模式与通用结构化尾部提醒互斥，1.1.2 起改为注入只讲信封的专用提醒；重开 Desktop 后生效（宿主侧改动不走客户端热更新）。
+- 状态目录按 `DSH_HOME` 共享，不区分 profile；测试 profile 的开关会落到同一个 `state.json`。
+- 视觉层是渐进增强，只在 desktop 客户端生效（Web 客户端作为同源兼容面，不单独验收）；headless / CLI 不加载 client 半区，host 注入不受影响。
+- 视觉层依赖宿主内部 class 名（`[class*="_markdown_"]`、`.md-code-block`）；宿主升级后若改名，会自动退化为原生 markdown，需要按 `docs/VISUAL-PLAN.md` 跑一次视觉回归。
+- `style.md` 是整份覆盖，不做片段合并。1.0 输出语气使用“语气风格”设置页（profile Config JSON，`dsh-structured/tone@1`），**不读 `persona.md`**；旧 `1.0-PERSONA-SPEC.md` 已标 SUPERSEDED。不碰 AGENTS/soul，不开放文件路径入口。
+- 裸 `$...$` 由宿主按 `singleDollarTextMath` 解析成行内公式；需要显示美元符号时用 `\$` 转义或放进反引号；插件不改写消息内容，也不替宿主决定公式语义。0.9.7 起 `BUILTIN_STYLE_TEXT` 增加该规避规则；issue #2 已关闭。
+
+## 致谢
+
+- 人格模式的点子来自 [@cvopisso](https://github.com/cvopisso) 在 issue [#1](https://github.com/feigo313/dsh-structured/issues/1) 的提议——"您可能无意间创造出了目前 DSH 最强的人格插件"。1.0 把它做成了可开关的默认模式：模型只交 persona 内容块，身份头 / 三卡 / 收尾由插件渲染。谢谢。
+- 渲染问题由 [@ayyyyyyyya](https://github.com/ayyyyyyyya) 在 issue [#2](https://github.com/feigo313/dsh-structured/issues/2) 反馈，0.9.7 起修复 `$` 公式解析边界。
+
+---
+
+**包版本：**本仓库当前发布 **1.3.0**（`package.json`）；上面的安装示例保留它们验证时的 `1.2.0`。
