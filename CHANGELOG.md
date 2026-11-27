@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.3.1 — 2026-11-27
+
+**English**
+
+- **Fix ghost empty items in the suggestions card**: when a `normal` envelope is missing one closing `}` and falls back to the degrade / salvage path, `salvagePersonaText` used `indexOf(']')` to find the end of the suggestions array. When the suggestion text contains brackets such as `[ROUTE]`, the start position lands inside the string, and the following 'bare string pickup' treats the `,` between a quoted pair as a suggestion, so the card gains two empty shells, '4 ,' and '5 ,' (seen on session-231e). The array end is now decided by a scanner outside strings, the pickup start is aligned with it, field names are skipped, and fragments left with only punctuation are dropped; the strict path and the existing degraded shapes are unchanged.
+
+**中文**
+
+- **修复建议卡幽灵空项**：normal 信封因缺一层 `}` 走降级 / 抢救路径时，`salvagePersonaText` 用 `indexOf(']')` 找建议数组结尾——建议文本里写了 `[ROUTE]` 这类中括号时，起点落进字符串内部，随后的「裸字符串补收」把引号对之间的 `,` 当成建议，建议卡于是多出「4 ,」「5 ,」两条空壳项（实机 session-231e）。现在数组结尾只在字符串外由扫描器判定，补收起点与之对齐，跳过字段名并丢弃只剩标点的残片；严格路径与既有降级形态行为不变。
+
 ## 1.3.0 — 2026-11-27
 
 - **修复身份头关闭时内心OS（💭）不渲染**：normal 信封里带了合法 `innerOs`（≤30 字），但信封因多余字段 / 内层引号 / 缺闭合等原因走降级或抢救路径时，重建内容只拼结论 / 建议 / 风险，把 `innerOs` 丢掉了——界面上三卡照出、卡片下方没有 💭。现在宽松还原（`buildLenientPersona`）与抢救（`salvagePersonaText` / `renderPersonaError`）都会保留合法 `innerOs`；身份头开关仍只控制头像 / 名字 / 签名，内心OS 开关仍独立生效。

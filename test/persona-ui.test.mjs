@@ -1434,6 +1434,65 @@ test('PersonaMode：尾部多余 } 不判死、按正常信封渲染', () => {
   assert.match(salvaged.markdown.textContent, /帧目录已全删/, 'risk must be salvaged')
 })
 
+test('PersonaMode：建议卡不吃引号残片（实机 session-231e 原文，[ROUTE] 括号）', () => {
+  const harness = makeHarness(baseState, async () => true)
+  const tone = JSON.stringify({ schema: 'dsh-structured/tone@1', prefix: 'Boss，', style: '搞怪', suffix: '——完', skipIn: ['code', 'diff', 'error', 'short', 'table'] })
+  harness.plugin.__test.setPersonaModeConfig({ personaEnabled: true, persona: tone, personaName: 'N', personaSignature: 'S', personaAvatar: '' })
+  const flowFor = (raw) => {
+    const flow = harness.document.createElement('div')
+    flow.setAttribute('data-chat-flow-kind', 'assistant-step')
+    flow.setAttribute('data-chat-node-key', 'ghost-suggestions-' + Math.random())
+    const slot = harness.document.createElement('div')
+    slot.setAttribute('data-slot', 'conversation.chat.node')
+    const markdown = harness.document.createElement('div')
+    markdown.className = '_markdown_preview'
+    markdown.innerHTML = `<div class="md-code-block"><div class="bannerWrap"><div data-code-block-banner><span class="_heading_persona">persona</span></div></div><div data-code-block-content><pre>${raw}</pre></div></div>`
+    slot.appendChild(markdown)
+    flow.appendChild(slot)
+    harness.document.body.appendChild(flow)
+    harness.plugin.__test.decorate(flow)
+    harness.flushPersonaErrors()
+    return markdown
+  }
+  const suggestionItems = (markdown) => {
+    const card = markdown.querySelector('[data-dsh-structured-card-type="next"]')
+    return card ? [...card.querySelectorAll('li')].map((li) => li.textContent.trim()) : null
+  }
+
+  // 实机原文（session-231e379d）：conclusion 少写一层 }，suggestions / risk / innerOs 落进
+  // conclusion 里，JSON 解析失败 → 走 salvagePersonaText 抢救。第一条建议里带 [ROUTE]。
+  // 1.3.0 用 indexOf(']') 找数组结尾，正好命中 [ROUTE] 里的 ]，随后把引号对之间的 `,`
+  // 当成裸字符串建议，建议卡于是多出第 4、5 项（截图里的「4 ,」「5 ,」）。
+  const realEnvelope = '{"version":1,"kind":"normal","conclusion":{"lead":"认，这轮巡检几十次调用全是我自己上的，按合同早该派。已派 patrol-verify 独立复核，结果我只做审计和三行汇报。","points":["违规点：巡检取证、CI/pack 修复、docs 编辑、API 提交，全都属于该派出去的活","合同口径：≥3 次调研/验证就必须派，leader 只留审计、集成与发包","已改：patrol-verify 正在独立复跑 issues/CI/npm/Release/市场/本地测试，输出三行与证据","当前状态：1.3.0 三端已发，CI 最新 1c2db75 绿；市场 PR #19205 等 checks"],"suggestions":["后续所有修复与验证带 [ROUTE] 派子 agent，我只核对 diff 与数字","docs/CI 修复这类收尾也派，不再自己动手","复核结果若有出入，我按证据回滚或纠正，不护短"],"risk":"已经自己做完的部分无法重做签字，只能靠独立复核兜底；若复核发现不一致，需回滚重来。","innerOs":"封印又忘了贴自己脑门上，这次让子 agent 来贴。"}'
+
+  const item = flowFor(realEnvelope)
+  assert.equal(item.getAttribute('data-dsh-persona-kind'), 'normal', '降级路径仍要出卡')
+  const items = suggestionItems(item)
+  assert.ok(items, '建议卡必须存在')
+  assert.equal(items.length, 3, '3 条建议只能渲染 3 个 li，不许有逗号幽灵项')
+  assert.deepEqual(items, [
+    '后续所有修复与验证带 [ROUTE] 派子 agent，我只核对 diff 与数字',
+    'docs/CI 修复这类收尾也派，不再自己动手',
+    '复核结果若有出入，我按证据回滚或纠正，不护短',
+  ])
+  assert.ok(items.every((text) => text.length > 1), '建议项不能只剩标点')
+  assert.match(item.textContent, /封印又忘了贴自己脑门上/, 'innerOs 必须在降级路径保留')
+  assert.match(item.textContent, /只能靠独立复核兜底/, 'risk 必须保留')
+
+  // 同样的「缺一层 }」形状，但建议里有两个中括号：抢救路径不能因为任何一个 ] 就提前收尾。
+  const twoBrackets = '{"version":1,"kind":"normal","conclusion":{"lead":"L"},"suggestions":["看 [A] 与 [B] 两处","乙"],"risk":"R"}'
+  assert.deepEqual(suggestionItems(flowFor(twoBrackets)), ['看 [A] 与 [B] 两处', '乙'], '多个中括号也只收真正的建议')
+
+  // 旧形态（数组提前闭合、后续项目写成裸字符串）不得回归出新的幽灵项：
+  // repairInnerQuotes 会先把这个裸字符串并进上一项，建议卡仍只留一条合法建议。
+  const brokenSuggestions = '{"version":1,"kind":"normal","conclusion":{"lead":"Boss，清完了"},"body":"删的都是过程产物","suggestions":["保留：成片"],"删除：帧目录","risk":"帧目录已全删"}'
+  assert.deepEqual(suggestionItems(flowFor(brokenSuggestions)), ['保留：成片'], '裸字符串形态不得冒出幽灵项')
+
+  // 严格路径不受影响：合法信封里带中括号的建议照常三条。
+  const cleanEnvelope = JSON.stringify({ version: 1, kind: 'normal', conclusion: { lead: 'L' }, suggestions: ['看 [ROUTE] 标注', '第二', '第三'], risk: 'R' })
+  assert.deepEqual(suggestionItems(flowFor(cleanEnvelope)), ['看 [ROUTE] 标注', '第二', '第三'], '严格路径三条建议原样')
+})
+
 test('PersonaMode：实机 seq432 中途闭合信封不把 JSON 残片渲染进卡片', () => {
   const harness = makeHarness(baseState, async () => true)
   const tone = JSON.stringify({ schema: 'dsh-structured/tone@1', prefix: 'Boss，', style: '搞怪', suffix: '——完', skipIn: ['code', 'diff', 'error', 'short', 'table'] })

@@ -1,4 +1,4 @@
-# 交接：dsh-structured（2026-11-27 更新，1.3.0 已发布；GitHub / npm 已发，市场 PR #19205 待合并）
+# 交接：dsh-structured（2026-11-27 更新，1.3.0 已发布；1.3.1 研测中未发布；GitHub / npm 已发 1.3.0，市场 PR #19205 待合并）
 
 > 这是**唯一可信起点**。旧会话因上下文过大归档；本文件把项目全量口径、当前状态、待办与踩坑一次写完。新会话请先读完本文件再动手。
 
@@ -33,8 +33,9 @@
 
 ---
 
-## 3. 当前状态（2026-11-27 10:25 复核 / 1.3.0 已发布）
+## 3. 当前状态（2026-11-27 更新 / 1.3.0 已发布，1.3.1 研测中未发布）
 
+- **1.3.1 研测中（未发布）**：工作区有未提交修复——建议卡走降级 / 抢救路径时把 `[ROUTE]` 里的 `]` 误判为数组结尾、产出幽灵空建议项（实机 session-231e）；改为扫描器在字符串外判定数组结尾，并加建议规范化与字段名闸。`package.json` 已置 `1.3.1`，`CHANGELOG.md` 该条目已改中英双语（英文在前，Boss 2026-11-27 新规；见 `docs/I18N.md` 第 4 节）。`npm test` **160/160**（修复轮实测；1.3.0 发布态 159）。**未 commit / push / publish**。
 - 仓库：远端 `main` 现为 `1c2db756`（docs: correct 1.3.0 patrol log (market PR #19205, pack fix)，tree `39ddbd4f`）；1.3.0 发布提交 `4bd084e2`（release: dsh-structured 1.3.0 (innerOS salvage + i18n)，2026-11-26T16:59:56Z）仍在历史中，tag `v1.3.0`（annotated，远端对象 `842885fe` → commit `4bd084e2`，tagger 2026-11-26T17:00:13Z）；Release 资产 `dsh-structured-1.3.0.tgz`（1,865,727 B / sha256 `b2c20074…`，published 2026-11-26T17:00:28Z）。
 - 本机 `main` HEAD `8124037` 与远端 `main` `1c2db756` **同树异 sha**（tree 均为 `39ddbd4f…`；远端提交经 gh git-data API 重建）；1.3.0 发布期的配对是 `2d611a1` ↔ `4bd084e2`（tree `a84eb10d…`）。以远端 sha 为准，**不要 force push**；本机 `origin/main` 缓存仍为 `48468f9`（未 fetch）。1.2.0 对齐前的开发提交仍在分支 `local-pre-release-20261126`。
 - 1.2.2（前一版）：`48468f9`（main 头，fix(ci) 补 pack 基线）+ `26b44ed`（release 1.2.2）+ tag `v1.2.2`（远端对象 `422e99de` → `26b44ed`）+ npm `1.2.2` + Release 资产 1,830,526 B；再前一版 1.2.1 = `51d9964` + tag `v1.2.1` + 1,828,942 B。
@@ -43,7 +44,7 @@
 - 桌面：profile 已装 registry `1.3.0`（`~/.dsh/profiles/desktop/node_modules/dsh-structured/package.json` = 1.3.0，装于 2026-11-27 01:05:19）；Desktop 主进程 **PID 16664 启动于 2026-11-27 10:02:06 +08**（晚于安装），profile `lib/index.js` sha256 `f8fafec0…` 与仓库一致 → **已重启并加载 1.3.0**。但 1.3.0 实机行为验证（定时任务回原会话、风格硬提醒注入等）仍无记录（1.2.2 时曾人工确认）。
 - 门禁（2026-11-27 1.3.0 发布）：`npm test` **159/159**（本机复跑 exit 0，2.47 s；发布 CI run `45863832667` success @ `4bd084e2`，最新 CI run `45927317040` success @ `1c2db756`）；`desktop-check` 全 PASS（项数未逐项记，1.2.2 为 30 项；真实宿主 0.2.2-rc.5）；对比度 80；色相 12；计算样式 10 主题块 × 10 项；`npm pack` 当前仓库重打包 **64 文件 / 1,865,734 B / unpacked 2,844,378 B**（发布物为 64 / 1,865,727 / 2,844,345；差 +7 / +33 B 来自 `package.json` 新增排除行 `!docs/ACCEPTANCE-1.3.0.md`，`test/pack.test.mjs` 的 PINNED 未改，在 ±16 KB 容差内）。`style-gate` 未在 1.2.2 / 1.3.0 复跑（最新证据 `2026-11-26T12-12-56-015Z`，早于 1.3.0 提交）→ 未验证。
 - 截图：仍为 1.2.0 实机 `13-settings-1.2.0.png` / `14-color-picker-1.2.0.png`（已脱敏裁切）；`screenshots.json` 共 10 张；1.2.1–1.3.0 未新增截图。
-- 下一版：1.3.1 待定（1.3.x 观察期；市场 PR #19205 合并与实机反馈之前不攒新版本）。
+- 下一版：**1.3.1 研测中、未发布**（工作区已置版本号与双语 CHANGELOG）；按攒批规矩（≥3 条修复或发现日 D+2）尚未到发布点，发布仍等 Boss 决定，市场 PR #19205 合并与 1.3.0 实机反馈也仍是前提。
 - 定时任务：原挂 `session-20a027e0` 的 6 个 active 任务已迁到本会话 `session-231e379d`：Issue 追踪轮询 / 每日插件更新检查 / dsh-structured 项目巡检 / H3 生态 / omp 巡检 / DSH 每周健康。
 ---
 
@@ -123,7 +124,7 @@ node .tools/market-XXX.mjs     # fork 同步 → 改 tarball 行 → 提交 → 
 
 ```bash
 cd /g/dsh-structured
-npm test                                   # 159/159（node:test + linkedom）
+npm test                                   # 160/160（node:test + linkedom；1.3.0 发布态 159）
 node scripts/desktop-check.mjs             # 全 PASS
 node scripts/theme-contrast.mjs            # 80/80
 node scripts/theme-hue-distance.mjs        # 12/12
