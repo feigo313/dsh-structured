@@ -2,6 +2,39 @@
 
 每轮巡检追加一条。格式见 [`MAINTENANCE.md`](MAINTENANCE.md)。
 
+## 2026-11-27 · 1.3.7 发布（真实设置卡接管 + `child.locale` 未 inject 修复）
+
+- **主题**：修 1.3.6 留下的「占位后真实设置卡始终不接管」——`setupConfigPage` 在 `ctx.inject(['configForms','slots'])` 的 child 上读 `locale`，但 `locale` 不在依赖清单，Cordis 4.1.0 抛 `cannot get property "locale" without inject`；异常发生在 `registerConfigCard()` 之前，被注入回调的 catch 吞掉，占位永远停在「配置正在加载…」。
+- **修复**：`src/client.js:3803-3812` 把 locale 探测包进 try/catch，失败只记 `gate.locale` 诊断，不再中断建卡；`src/client.js:3798-3826` 其余每道门（require / configForms / slots / form.set / React / primitives）改 `configDegrade('<缺失服务>')`，写 `console.warn` 并把占位文案改成「配置不可用：<原因>」，不再静默 return；`src/client.js:140` 统一收敛降级原因；表单未 ready 时卡片显示具体状态（新增 i18n key `meta.statusDetail`）；`__test.configDiagState()` 暴露 `reason` / `cardActive` / `fallbackFailed` / `placeholderOff`。
+- **验证**：`npm test` **176/176**（新增 4 条宿主式回归：严格 Proxy 读 `locale` 必抛仍注册真实卡、真实 `ctx.inject` 回调路径、form.set 缺失写具体原因、表单未就绪显示 unavailable）；`npm pack` 64 文件 / 1,893,853 B / unpacked 2,935,689 B。
+- **真实宿主证据**（`http://127.0.0.1:56646`，ego lite，与 Desktop 同一份 `app.asar` + profile `client.js`）：`[data-plugin-config]` 内出现真实卡 `[data-dsh-structured-config]`，占位「配置正在加载…」消失，appearance / behavior / persona / depth / preview 五区块渲染；开关 false→true→false 写回「已保存」；控制台 `gate.locale · ignored` → `card.registered · component=StructuredConfigCard`；`__dshErrors` 为空。
+- **GitHub**：tag `v1.3.7`、Release 资产 `dsh-structured-1.3.7.tgz` 1,893,853 B（sha256 `5e6b2497…`，2026-11-27T13:23:42Z）；远端 `main` `299e07d`（tree `a31d8c57`，与本地 `07af34c` 同树异 sha）；CI run `46007585146` **success**（head `299e07d`，2026-11-27T13:29:49Z 起）。
+- **npm**：`dsh-structured@1.3.7` 已发布，latest = 1.3.7（64 文件 / 1,893,853 B / unpacked 2,935,689 B / shasum `2f3aff6b…`）。
+- **市场**：PR **#19205 open**，标题与 diff 已把 listing tarball 指向 v1.3.7（diff 仅一行；PR 正文仍写 v1.3.0 未同步），check 仍在上游排队；上游 listing 合并前仍指 v1.2.2。
+- **教训**：① 单测用 fake ctx 直调 `__test` 绕过了宿主 Cordis「未 inject 读服务即抛」语义；② 发布门必须含宿主式加载（真 Cordis 4.1.0 + 发布产物 `lib/client.js`）与真实 web/Desktop 客户端冒烟；③ DSML 残片是上游网关问题，不是本插件。
+
+## 2026-11-27 · 1.3.6 发布（修 1.3.5 的客户端入口回归）
+
+- **主题**：1.3.5 安装后**所有** persona 信封以原始文本显示，客户端半区整体未执行。根因是 `apply()` 第一条语句 `configFallbackSlots = ctx?.slots ?? null`（1.3.5 `src/client.js:5335`，try/catch 之外）裸读未 inject 的 `slots`，Cordis 4.1.0 抛 `cannot get property "slots" without inject`，在 `enable()` 之前中断，插件被标记失败。
+- **修复**：删掉 `ctx?.slots` 裸读；占位注册只走 `ctx.inject(['slots'], child => …)`；`installConfigSlotFallback` 的 register / inject / 撤占位各自 try/catch，失败只置位、不影响消息装饰；`inject: []` 保持——消息装饰不能被设置页服务卡住。
+- **证据**（宿主式 harness：linkedom + app.asar 解出的 Cordis 4.1.0，兄弟 fiber `provide('slots')`，加载发布产物 `lib/client.js`）：1.3.5 apply 抛 `cannot get property "slots" without inject`，视觉 style / MutationObserver / persona 装饰全无；1.3.6 apply 返回 null、skin style 在、observer 1 个且已 observe、normal 三卡 + 身份头、short 卡正常。`npm test` **172/172**（+2 条 Proxy 模拟未 inject 抛错的回归）。
+- **GitHub**：tag `v1.3.6`、Release 资产 1,888,259 B（2026-11-27T10:30:06Z）；npm 1.3.6（shasum `ef76e04d…`，unpacked 2,917,135 B）。
+- **结果**：重启后 persona 卡片恢复；设置卡出现「配置正在加载…」占位，真实卡仍不接管 → 由 1.3.7 收尾。
+
+## 2026-11-27 · 1.3.5 发布（事故：客户端入口整体未激活）
+
+- **主题**：让插件详情页先拿到 `plugins.bundle.config` 的 slot key——apply 入口先注册占位（纯字符串组件，不 require React），等 `slots` 服务就绪；真实卡注册前撤占位。`npm test` 170/170。
+- **事故**：安装并重启 Desktop 后，**所有** persona 代码块信封都以原始文本显示——结论 / 建议 / 风险卡、身份头、主题视觉全掉。不是某张卡解析失败，而是客户端半区整体没有执行。
+- **根因**：`src/client.js:5335`（1.3.5）的 `configFallbackSlots = ctx?.slots ?? null` 是 `apply()` 第一条语句且在 try/catch 之外；模块 `inject: []`，`slots` 由 ui-renderer 兄弟 fiber 提供，Cordis 4.1.0 拒绝读取未 inject 的服务属性并抛 `cannot get property "slots" without inject`。异常发生在 `enable()` 之前，apply 立即中断，Cordis 把插件标记失败；其余宿主 UI 正常，所以聊天正常、卡片全退原始代码块。
+- **漏网原因**：2 条新测试的 `ctx` 是普通对象（`ctx.slots` 直接可读），从未模拟宿主代理语义；`ctx.slots` 由兄弟 fiber 提供时，即使服务已就绪，裸读仍确定性抛错，不是时序竞争。
+- **GitHub**：tag `v1.3.5`、Release 资产 1,883,603 B（2026-11-27T06:40:40Z）；npm 1.3.5（shasum `7c1dca65…`，unpacked 2,903,067 B）。修复见 1.3.6。
+
+## 2026-11-27 · 1.3.4 发布（设置卡解耦，但未完全生效）
+
+- **主题**：插件详情页设置卡不再随「侧边栏入口」消失——`plugins.bundle.config` 注册从 `configForms.whileServed` 回调里移出，侧边栏只受 `sidebarEntry` 控制；顺带修同卡 React hooks 顺序崩溃（未 ready 提前 return，hooks 从 1 变 7）。
+- **结果**：`npm test` **168/168**、对比度 80/80、色相 12/12、计算样式 10×10、`desktop-check` 全 PASS；pack 64 文件 / 1,880,757 B / unpacked 2,892,849 B。GitHub tag `v1.3.4`、Release 1,880,757 B（2026-11-27T05:18:12Z）、npm 1.3.4（shasum `3e79427b…`）。
+- **未闭环**：真实宿主详情页仍无 `[data-plugin-config]` 整块——注册依旧挂在 `setupConfigPage()` 的 `ctx.inject(['configForms','slots'])` 之下，且内部还有 require / primitives / form.set 等静默 return；宿主只认账本 key，任一环失败注册就不发生。1.3.5 补占位、1.3.6 修裸读、1.3.7 修 locale 后，设置卡才在真实宿主渲染。
+
 ## 2026-11-27 · 1.3.0 发布（GitHub + npm；市场 PR open）
 
 - **主题**：内心OS（💭）抢救路径保留修复 + README / 设置页国际化。
