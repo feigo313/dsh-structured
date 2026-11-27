@@ -16,3 +16,14 @@
 ## 验证
 
 - `node --test test/*.test.mjs` 159/159；build 通过；desktop-check / contrast / hue / computed 全过。
+
+## 发布核验（2026-11-27 复核）
+
+- 远端 `main` = `4bd084e2`（2026-11-26T16:59:56Z，release: dsh-structured 1.3.0 (innerOS salvage + i18n)），tree `a84eb10ded609610d4ba03a6095f1e95a0e097eb`；tag `v1.3.0` 指向它。
+- tag：annotated，远端对象 `842885fe86bfa775eaa13290423d7d55a947cb29` → commit `4bd084e2344d29aabc673d7ce44dbbeba495caa9`；tagger 2026-11-26T17:00:13Z。本机无同名 tag（`git rev-parse v1.3.0` unknown revision），只在远端。
+- CI：run `45863832667` **success**（head `4bd084e2`，2026-11-26T17:00:00Z → 17:00:14Z，约 14 s），首发即绿、无返工。
+- Release：`dsh-structured 1.3.0`，published 2026-11-26T17:00:28Z；资产 `dsh-structured-1.3.0.tgz` 1,865,727 B / digest `sha256:b2c20074…ab0eed2`。
+- npm：`dsh-structured@1.3.0`，latest = 1.3.0；`dist.fileCount` 64 / `dist.unpackedSize` 2,844,345 / shasum `bdb5af4a…`。
+- 市场：PR **#19152 open**（2026-11-26T17:00:50Z，`dsh-structured: update tarball to v1.3.0`）；上游 listing `data/plugins/feigo313__dsh-structured.yml` 的 `tarball` 仍指 `v1.2.2` —— 合并前不算生效。
+- 同树异 sha：本机 HEAD `2d611a1` 与远端 `4bd084e2` 内容相同（tree 均为 `a84eb10d…`），sha 不同源于远端提交经 gh git-data API 逐对象重建；以远端 sha 与 tag 为准，**不要 force push**。
+- desktop profile：registry `1.3.0` 已装（`~/.dsh/profiles/desktop/node_modules/dsh-structured`）；未重启 → 下次启动生效，1.3.0 实机未验证。

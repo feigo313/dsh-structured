@@ -2,6 +2,29 @@
 
 每轮巡检追加一条。格式见 [`MAINTENANCE.md`](MAINTENANCE.md)。
 
+## 2026-11-27 · 1.3.0 发布（GitHub + npm；市场 PR open）
+
+- **主题**：内心OS（💭）抢救路径保留修复 + README / 设置页国际化。
+- **实现**：normal 信封的 `innerOs` 在降级 / 抢救路径被丢掉，导致三卡照出但卡片下无 💭；`buildLenientPersona` 与 `salvagePersonaText` / `renderPersonaError` 现在都保留合法 `innerOs`（≤30 字），身份头开关仍只控头像 / 名字 / 签名。README 改英文默认 + `README.zh.md`；设置页 258 条 zh / en 词典跟随宿主 locale，运行时切换即时重渲染。
+- **GitHub**：commit `4bd084e2`（2026-11-26T16:59:56Z）、tag `v1.3.0`（annotated，远端对象 `842885fe` → `4bd084e2`，tagger 2026-11-26T17:00:13Z）、Release 资产 `dsh-structured-1.3.0.tgz` 1,865,727 B（sha256 `b2c20074…`，published 2026-11-26T17:00:28Z）。
+- **CI**：run `45863832667` **success**（head `4bd084e2`，2026-11-26T17:00:00Z 起约 14 s），首发即绿、无返工。
+- **npm**：`dsh-structured@1.3.0` 已发布，latest = 1.3.0（64 文件 / 1,865,727 B / unpacked 2,844,345 B / shasum `bdb5af4a…`）。
+- **市场**：PR **#19152 open**（2026-11-26T17:00:50Z，标题 `dsh-structured: update tarball to v1.3.0`）；上游 listing `data/plugins/feigo313__dsh-structured.yml` 的 `tarball` 仍指 v1.2.2 —— **未合并，勿当已生效**。
+- **desktop profile**：已装 registry `1.3.0`；运行中的 Electron 未重启，下次启动生效（1.3.0 实机未验证）。
+- **门禁**：159/159 测试、对比度 80、色相 12、计算样式 10×10、desktop-check 全 PASS；pack 64 / 1,865,727 / 2,844,345。`style-gate` 未复跑（`artifacts/style-gate/` 最新 `2026-11-26T12-12-56-015Z`，早于发布提交）→ 未验证。
+- **同树异 sha**：本机 HEAD `2d611a1` 与远端 `4bd084e2` 同 tree（`a84eb10d…`）；远端提交经 gh git-data API 逐对象重建，sha 天然不同，以远端为准，**不 force push**。
+- **文档**：新增 `docs/ACCEPTANCE-1.3.0.md`；`docs/RELEASE-1.3.0.md` 补发布核验（tag / CI / 市场 / 同树异 sha）；HANDOFF 状态与待办同步。
+
+## 2026-11-27 · 每日巡检
+
+- **issue 水位**：0 open（历史 3 条 #2 / #5 / #6 均 CLOSED）；PR 0 open（历史 #3 已 MERGED）。
+- **CI**：`ci` success（run `45863832667`，head `4bd084e2`，约 14 s）。
+- **npm**：latest = 1.3.0（`--registry https://registry.npmjs.org` 复核）。
+- **Release**：`v1.3.0` 资产 1,865,727 B / sha256 `b2c20074…`，与 npm tarball 同尺寸同 sha256。
+- **市场**：PR #19152 open，上游 listing 仍指 v1.2.2 —— 只读观察，未催合、未改上游。
+- **本轮动作**：无修复动作（0 issue / 0 PR）；补 1.3.0 发布记录、验收文档与 HANDOFF 状态。
+- **下一步**：等市场合并；重启 Desktop 后做 1.3.0 实机验证；下次发版前补跑 `style-gate`。
+
 ## 2026-11-26 · 1.2.2 发布（三端）
 
 - **主题**：侧边栏入口可关闭 / 开启（`sidebarEntry`，默认开启）。
