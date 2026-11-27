@@ -7,23 +7,23 @@
 - **主题**：内心OS（💭）抢救路径保留修复 + README / 设置页国际化。
 - **实现**：normal 信封的 `innerOs` 在降级 / 抢救路径被丢掉，导致三卡照出但卡片下无 💭；`buildLenientPersona` 与 `salvagePersonaText` / `renderPersonaError` 现在都保留合法 `innerOs`（≤30 字），身份头开关仍只控头像 / 名字 / 签名。README 改英文默认 + `README.zh.md`；设置页 258 条 zh / en 词典跟随宿主 locale，运行时切换即时重渲染。
 - **GitHub**：commit `4bd084e2`（2026-11-26T16:59:56Z）、tag `v1.3.0`（annotated，远端对象 `842885fe` → `4bd084e2`，tagger 2026-11-26T17:00:13Z）、Release 资产 `dsh-structured-1.3.0.tgz` 1,865,727 B（sha256 `b2c20074…`，published 2026-11-26T17:00:28Z）。
-- **CI**：run `45863832667` **success**（head `4bd084e2`，2026-11-26T17:00:00Z 起约 14 s），首发即绿、无返工。
+- **CI**：发布 run `45863832667` **success**（head `4bd084e2`，2026-11-26T17:00:00Z 起约 14 s），首发即绿、无返工；最新 run `45927317040` **success**（head `1c2db756`，2026-11-27T02:16:06Z 起约 11 s）。
 - **npm**：`dsh-structured@1.3.0` 已发布，latest = 1.3.0（64 文件 / 1,865,727 B / unpacked 2,844,345 B / shasum `bdb5af4a…`）。
 - **市场**：PR **#19205 open**（从上游 main 重建的干净分支；早先 #19152 因 fork 基线过期冲突已关闭）；上游 listing `data/plugins/feigo313__dsh-structured.yml` 的 `tarball` 仍指 v1.2.2 —— **未合并，勿当已生效**。
-- **desktop profile**：已装 registry `1.3.0`；运行中的 Electron 未重启，下次启动生效（1.3.0 实机未验证）。
-- **门禁**：159/159 测试、对比度 80、色相 12、计算样式 10×10、desktop-check 全 PASS；pack 64 / 1,865,727 / 2,844,345。`style-gate` 未复跑（`artifacts/style-gate/` 最新 `2026-11-26T12-12-56-015Z`，早于发布提交）→ 未验证。
-- **同树异 sha**：本机 HEAD `2d611a1` 与远端 `4bd084e2` 同 tree（`a84eb10d…`）；远端提交经 gh git-data API 逐对象重建，sha 天然不同，以远端为准，**不 force push**。
+- **desktop**：profile 已装 registry `1.3.0`（package.json 装于 2026-11-27 01:05:19）；Desktop 主进程 PID 16664 启动于 2026-11-27 10:02:06 +08，晚于安装，profile `lib/index.js` sha256 `f8fafec0…` 与仓库一致 → **已重启并加载 1.3.0**；1.3.0 实机行为验证仍无记录。
+- **门禁**：159/159 测试、对比度 80、色相 12、计算样式 10×10、desktop-check 全 PASS；发布 pack 64 / 1,865,727 / 2,844,345，当前仓库重打包 64 / 1,865,734 / 2,844,378（+7 / +33 B，源自 `package.json` 排除行 `!docs/ACCEPTANCE-1.3.0.md`；`test/pack.test.mjs` 的 PINNED 仍为 1,865,727 / 2,844,345，差在 ±16 KB 容差内）。`style-gate` 未复跑（`artifacts/style-gate/` 最新 `2026-11-26T12-12-56-015Z`，早于发布提交）→ 未验证。
+- **同树异 sha**：1.3.0 发布期 `2d611a1` ↔ `4bd084e2`（tree `a84eb10d…`）；当前本机 HEAD `8124037` ↔ 远端 main `1c2db756`（tree `39ddbd4f…`）。远端提交经 gh git-data API 逐对象重建，sha 天然不同，以远端为准，**不 force push**。
 - **文档**：新增 `docs/ACCEPTANCE-1.3.0.md`；`docs/RELEASE-1.3.0.md` 补发布核验（tag / CI / 市场 / 同树异 sha）；HANDOFF 状态与待办同步。
 
 ## 2026-11-27 · 每日巡检
 
 - **issue 水位**：0 open（历史 3 条 #2 / #5 / #6 均 CLOSED）；PR 0 open（历史 #3 已 MERGED）。
-- **CI**：`ci` success（run `45863832667`，head `4bd084e2`，约 14 s；docs 提交 `7b83e7e` 一度因 `docs/ACCEPTANCE-1.3.0.md` 随包导致 pack 65≠64 转红，`84a8070` 排除该文件后 run `45927145533` success）。
+- **CI**：`ci` success（run `45863832667`，head `4bd084e2`，约 14 s；docs 提交 `7b83e7e` 一度因 `docs/ACCEPTANCE-1.3.0.md` 随包导致 pack 65≠64 转红，`84a8070` 排除该文件后 run `45927145533` success；最新 run `45927317040` **success**，head `1c2db756` = 当前远端 main，2026-11-27T02:16:06Z 起约 11 s）。
 - **npm**：latest = 1.3.0（`--registry https://registry.npmjs.org` 复核）。
 - **Release**：`v1.3.0` 资产 1,865,727 B / sha256 `b2c20074…`，与 npm tarball 同尺寸同 sha256。
 - **市场**：PR #19205 open（#19152 已关闭），上游 listing 仍指 v1.2.2 —— 只读观察，未催合、未改上游。
 - **本轮动作**：0 issue / 0 PR；补 1.3.0 发布记录、验收文档与 HANDOFF；处理 docs 入库导致的 pack 计数失败（排除 `docs/ACCEPTANCE-1.3.0.md`，pack 64 / 1,865,734 / 2,844,378，CI 转绿）。
-- **下一步**：等市场 PR #19205 合并；重启 Desktop 后做 1.3.0 实机验证；下次发版前补跑 `style-gate`。
+- **下一步**：等市场 PR #19205 合并（#19152 已关闭）；Desktop 已于 10:02 重启并加载 1.3.0，补 1.3.0 实机行为验证记录；下次发版前补跑 `style-gate`。
 
 ## 2026-11-26 · 1.2.2 发布（三端）
 

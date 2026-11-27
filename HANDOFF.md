@@ -1,4 +1,4 @@
-# 交接：dsh-structured（2026-11-27 更新，1.3.0 已发布；GitHub / npm 已发，市场 PR #19152 待合并）
+# 交接：dsh-structured（2026-11-27 更新，1.3.0 已发布；GitHub / npm 已发，市场 PR #19205 待合并）
 
 > 这是**唯一可信起点**。旧会话因上下文过大归档；本文件把项目全量口径、当前状态、待办与踩坑一次写完。新会话请先读完本文件再动手。
 
@@ -33,17 +33,17 @@
 
 ---
 
-## 3. 当前状态（2026-11-27 10:05 复核 / 1.3.0 已发布）
+## 3. 当前状态（2026-11-27 10:25 复核 / 1.3.0 已发布）
 
-- 仓库：远端 `main` = `4bd084e2`（release: dsh-structured 1.3.0 (innerOS salvage + i18n)，2026-11-26T16:59:56Z）；tag `v1.3.0`（annotated，远端对象 `842885fe` → commit `4bd084e2`，tagger 2026-11-26T17:00:13Z）；Release 资产 `dsh-structured-1.3.0.tgz`（1,865,727 B / sha256 `b2c20074…`，published 2026-11-26T17:00:28Z）。
-- 本机 `main` `2d611a1` 与远端 `4bd084e2` **同树异 sha**（tree 均为 `a84eb10d…`；远端提交经 gh git-data API 重建）——以远端 sha 为准，**不要 force push**；本机 `origin/main` 缓存仍为 `48468f9`（未 fetch）。1.2.0 对齐前的开发提交仍在分支 `local-pre-release-20261126`。
+- 仓库：远端 `main` 现为 `1c2db756`（docs: correct 1.3.0 patrol log (market PR #19205, pack fix)，tree `39ddbd4f`）；1.3.0 发布提交 `4bd084e2`（release: dsh-structured 1.3.0 (innerOS salvage + i18n)，2026-11-26T16:59:56Z）仍在历史中，tag `v1.3.0`（annotated，远端对象 `842885fe` → commit `4bd084e2`，tagger 2026-11-26T17:00:13Z）；Release 资产 `dsh-structured-1.3.0.tgz`（1,865,727 B / sha256 `b2c20074…`，published 2026-11-26T17:00:28Z）。
+- 本机 `main` HEAD `8124037` 与远端 `main` `1c2db756` **同树异 sha**（tree 均为 `39ddbd4f…`；远端提交经 gh git-data API 重建）；1.3.0 发布期的配对是 `2d611a1` ↔ `4bd084e2`（tree `a84eb10d…`）。以远端 sha 为准，**不要 force push**；本机 `origin/main` 缓存仍为 `48468f9`（未 fetch）。1.2.0 对齐前的开发提交仍在分支 `local-pre-release-20261126`。
 - 1.2.2（前一版）：`48468f9`（main 头，fix(ci) 补 pack 基线）+ `26b44ed`（release 1.2.2）+ tag `v1.2.2`（远端对象 `422e99de` → `26b44ed`）+ npm `1.2.2` + Release 资产 1,830,526 B；再前一版 1.2.1 = `51d9964` + tag `v1.2.1` + 1,828,942 B。
 - npm：`dsh-structured@1.3.0` 已发布，latest = 1.3.0（64 文件 / 1,865,727 B / unpacked 2,844,345 B / shasum `bdb5af4a…`）。
-- 市场（awesome-dsh-plugin）：PR **#19152 open**（2026-11-26T17:00:50Z，标题 update tarball to v1.3.0，head `feat/dsh-structured-1.3.0`）；上游 listing `data/plugins/feigo313__dsh-structured.yml` 的 tarball **仍指 v1.2.2** —— 合并前不算生效。上一版 #19092 已 MERGED（2026-11-26T16:30:39Z，v1.2.2）。
-- 桌面 profile：已装 registry `1.3.0`（`~/.dsh/profiles/desktop/node_modules/dsh-structured/package.json` = 1.3.0）；运行中的 Electron **未重启**，下次启动生效——1.3.0 尚未实机验证（1.2.2 时曾确认 5 条定时任务回原会话、风格硬提醒注入，人工观察无日志）。
-- 门禁（2026-11-27 1.3.0 发布）：`npm test` **159/159**（本机复跑 exit 0，2.47 s；CI run `45863832667` success @ `4bd084e2`）；`desktop-check` 全 PASS（项数未逐项记，1.2.2 为 30 项；真实宿主 0.2.2-rc.5）；对比度 80；色相 12；计算样式 10 主题块 × 10 项；`npm pack` **64 文件 / 1,865,727 B / unpacked 2,844,345 B**。`style-gate` 未在 1.2.2 / 1.3.0 复跑（最新证据 `2026-11-26T12-12-56-015Z`，早于 1.3.0 提交）→ 未验证。
+- 市场（awesome-dsh-plugin）：活动 PR **#19205 open**（2026-11-27T02:12:06Z，标题 update tarball to v1.3.0，head `feat/dsh-structured-1.3.0-clean`；MERGEABLE / mergeStateStatus UNSTABLE，check 自 02:12:13Z 仍 IN_PROGRESS；diff 仅 `data/plugins/feigo313__dsh-structured.yml` 的 tarball v1.2.2→v1.3.0）。旧 PR **#19152 已 CLOSED**（2026-11-27T02:12:17Z，mergeStateStatus DIRTY / CONFLICTING，fork 基线过期）。上游 listing 的 tarball **仍指 v1.2.2** —— 合并前不算生效。上一版 #19092 已 MERGED（2026-11-26T16:30:39Z，v1.2.2）。
+- 桌面：profile 已装 registry `1.3.0`（`~/.dsh/profiles/desktop/node_modules/dsh-structured/package.json` = 1.3.0，装于 2026-11-27 01:05:19）；Desktop 主进程 **PID 16664 启动于 2026-11-27 10:02:06 +08**（晚于安装），profile `lib/index.js` sha256 `f8fafec0…` 与仓库一致 → **已重启并加载 1.3.0**。但 1.3.0 实机行为验证（定时任务回原会话、风格硬提醒注入等）仍无记录（1.2.2 时曾人工确认）。
+- 门禁（2026-11-27 1.3.0 发布）：`npm test` **159/159**（本机复跑 exit 0，2.47 s；发布 CI run `45863832667` success @ `4bd084e2`，最新 CI run `45927317040` success @ `1c2db756`）；`desktop-check` 全 PASS（项数未逐项记，1.2.2 为 30 项；真实宿主 0.2.2-rc.5）；对比度 80；色相 12；计算样式 10 主题块 × 10 项；`npm pack` 当前仓库重打包 **64 文件 / 1,865,734 B / unpacked 2,844,378 B**（发布物为 64 / 1,865,727 / 2,844,345；差 +7 / +33 B 来自 `package.json` 新增排除行 `!docs/ACCEPTANCE-1.3.0.md`，`test/pack.test.mjs` 的 PINNED 未改，在 ±16 KB 容差内）。`style-gate` 未在 1.2.2 / 1.3.0 复跑（最新证据 `2026-11-26T12-12-56-015Z`，早于 1.3.0 提交）→ 未验证。
 - 截图：仍为 1.2.0 实机 `13-settings-1.2.0.png` / `14-color-picker-1.2.0.png`（已脱敏裁切）；`screenshots.json` 共 10 张；1.2.1–1.3.0 未新增截图。
-- 下一版：1.3.1 待定（1.3.x 观察期；市场 PR #19152 合并与实机反馈之前不攒新版本）。
+- 下一版：1.3.1 待定（1.3.x 观察期；市场 PR #19205 合并与实机反馈之前不攒新版本）。
 - 定时任务：原挂 `session-20a027e0` 的 6 个 active 任务已迁到本会话 `session-231e379d`：Issue 追踪轮询 / 每日插件更新检查 / dsh-structured 项目巡检 / H3 生态 / omp 巡检 / DSH 每周健康。
 ---
 
@@ -109,13 +109,13 @@ node .tools/market-XXX.mjs     # fork 同步 → 改 tarball 行 → 提交 → 
 
 ## 7. 待办队列
 
-1. **市场待合并**：PR #19152 open，listing 仍指 v1.2.2；合并前「三端」只完成两端（GitHub + npm），合并后核 listing tarball 为 v1.3.0。
-2. **1.3.x 观察**：issue/PR 按零信任处理；攒批规矩见 `docs/MAINTENANCE.md` 12.0。当前 0 open issue / 0 open PR（历史 3 issue 全 CLOSED、1 PR 已 MERGED）。
-3. **桌面**：profile 已是 registry 1.3.0；运行中的 Electron 需完全退出后重开才加载新 bundle（1.3.0 实机未验证）。
+1. **市场待合并**：PR #19205 open（MERGEABLE / UNSTABLE），listing 仍指 v1.2.2；合并前「三端」只完成两端（GitHub + npm），合并后核 listing tarball 为 v1.3.0。
+2. **1.3.x 观察**：issue/PR 按零信任处理；攒批规矩见 `docs/MAINTENANCE.md` 12.0。本仓 0 open issue / 0 open PR（历史 3 issue 全 CLOSED、1 PR 已 MERGED）；市场侧 1 个 open PR（#19205）。
+3. **桌面**：profile 已是 registry 1.3.0，Desktop 已于 2026-11-27 10:02 重启并加载（PID 16664，`lib/index.js` sha256 与仓库一致）；**1.3.0 实机行为验证仍待补**。
 4. **文档**：HANDOFF / `docs/ACCEPTANCE-1.3.0.md` / `docs/RELEASE-1.3.0.md` / CHANGELOG 已与 1.3.0 发布一致；后续改动继续写 `docs/MAINTENANCE-LOG.md`。
 5. **长期项**（`docs/ROADMAP.md`）：A = 用户头像落本地数据目录；C = persona 抗漂移实测。
 6. **已知限制**：信封字符串截断仍会降级；没有任何 persona 块的回复只能靠合同/提醒压概率（1.2.1 起尾部提醒追加风格硬约束与 innerOS 必填）。
-7. **发布物可复现**：pack 基线在 `test/pack.test.mjs`（1.3.0：64 文件 / 1,865,727 B / unpacked 2,844,345 B，±16 KB 容差）。发版前先 `npm pack --json --ignore-scripts` 对一遍。
+7. **发布物可复现**：pack 基线在 `test/pack.test.mjs`（PINNED 64 文件 / 1,865,727 B / unpacked 2,844,345 B，±16 KB 容差）；当前仓库重打包 64 / 1,865,734 / 2,844,378（+7 / +33 B，源自 `package.json` 的 `!docs/ACCEPTANCE-1.3.0.md` 排除行）。发版前先 `npm pack --json --ignore-scripts` 对一遍。
 8. **style-gate**：1.2.2 / 1.3.0 改动后均未复跑（`artifacts/style-gate/` 最新目录 2026-11-26T12-12-56-015Z，早于 1.3.0 提交）→ 下次发版前补跑留证。
 ---
 
@@ -129,7 +129,7 @@ node scripts/theme-contrast.mjs            # 80/80
 node scripts/theme-hue-distance.mjs        # 12/12
 node .tools/computed-style-check.mjs       # 10 主题块 × 10 项（含 custom；headless Edge）
 node .tools/corpus-persona.mjs             # 真实会话语料回归（近期信封全部出卡）
-npm pack --json --ignore-scripts           # 64 文件 / 1,865,727 B，基线在 test/pack.test.mjs（±16 KB 容差）
+npm pack --json --ignore-scripts           # 64 文件 / 1,865,734 B（发布物 1,865,727），基线在 test/pack.test.mjs（±16 KB 容差）
 ```
 
 ---
