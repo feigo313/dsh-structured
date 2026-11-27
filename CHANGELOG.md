@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.3.3 — 2026-11-27
+
+**English**
+
+- **Make the inner-OS tail readable**: the 💭 line (`.dss-persona-suffix`) was 12px in `--dss-ink-3` (`#667085` light / `#8A92A0` dark, ≈4.8–5.0:1 on the page) — the smallest and faintest text in a reply. It now renders at ≈13px (`calc(var(--dss-code-size) * 13 / 12.5)`, still following the host code font size) in `--dss-ink-2` (`#475467` light / `#B7BDC9` dark, 7.7–8.0:1) with 1.6 line height, in both the live chat stylesheet and the settings-page preview stylesheet.
+- **Regression**: the static gate pins every `.dss-persona-suffix` block to ink-2 + 13/12.5, rejects any ink-3 variant, and additionally requires the live `CSS` block (not just the settings preview) to carry the rule; 165/165 tests pass. No runtime or contract change.
+
+**中文**
+
+- **内心OS 尾缀可读性**：💭 行（`.dss-persona-suffix`）原为 12px / `--dss-ink-3`（浅色 `#667085`、深色 `#8A92A0`，纸面上约 4.8–5.0:1），是回复里最小最淡的一行。现改为约 13px（`calc(var(--dss-code-size) * 13 / 12.5)`，仍跟随宿主代码字号）、`--dss-ink-2`（浅色 `#475467`、深色 `#B7BDC9`，约 7.7–8.0:1）、行高 1.6；真实聊天样式与设置页预览样式同步。
+- **回归**：静态门禁把每一份 `.dss-persona-suffix` 规则都锁定为 ink-2 + 13/12.5、拒绝 ink-3 回退，并额外要求真实会话所用的 `CSS` 活样式块（而非只有设置页预览）带该规则；165/165 通过。无运行时或合同变更。
+
 ## 1.3.2 — 2026-11-27
 
 **English**

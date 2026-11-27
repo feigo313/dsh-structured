@@ -931,7 +931,7 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
 .dss-scope .dss-persona-head .dss-chat-name{display:block;color:var(--dss-ink);font-size:16px;font-weight:650;line-height:1.3}
 .dss-scope .dss-persona-head .dss-chat-meta{display:block;color:var(--dss-ink-3);font:12px/1.5 var(--dss-mono);overflow-wrap:anywhere}
 .dss-scope .dss-persona-prefix{margin:0;color:var(--dss-ink-3);font:12.5px/1.7 var(--dss-mono)}
-.dss-scope .dss-persona-suffix{margin:0;padding-top:8px;border-top:1px dotted var(--dss-line-strong);color:var(--dss-ink-3);font:12px/1.65 var(--dss-mono);overflow-wrap:anywhere}
+.dss-scope .dss-persona-suffix{margin:0;padding-top:8px;border-top:1px dotted var(--dss-line-strong);color:var(--dss-ink-2);font:calc(var(--dss-code-size) * 13 / 12.5)/1.6 var(--dss-mono);overflow-wrap:anywhere}
 
 .dss-scope.dss-config{width:100%;max-width:100%;color:var(--dss-ink);font:13px/1.55 var(--dss-sans)}
 .dss-config *{box-sizing:border-box}
@@ -1478,7 +1478,7 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
 .dss-scope.dss-persona-head .dss-chat-name{display:block;color:var(--dss-ink);font-size:calc(var(--dss-text-size) * 16 / 13.5);font-weight:650;line-height:1.3}
 .dss-scope.dss-persona-head .dss-chat-meta{display:block;color:var(--dss-ink-3);font:calc(var(--dss-code-size) * 12 / 12.5)/1.5 var(--dss-mono);overflow-wrap:anywhere}
 .dss-scope .dss-persona-prefix{margin:0;color:var(--dss-ink-3);font:var(--dss-code-size)/1.7 var(--dss-mono)}
-.dss-scope .dss-persona-suffix{margin:0;padding-top:8px;border-top:1px dotted var(--dss-line-strong);color:var(--dss-ink-3);font:calc(var(--dss-code-size) * 12 / 12.5)/1.65 var(--dss-mono);overflow-wrap:anywhere}
+.dss-scope .dss-persona-suffix{margin:0;padding-top:8px;border-top:1px dotted var(--dss-line-strong);color:var(--dss-ink-2);font:calc(var(--dss-code-size) * 13 / 12.5)/1.6 var(--dss-mono);overflow-wrap:anywhere}
 
 [class*="_markdown_"]{font-size:var(--dss-text-size);line-height:1.7;letter-spacing:.01em;color:var(--dss-ink-2)}
 [class*="_markdown_"] p{margin:.7em 0}

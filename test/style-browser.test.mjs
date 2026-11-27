@@ -31,3 +31,23 @@ test('1.2.0 身份头：活 CSS 规则必须自持作用域（.dss-scope.dss-per
   assert.doesNotMatch(css, /\.dss-scope \.dss-persona-head[ ,{:]/)
 })
 
+test('1.3.3 内心OS：字号与颜色必须可读（ink-2、约 13px）', () => {
+  const source = readFileSync(new URL('../src/client.js', import.meta.url), 'utf8')
+  // 内心OS 尾缀在设置页预览（CONFIG_CSS）与真实聊天（CSS）各有一份规则，两份都要可读。
+  const rules = [...source.matchAll(/\.dss-scope \.dss-persona-suffix\{([^}]*)\}/g)]
+  assert.ok(rules.length >= 1, 'persona suffix rule must exist')
+  for (const rule of rules) {
+    const body = rule[1]
+    assert.match(body, /color:var\(--dss-ink-2\)/)
+    assert.match(body, /\* 13 \/ 12\.5/)
+    assert.doesNotMatch(body, /--dss-ink-3/)
+  }
+  // 用户实际看到的会话样式来自 const CSS 活样式块：只改设置页预览不算修好。
+  const start = source.indexOf('const CSS = `')
+  assert.ok(start > 0, 'active CSS block must exist')
+  const active = source.slice(start + 'const CSS = `'.length)
+  const liveCss = active.slice(0, active.indexOf('\n`\n'))
+  assert.match(liveCss, /\.dss-scope \.dss-persona-suffix\{[^}]*color:var\(--dss-ink-2\)/)
+  assert.match(liveCss, /\.dss-scope \.dss-persona-suffix\{[^}]*\* 13 \/ 12\.5/)
+})
+
