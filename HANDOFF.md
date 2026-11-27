@@ -1,4 +1,4 @@
-# 交接：dsh-structured（2026-11-27 更新，1.3.3 已就绪待发布；1.3.2 已发布：GitHub / npm 1.3.2，市场 PR #19205 待合并）
+# 交接：dsh-structured（2026-11-27 更新，1.3.4 已就绪待发布；1.3.2 已发布：GitHub / npm 1.3.2，市场 PR #19205 待合并）
 
 > 这是**唯一可信起点**。旧会话因上下文过大归档；本文件把项目全量口径、当前状态、待办与踩坑一次写完。新会话请先读完本文件再动手。
 
@@ -33,8 +33,9 @@
 
 ---
 
-## 3. 当前状态（2026-11-27 更新 / 1.3.3 已就绪待发布）
+## 3. 当前状态（2026-11-27 更新 / 1.3.4 已就绪待发布）
 
+- **1.3.4（已就绪，待发布）**：插件详情页设置卡与侧边栏入口解耦（`plugins.bundle.config` 不再注册在 `configForms.whileServed` 回调里，侧边栏只受 `sidebarEntry` 控制），并修同卡片的 React hooks 顺序崩溃（未 ready 提前 return）。`npm test` **168/168**；发布文档 `docs/RELEASE-1.3.4.md`。三端仍待发。
 - **1.3.3（已就绪，待发布）**：主题=内心OS（💭 尾缀）可读性——字号约 13px、颜色 `--dss-ink-2`（明暗主题均达 WCAG AA，ink-2 为 AAA 档）；`npm test` **165/165**，`npm pack` 64 文件 / 1,876,704 B / unpacked 2,878,740 B；发布文档 `docs/RELEASE-1.3.3.md` 已写。本轮改动**未** commit / tag / push / npm publish / 市场 PR，三端仍待发。
 - **1.3.1（已发布）**：建议卡降级 / 抢救路径把 `[ROUTE]` 的 `]` 误判为数组结尾、产出幽灵空建议项；改为扫描器在字符串外判定结尾并加字段名闸。GitHub tag `v1.3.1`、Release 1,869,620 B、npm 1.3.1、市场 PR #19205 已指 v1.3.1。
 - **1.3.2（已发布）**：模型偶尔把 ```persona 写成 `<persona>` 标签或裸 JSON，插件改为兜底识别；164/164 pass，GitHub tag `v1.3.2`、Release 1,875,625 B、npm 1.3.2、market 已指 v1.3.2。`CHANGELOG` 新条目中英双语（英文在前，`docs/I18N.md` 第 4 节）。
@@ -126,7 +127,7 @@ node .tools/market-XXX.mjs     # fork 同步 → 改 tarball 行 → 提交 → 
 
 ```bash
 cd /g/dsh-structured
-npm test                                   # 165/165（1.3.3；1.3.0 发布态 159）
+npm test                                   # 168/168（1.3.4；1.3.3 时 165，1.3.0 发布态 159）
 node scripts/desktop-check.mjs             # 全 PASS
 node scripts/theme-contrast.mjs            # 80/80
 node scripts/theme-hue-distance.mjs        # 12/12

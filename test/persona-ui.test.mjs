@@ -138,7 +138,11 @@ function makeHarness(state, setField, extraProps = {}) {
   }
   plugin.__test.setupConfigPage(child, form)
   const api = plugin.__test.personaApi()
-  current = extraProps.renderCard ? api.StructuredConfigCard : api.PersonaEditor
+  // 配置卡是「薄壳 + ready 之后才挂载的 body」两层：测试里展开一层函数组件。
+  current = extraProps.renderCard ? (props) => {
+    const tree = api.StructuredConfigCard(props)
+    return tree && tree.type === api.ConfigCardBody ? api.ConfigCardBody(tree.props) : tree
+  } : api.PersonaEditor
   render()
   const nodes = () => allNodes(tree)
   const findButton = (label) => nodes().find((item) => item.type === 'button' && textOf(item.props.children) === label)

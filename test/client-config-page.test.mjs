@@ -117,19 +117,22 @@ function loadClient(dom, fakeRequire) {
 
 function makeChild(form, slots) {
   const child = {
+    cleanups: [],
     configForms: {
       get(id) {
         return id === 'dsh-structured' ? form : undefined
       },
+      // 兼容旧宿主形状：1.3.4 起配置页不再依赖这个回调。
       whileServed(namespaces, register) {
-        // 把 register 返回的组合 disposer 暴露给测试，模拟命名空间停服。
         if (served) child.__disposeRegistration = register()
         return () => {}
       },
     },
     slots,
     effect(fn) {
-      return fn()
+      const cleanup = fn()
+      if (typeof cleanup === 'function') child.cleanups.push(cleanup)
+      return cleanup
     },
   }
   return child
@@ -176,6 +179,15 @@ function flatten(tree) {
   return flat
 }
 
+// 配置卡是「薄壳（读一次快照）+ ready 之后才挂载的 ConfigCardBody」两层：
+// 测试里把这一层函数组件展开，等价于 React 真正渲染它。
+function renderCard(component, props) {
+  const tree = component(props)
+  return tree && typeof tree.type === 'function' && tree.type.name === 'ConfigCardBody'
+    ? tree.type(tree.props)
+    : tree
+}
+
 test('config page：宿主服务 describe 命名空间时注册 bundle 配置页', () => {
   served = true
   const { require: fakeRequire } = fakeRuntime()
@@ -219,14 +231,28 @@ test('config page：宿主服务 describe 命名空间时注册 bundle 配置页
   assert.equal(face.readFields(), snapshot)
 })
 
-test('config page：describe 未服务命名空间时不注册', () => {
+test('config page：describe 未服务本命名空间时详情页配置卡仍注册（1.3.4 不再依赖 whileServed）', () => {
   served = false
   const { require: fakeRequire } = fakeRuntime()
   const module = loadClient(makeDom(), fakeRequire)
-  const form = { getSnapshot() { return null }, subscribe() { return () => {} } }
+  const form = { getSnapshot() { return null }, set() { return Promise.resolve(true) }, subscribe() { return () => {} } }
   const { slots, get } = collectRegistration()
-  module.__test.setupConfigPage(makeChild(form, slots), form)
-  assert.equal(get(), null)
+  let whileServedCalls = 0
+  let describeLoads = 0
+  const child = {
+    configForms: {
+      get() { return form },
+      describe() { return { load() { describeLoads += 1 } } },
+      // 宿主只有在 settings describe 含本命名空间时才会调用 register；这里模拟「永不服务」。
+      whileServed() { whileServedCalls += 1; return () => {} },
+    },
+    slots,
+    effect(fn) { return fn() },
+  }
+  module.__test.setupConfigPage(child, form)
+  assert.equal(whileServedCalls, 0, 'config page must not wait for configForms.whileServed')
+  assert.ok(get(), 'bundle config card must register even when describe serves no namespace')
+  assert.equal(describeLoads, 1, 'setup kicks describe() once so the card can reach ready')
   served = true
 })
 
@@ -269,7 +295,7 @@ test('config page：卡片渲染七字段，switch/segmented 值来自快照', (
   module.__test.setupConfigPage(makeChild(form, slots), form)
   const { component } = get()
 
-  const tree = component({
+  const tree = renderCard(component, {
     view: 'page',
     useStructuredConfig: (selector) => selector(snapshot),
     setField: () => {},
@@ -322,7 +348,7 @@ test('config page：卡片渲染七字段，switch/segmented 值来自快照', (
   const secondRow = Array.isArray(themeRows[1].props.children) ? themeRows[1].props.children : [themeRows[1].props.children]
   assert.equal(secondRow[0].props.id, 'dss-theme-tile-custom')
   snapshot.value = { ...snapshot.value, theme: 'custom', themeCustom: '' }
-  const customFlat = flatten(component({ view: 'page', useStructuredConfig: (selector) => selector(snapshot), setField: () => {} }))
+  const customFlat = flatten(renderCard(component, { view: 'page', useStructuredConfig: (selector) => selector(snapshot), setField: () => {} }))
   for (const key of ['primary', 'secondary', 'tertiary']) {
     const swatch = customFlat.find((element) => element.props?.id === 'dss-color-' + key)
     assert.ok(swatch, 'missing color ' + key)
@@ -359,10 +385,10 @@ test('config page：插件未就绪与只读态的降级渲染', () => {
   module.__test.setupConfigPage(makeChild(form, slots), form)
   const { component } = get()
 
-  const unavailable = component({ view: 'page', useStructuredConfig: (selector) => selector({ status: 'unavailable' }) })
+  const unavailable = renderCard(component, { view: 'page', useStructuredConfig: (selector) => selector({ status: 'unavailable' }) })
   assert.match(String(unavailable.props.children), /暂不可用/)
 
-  const readonly = component({
+  const readonly = renderCard(component, {
     view: 'page',
     useStructuredConfig: (selector) => selector({ status: 'ready', writable: false, value: { theme: 'deepseek' } }),
     setField: () => {},
@@ -438,8 +464,8 @@ test('config page：主题分段按钮带各主题强调色，随注册注入/�
   assert.match(style.textContent, /#dsh-structured-theme-dsh::before/)
   assert.match(style.textContent, /body\[data-ds-dark-theme\]/)
 
-  // 命名空间停服：slot 与样式一并撤下。
-  child.__disposeRegistration?.()
+  // 插件卸载 / 配置页停用：slot 与样式一并撤下。
+  for (const cleanup of child.cleanups) cleanup()
   assert.equal(dom.getElementById('dsh-structured-config-style'), null)
 })
 
@@ -494,7 +520,7 @@ test('config page：人格编辑器嵌在同一页，不再有跨 tab 草稿问�
   const { slots, get } = collectRegistration()
   module.__test.setupConfigPage(makeChild(form, slots), form)
   const { component } = get()
-  const tree = component({ view: 'page', useStructuredConfig: (selector) => selector(snapshot), setField: () => {} })
+  const tree = renderCard(component, { view: 'page', useStructuredConfig: (selector) => selector(snapshot), setField: () => {} })
   const flat = flatten(tree)
   assert.ok(flat.some((element) => typeof element.type === 'function' && element.type.name === 'PersonaEditor'), 'PersonaEditor must stay mounted on the single page')
   assert.ok(flat.some((element) => element.props?.['data-dss-section'] === 'persona'), 'persona editor lives in its own page section')
@@ -678,7 +704,7 @@ test('i18n：默认 / zh 宿主下设置页保持中文文案', () => {
   assert.equal(module.__test.i18n.normalizeLocale('zh-CN'), 'zh')
   assert.equal(module.__test.setLocale('zh'), 'zh')
   const { component } = get()
-  const flat = flatten(component({ view: 'page', useStructuredConfig: (selector) => selector(snapshot), setField: () => {} }))
+  const flat = flatten(renderCard(component, { view: 'page', useStructuredConfig: (selector) => selector(snapshot), setField: () => {} }))
   const text = flat.map((element) => textOf(element.props?.children)).join(' ')
   assert.match(text, /结构化输出/)
   assert.match(text, /侧边栏入口/)
@@ -703,7 +729,7 @@ test('i18n：en 宿主下设置页渲染英文，未知语言回退英文', () =
   const { slots, get } = collectRegistration()
   module.__test.setupConfigPage(makeChild(form, slots), form)
   const { component } = get()
-  const flat = flatten(component({ view: 'page', useStructuredConfig: (selector) => selector(snapshot), setField: () => {} }))
+  const flat = flatten(renderCard(component, { view: 'page', useStructuredConfig: (selector) => selector(snapshot), setField: () => {} }))
   const text = flat.map((element) => textOf(element.props?.children)).join(' ')
   assert.match(text, /Structured Output/)
   assert.match(text, /Appearance/)
@@ -737,3 +763,144 @@ test('i18n：host locale 服务与 <html lang> 可决定语言', () => {
   dom.documentElement.getAttribute = (name) => (name === 'lang' ? 'zh-CN' : null)
   assert.equal(module.__test.i18n.detectLocale(), 'zh')
 })
+
+test('sidebar：sidebarEntry=false 且 describe 未服务时，详情页设置卡仍在且开关可改', () => {
+  const { require: fakeRequire } = fakeRuntime()
+  const module = loadClient(makeDom(), fakeRequire)
+  const calls = []
+  const snapshot = { status: 'ready', writable: true, value: { sidebarEntry: false, theme: 'deepseek' } }
+  const form = {
+    set(field, value) { calls.push([field, value]); return Promise.resolve(true) },
+    getSnapshot() { return snapshot },
+    subscribe() { return () => {} },
+  }
+  const injections = []
+  const registrations = []
+  const slots = {
+    inject(name, factory) { injections.push(name); return factory() },
+    register(options, component) { registrations.push({ options, component }); return () => {} },
+  }
+  let describeLoads = 0
+  const child = {
+    configForms: {
+      get() { return form },
+      describe() { return { load() { describeLoads += 1 } } },
+      // 宿主 describe 还没服务本命名空间：旧实现整条注册都不存在。
+      whileServed() { return () => {} },
+    },
+    slots,
+    effect(fn) { return fn() },
+  }
+  module.__test.setupConfigPage(child, form)
+
+  assert.equal(JSON.stringify(injections), JSON.stringify(['plugins.bundle.config']))
+  const card = registrations.find((item) => item.options.name === 'plugins.bundle.config')
+  assert.ok(card, 'detail page settings card must exist with sidebarEntry=false')
+  assert.equal(card.options.key, 'dsh-structured')
+  assert.equal(describeLoads, 1, 'describe() is kicked once so the card can reach ready')
+  assert.equal(registrations.some((item) => item.options.name === 'sidebar.panellist'), false)
+  assert.equal(registrations.some((item) => item.options.name === 'main'), false)
+
+  // 卡片里「侧边栏入口」开关读到 false，并且能写回 true。
+  const flat = flatten(renderCard(card.component, {
+    view: 'page',
+    useStructuredConfig: (selector) => selector(snapshot),
+    setField: (field, value) => form.set(field, value),
+  }))
+  const toggle = flat.find((element) => element.type?.name === 'Switch' && element.props.label === '侧边栏入口')
+  assert.ok(toggle, 'sidebar entry switch must render in the detail page card')
+  assert.equal(toggle.props.checked, false)
+  toggle.props.onChange(true)
+  assert.deepEqual(calls[0], ['sidebarEntry', true])
+})
+
+test('sidebar：切换 sidebarEntry 只卸载侧边栏 slot，详情页配置卡不重复注册也不撤销', () => {
+  const { require: fakeRequire } = fakeRuntime()
+  const module = loadClient(makeDom(), fakeRequire)
+  const snapshot = { status: 'ready', writable: true, value: {} }
+  const listeners = new Set()
+  const form = {
+    set() { return Promise.resolve(true) },
+    getSnapshot() { return snapshot },
+    subscribe(listener) { listeners.add(listener); return () => listeners.delete(listener) },
+  }
+  const registrations = []
+  const removed = []
+  const slots = {
+    inject(_name, factory) { return factory() },
+    register(options) { registrations.push({ options }); return () => removed.push(options.name) },
+  }
+  module.__test.setupConfigPage(makeChild(form, slots), form)
+  const cardCount = () => registrations.filter((item) => item.options.name === 'plugins.bundle.config').length
+  const notify = () => { for (const listener of [...listeners]) listener() }
+
+  assert.equal(cardCount(), 1)
+  snapshot.value = { sidebarEntry: false }
+  notify()
+  assert.deepEqual(removed, ['sidebar.panellist', 'main'])
+  assert.equal(cardCount(), 1, 'card must survive the sidebar unmount')
+  assert.equal(removed.includes('plugins.bundle.config'), false)
+
+  snapshot.value = { sidebarEntry: true }
+  notify()
+  snapshot.value = {}
+  notify()
+  assert.equal(cardCount(), 1, 'card must register exactly once across sidebar toggles')
+  assert.equal(registrations.filter((item) => item.options.name === 'sidebar.panellist').length, 2)
+})
+
+test('config page：form 从 loading 变 ready 时卡片 hooks 数量不增长（不再触发 hooks 顺序崩溃）', () => {
+  // 同一组件实例连续渲染两次，后一次的 hooks 不能多于前一次——React 的 hooks 规则。
+  const seenHooks = new Map()
+  let countHooks = null
+  const react = {
+    useState(initial) { countHooks?.(); return [typeof initial === 'function' ? initial() : initial, () => {}] },
+    useEffect() { countHooks?.() },
+  }
+  const node = (type, props) => ({ type, props })
+  const fakeRequire = (spec) => {
+    if (spec === 'react/jsx-runtime') return { jsx: node, jsxs: node }
+    if (spec === 'react') return react
+    if (spec === '@deepseek-ai/dsh-client-ui-primitives') {
+      return {
+        Switch: function Switch(props) { return node('Switch', props) },
+        SegmentedControl: function SegmentedControl(props) { return node('SegmentedControl', props) },
+      }
+    }
+    throw new Error('unexpected require: ' + spec)
+  }
+  const module = loadClient(makeDom(), fakeRequire)
+  const snapshot = { status: 'loading', writable: true, value: undefined }
+  const form = {
+    set() { return Promise.resolve(true) },
+    getSnapshot() { return snapshot },
+    subscribe() { return () => {} },
+  }
+  const { slots, get } = collectRegistration()
+  module.__test.setupConfigPage(makeChild(form, slots), form)
+  const { component } = get()
+
+  const renderOnce = (fn, props) => {
+    let hooks = 0
+    countHooks = () => { hooks += 1 }
+    const tree = fn(props)
+    countHooks = null
+    const before = seenHooks.get(fn)
+    if (before !== undefined && hooks > before) {
+      throw new Error('Rendered more hooks than during the previous render: ' + hooks + ' > ' + before)
+    }
+    seenHooks.set(fn, hooks)
+    return tree
+  }
+
+  const placeholder = renderOnce(component, { view: 'page', useStructuredConfig: (selector) => selector(snapshot), setField: () => {} })
+  assert.match(String(placeholder.props.children), /暂不可用/)
+
+  snapshot.status = 'ready'
+  snapshot.value = { theme: 'deepseek', contentDepth: 'general' }
+  const tree = renderOnce(component, { view: 'page', useStructuredConfig: (selector) => selector(snapshot), setField: () => {} })
+  assert.equal(tree.type, module.__test.personaApi().ConfigCardBody)
+  const body = renderOnce(tree.type, tree.props)
+  assert.match(JSON.stringify(body), /data-dsh-structured-config/)
+})
+

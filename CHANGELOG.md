@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.3.4 — 2026-11-27
+
+**English**
+
+- **Keep the plugin-detail settings card independent of the sidebar entry**: the card registered itself inside `configForms.whileServed(['dsh-structured'])` — the host runs that callback only while its settings describe view serves the namespace — and the sidebar entry / panel mount-unmount shared the very same callback. The host's plugin-manager detail page renders its config section only when the `plugins.bundle.config` ledger contains this bundle's key, so any window where the describe was not served (or failed once at boot) left the detail page with description / install command / components / version / source and no settings card at all. Turning 侧边栏入口 off exposed it: the sidebar panel had been the remaining way into the settings, while the detail page had silently lost its card. The card now registers as soon as `configForms` is available, independent of `whileServed` and of the sidebar lifecycle; only `sidebar.panellist` + `main` follow `sidebarEntry`, and setup additionally kicks `describe().load()` once so the form can reach `ready`.
+- **Fix a React hooks-order crash in the same card**: while the form was not `ready` the component returned before mounting its six `useState` / `useEffect` hooks, so an `idle` / `unavailable` → `ready` transition threw "Rendered more hooks than during the previous render"; the slot error boundary swallowed it and the section rendered empty. The card is now a thin shell (one snapshot read) plus a body mounted only when ready.
+- **Regression**: 3 new tests — the detail card registers with `sidebarEntry=false` and a describe that never serves the namespace (its 侧边栏入口 switch still reads `false` and writes `true`), sidebar toggles never re-register or unmount the card, and a hook-count guard reproduces the old crash. 168/168 tests pass.
+
+**中文**
+
+- **插件详情页设置卡与侧边栏入口解耦**：配置卡原先注册在 `configForms.whileServed(['dsh-structured'])` 的回调里——宿主只在 settings describe 已服务本命名空间时才调用它——而侧边栏入口 / 面板的挂载卸载又和它共用同一个回调。宿主插件管理器的详情页只在自己的 `plugins.bundle.config` 账本里有本插件 key 时才渲染配置区，所以 describe 未服务（或启动时拉取失败过一次）时，详情页只剩描述 / 安装命令 / 组件 / 版本 / 来源，完全没有设置卡。关掉「侧边栏入口」把这个问题暴露出来：此前进入设置的唯一入口就是侧边栏面板，而详情页其实早已静默丢卡。现在配置卡在 `configForms` 可用时立即注册，不再依赖 `whileServed` 与侧边栏生命周期；只有 `sidebar.panellist` + `main` 跟随 `sidebarEntry`，同时 setup 主动调一次 `describe().load()`，让表单能进入 `ready`。
+- **修同一个配置卡的 React hooks 顺序崩溃**：表单未 `ready` 时组件提前 return，ready 后才挂载 6 个 `useState` / `useEffect`，`idle` / `unavailable` → `ready` 会抛 "Rendered more hooks than during the previous render"，slot 错误边界吞掉后卡片整块空白。现改为「薄壳（只读一次快照）+ ready 后才挂载的 body」。
+- **回归**：新增 3 条测试——`sidebarEntry=false` 且 describe 永不服务时详情页配置卡仍注册（「侧边栏入口」开关读到 `false`、可写回 `true`），切换 sidebarEntry 不重复注册也不撤销配置卡，hooks 数量守卫复现旧崩溃；168/168 通过。
+
 ## 1.3.3 — 2026-11-27
 
 **English**
