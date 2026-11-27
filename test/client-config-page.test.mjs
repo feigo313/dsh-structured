@@ -318,12 +318,13 @@ test('config page：describe 未服务本命名空间时详情页配置卡仍注
   served = true
 })
 
-test('config page：primitives 或 require 缺失时静默跳过', () => {
+test('config page：primitives 或 require 缺失时不注册，但记录具体原因（1.3.7）', () => {
   const module = loadClient(makeDom(), undefined)
   const form = { getSnapshot() { return null }, subscribe() { return () => {} } }
   const { slots, get } = collectRegistration()
   module.__test.setupConfigPage(makeChild(form, slots), form)
   assert.equal(get(), null)
+  assert.match(module.__test.configDiagState().reason, /require/, 'degradation reason must not be silent')
 })
 
 test('config page：卡片渲染七字段，switch/segmented 值来自快照', () => {
@@ -1171,4 +1172,106 @@ function assertPersonaDecoratedShort(module, document, flow, markdown) {
     .map((element) => element.getAttribute('data-dsh-structured-card-type'))
   assert.deepEqual(cards, ['short'])
 }
+
+// ---------------------------------------------------------------------------
+// 1.3.7 宿主兼容回归：真实宿主里 setupConfigPage 一进来就读 child.locale，但
+// locale 不在 ctx.inject(['configForms','slots']) 的依赖里。Cordis 4.1.0 代理
+// 直接抛 "cannot get property \"locale\" without inject"，1.3.6 的异常被 apply
+// 的回调 catch 吞掉，真实卡片永远注册不上，详情页只剩占位「配置正在加载…」。
+// ---------------------------------------------------------------------------
+
+/** 严格子上下文：未注入的服务属性一律抛错（locale 正是这样被读到的）。 */
+function makeStrictChild({ form, slots }) {
+  const base = {
+    configForms: { get: () => form, describe: () => ({ load() {} }) },
+    slots,
+    effect(fn) {
+      const dispose = fn()
+      return typeof dispose === 'function' ? dispose : () => {}
+    },
+  }
+  const reads = []
+  const child = new Proxy(base, {
+    get(target, prop, receiver) {
+      if (prop === 'locale') {
+        reads.push('locale')
+        throw new Error('cannot get property "locale" without inject')
+      }
+      if (Reflect.has(target, prop)) return Reflect.get(target, prop, receiver)
+      throw new Error('cannot get property "' + String(prop) + '" without inject')
+    },
+  })
+  return { child, reads }
+}
+
+test('宿主兼容：child.locale 未 inject 抛错时仍注册真实卡片（1.3.7）', () => {
+  const { document } = parseHTML('<!doctype html><html><head></head><body></body></html>')
+  const { require: fakeRequire } = fakeRuntime()
+  const { module } = loadShippedClient(document, fakeRequire)
+  const snapshot = { status: 'ready', writable: true, value: { theme: 'deepseek' } }
+  const form = { set() { return Promise.resolve(true) }, getSnapshot() { return snapshot }, subscribe() { return () => {} } }
+  const { slots, registrations } = makeSlotService()
+  const { child, reads } = makeStrictChild({ form, slots })
+  assert.doesNotThrow(() => module.__test.setupConfigPage(child, form))
+  const card = registrations.find((item) => item.definition.name === 'plugins.bundle.config')
+  assert.ok(card, 'real card must register even though child.locale throws')
+  assert.equal(card.component.name, 'StructuredConfigCard')
+  assert.deepEqual(reads, ['locale'], 'locale read is attempted but contained')
+  const state = module.__test.configDiagState()
+  assert.equal(state.cardActive, true)
+  assert.equal(state.reason, null, 'no degradation on a healthy host')
+})
+
+test('宿主兼容：apply 的 configForms+slots 注入回调不会因 locale 抛错丢掉卡片（1.3.7）', () => {
+  const { document } = parseHTML('<!doctype html><html><head></head><body></body></html>')
+  const { require: fakeRequire } = fakeRuntime()
+  const { module } = loadShippedClient(document, fakeRequire)
+  const snapshot = { status: 'loading', writable: true, value: undefined }
+  const form = { set() { return Promise.resolve(true) }, getSnapshot() { return snapshot }, subscribe() { return () => {} } }
+  const { slots, registrations } = makeSlotService()
+  const { child } = makeStrictChild({ form, slots })
+  const ctx = {
+    effect(fn) { return fn() },
+    inject(deps, callback) {
+      if (deps.includes('configForms') && deps.includes('slots')) callback(child)
+    },
+  }
+  assert.doesNotThrow(() => module.apply(ctx))
+  const card = registrations.find((item) => item.definition.name === 'plugins.bundle.config')
+  assert.ok(card, 'card must register from the real inject path without configForms/locale dependencies')
+  assert.equal(card.component.name, 'StructuredConfigCard')
+  assert.equal(module.__test.configDiagState().reason, null)
+})
+
+test('config page：服务缺失时占位文案写出具体原因，不再静默（1.3.7）', () => {
+  const { document } = parseHTML('<!doctype html><html><head></head><body></body></html>')
+  const { require: fakeRequire } = fakeRuntime()
+  const { module } = loadShippedClient(document, fakeRequire)
+  const { ctx, pending } = makeStrictHostCtx()
+  module.apply(ctx)
+  const { slots, registrations } = makeSlotService()
+  pending[0]({ slots })
+  assert.equal(registrations[0].component(), '配置正在加载…')
+
+  const form = { getSnapshot() { return { status: 'ready', writable: true, value: {} } } }
+  const child = { configForms: { get: () => form, describe: () => ({ load() {} }) }, slots, effect(fn) { return fn() } }
+  module.__test.setupConfigPage(child, form)
+  const state = module.__test.configDiagState()
+  assert.match(state.reason, /form\.set/, 'degradation reason must name the missing service')
+  const last = registrations[registrations.length - 1]
+  assert.match(last.component(), /配置不可用：.*form\.set/, 'placeholder text must explain the missing service')
+})
+
+test('config page：表单未就绪时显示具体状态（1.3.7）', () => {
+  const { require: fakeRequire } = fakeRuntime()
+  const module = loadClient(makeDom(), fakeRequire)
+  const snapshot = { status: 'ready', writable: true, value: { theme: 'deepseek' } }
+  const form = { set() { return Promise.resolve(true) }, getSnapshot() { return snapshot }, subscribe() { return () => {} } }
+  const { slots, get } = collectRegistration()
+  module.__test.setupConfigPage(makeChild(form, slots), form)
+  const { component } = get()
+  const unavailable = renderCard(component, { view: 'page', useStructuredConfig: (selector) => selector({ status: 'unavailable' }) })
+  assert.match(String(unavailable.props.children), /暂不可用/)
+  assert.match(String(unavailable.props.children), /配置状态：unavailable/)
+})
 

@@ -100,7 +100,9 @@ window.__ModuleLoader__.load({
     let configSlotFallbackOff = null
     let configCardActive = false
     let configFallbackFailed = false
-    const ConfigSlotPlaceholder = () => '配置正在加载…'
+    // 1.3.7：真实卡片起不来时，占位文案必须写出缺什么，不能只停在「正在加载」。
+    let configFallbackReason = null
+    const ConfigSlotPlaceholder = () => (configFallbackReason ? '配置不可用：' + configFallbackReason : '配置正在加载…')
     const removeConfigSlotFallback = () => {
       try { configSlotFallbackOff?.() } catch {}
       configSlotFallbackOff = null
@@ -114,17 +116,36 @@ window.__ModuleLoader__.load({
             const dispose = slots.register({ name: BUNDLE_CONFIG_SLOT, key: SIDEBAR_PANEL_ID }, ConfigSlotPlaceholder)
             try { console.info('[dsh-structured] bundle config slot placeholder registered') } catch {}
             return dispose
-          } catch {
+          } catch (error) {
             // 槽位声明/注册失败只影响设置卡，消息装饰照常。
             configFallbackFailed = true
+            configFallbackReason = '宿主拒绝注册 plugins.bundle.config 槽位（' + String(error?.message ?? error) + '）'
+            try { console.warn('[dsh-structured] config slot rejected: ' + configFallbackReason) } catch {}
             return undefined
           }
         })
         configSlotFallbackOff = typeof off === 'function' ? off : () => {}
-      } catch {
+      } catch (error) {
         configFallbackFailed = true
+        configFallbackReason = 'slots.inject 失败（' + String(error?.message ?? error) + '）'
         configSlotFallbackOff = null
+        try { console.warn('[dsh-structured] config slot inject failed: ' + configFallbackReason) } catch {}
       }
+    }
+    // 1.3.7 诊断：配置卡每一道门都必须留下可查询的原因，禁止静默 return。
+    const configDiag = (stage, detail) => {
+      try { console.info('[dsh-structured][config-diag] ' + stage + (detail === undefined ? '' : ' · ' + detail)) } catch {}
+    }
+    // 退化不是静默：写下具体缺哪个服务，并把占位文案换成可读原因。
+    const configDegrade = (reason) => {
+      configFallbackReason = reason
+      configDiag('degraded', reason)
+      try { console.warn('[dsh-structured] config card unavailable: ' + reason) } catch {}
+      if (configCardActive) return
+      try {
+        removeConfigSlotFallback()
+        installConfigSlotFallback(configFallbackSlots)
+      } catch {}
     }
     const DEPTH_OPTIONS = [
       { value: 'beginner', label: '入门', hint: '多类比、先讲懂；术语首次出现用一句人话解释。' },
@@ -167,6 +188,7 @@ window.__ModuleLoader__.load({
       'meta.title': ['结构化输出', "Structured Output"],
       'meta.subtitle': ['卡片始终按多卡输出；人格与深度只改呈现。', "Replies always render as multiple cards; persona and depth only change the presentation."],
       'meta.unavailable': ['插件未加载或配置暂不可用。', "Plugin not loaded or configuration unavailable."],
+      'meta.statusDetail': ['（配置状态：{status}）', " (config status: {status})"],
       'meta.readonly': ['当前配置被更高层覆盖（home patch / CLI overlay），此处只读。', "This configuration is overridden by a higher layer (home patch / CLI overlay); read-only here."],
       'meta.masterSwitch': ['插件总开关', "Plugin master switch"],
       'meta.statusLine': ['插件 {master} · 人格 {persona} · 身份头 {head} · 深度 {depth}', "Plugin {master} · Persona {persona} · Identity head {head} · Depth {depth}"],
@@ -3773,12 +3795,20 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
      * 且任何失败都不影响视觉层与消息渲染。
      */
     function setupConfigPage(child, form) {
-      if (typeof require !== 'function') return
-      if (typeof child?.configForms?.get !== 'function') return
-      if (typeof child?.slots?.inject !== 'function' || typeof child?.slots?.register !== 'function') return
-      if (typeof form?.set !== 'function') return
+      if (typeof require !== 'function') { configDegrade('模块加载器 require 不可用'); return }
+      if (typeof child?.configForms?.get !== 'function') { configDegrade('configForms 服务不可用'); return }
+      if (typeof child?.slots?.inject !== 'function' || typeof child?.slots?.register !== 'function') { configDegrade('slots 服务不可用'); return }
+      if (typeof form?.set !== 'function') { configDegrade('configForms 表单不可写（form.set 缺失）'); return }
       // 旧宿主/直连 setup 的测试可显式传 child.locale；apply 里的注入优先。
-      if (child?.locale && typeof child.locale.getSnapshot === 'function' && localeService !== child.locale) localeService = child.locale
+      // 1.3.7 根因：locale 不在本函数注入依赖（configForms,slots）里，真实 Cordis 代理
+      // 读 child.locale 必抛 "cannot get property \"locale\" without inject"，
+      // 1.3.6 在这里中断，真实卡片永远注册不上（占位一直停在「配置正在加载…」）。
+      // 语言由 apply 的 inject(['locale']) 或 document/navigator 兜底，本地读失败不算致命。
+      try {
+        if (child?.locale && typeof child.locale.getSnapshot === 'function' && localeService !== child.locale) localeService = child.locale
+      } catch (error) {
+        configDiag('gate.locale', 'ignored: ' + String(error?.message ?? error))
+      }
       let jsx
       let jsxs
       let ui
@@ -3789,12 +3819,14 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
         jsxs = runtime.jsxs
         react = require('react')
         ui = require('@deepseek-ai/dsh-client-ui-primitives')
-        if (typeof ui?.Switch !== 'function' || typeof ui?.SegmentedControl !== 'function') return
-        if (typeof react?.useState !== 'function') return
-      } catch {
-        // primitives 不可用（非 desktop 表层）：不出配置页。
+        if (typeof ui?.Switch !== 'function' || typeof ui?.SegmentedControl !== 'function') { configDegrade('UI primitives 缺少 Switch/SegmentedControl'); return }
+        if (typeof react?.useState !== 'function') { configDegrade('React hooks 不可用（useState 缺失）'); return }
+      } catch (error) {
+        // primitives 不可用（非 desktop 表层）：不出配置页，但必须写明缺什么。
+        configDegrade('React / UI primitives 不可用（' + String(error?.message ?? error) + '）')
         return
       }
+      configDiag('gate.runtime.ok', 'react=' + typeof react + ' useState=' + typeof react?.useState + ' Switch=' + typeof ui?.Switch + ' SegmentedControl=' + typeof ui?.SegmentedControl)
 
       const noteStyle = { fontSize: '12.5px', lineHeight: '18px', color: 'var(--dsw-alias-label-tertiary, inherit)', margin: '6px 0 2px' }
 
@@ -4593,7 +4625,12 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
         const state = typeof read === 'function' ? read((snapshot) => snapshot) : null
         if (props.view !== undefined && props.view !== 'page' && props.view !== 'panel') return null
         if (!state || state.status !== 'ready' || typeof state.value !== 'object' || state.value === null) {
-          return jsx('p', { style: noteStyle, children: t('meta.unavailable') })
+          // 1.3.7：宿主表单没 ready 时给出具体状态，不再只有一句泛化文案。
+          const status = state?.status
+          const detail = status && status !== 'loading' && status !== 'ready'
+            ? t('meta.statusDetail', { status: status + (state?.error ? ': ' + String(state.error.message ?? state.error) : '') })
+            : ''
+          return jsx('p', { style: noteStyle, children: t('meta.unavailable') + detail })
         }
         return jsx(ConfigCardBody, { props, state })
       }
@@ -5048,21 +5085,29 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
       let configStyleOff = null
       let configSlotOff = null
       const registerConfigCard = () => {
-        if (configSlotOff !== null) return
+        if (configSlotOff !== null) { configDiag('card.skip', 'already registered'); return }
         try { configStyleOff = ensureConfigStyle() } catch { configStyleOff = null }
         // 真实卡片接管账本 key：先撤掉 apply 入口的占位，避免同 key 两条互相遮蔽。
         configCardActive = true
         removeConfigSlotFallback()
         try {
-          configSlotOff = child.slots.inject(BUNDLE_CONFIG_SLOT, () =>
-            child.slots.register({
-              name: BUNDLE_CONFIG_SLOT,
-              key: SIDEBAR_PANEL_ID,
-              inject: configFace,
-            }, StructuredConfigCard),
-          )
+          configSlotOff = child.slots.inject(BUNDLE_CONFIG_SLOT, () => {
+            try {
+              const dispose = child.slots.register({
+                name: BUNDLE_CONFIG_SLOT,
+                key: SIDEBAR_PANEL_ID,
+                inject: configFace,
+              }, StructuredConfigCard)
+              configDiag('card.registered', 'component=' + StructuredConfigCard?.name)
+              return dispose
+            } catch (error) {
+              configDiag('card.register.failed', String(error?.message ?? error))
+              throw error
+            }
+          })
         } catch (error) {
           // 接管失败就把占位装回去，详情页配置区不能因为一次注册异常整块消失。
+          configDiag('card.inject.failed', String(error?.message ?? error))
           configCardActive = false
           try { installConfigSlotFallback(configFallbackSlots) } catch {}
           throw error
@@ -5349,7 +5394,7 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
       // 刻意不把 'slots' 列进必需服务：消息装饰不能反过来被配置页所需的服务卡住；
       // 需要 slots 的地方一律通过 ctx.inject(['slots'], child => child.slots) 获取。
       inject: [],
-      __test: { setLocale: setLocaleOverride, i18n: i18nTestApi, inDiff, isDiffCode, decorate, decorateStructured, setPersonaModeConfig, setupConfigPage, flushPersonaErrors, personaApi: () => personaTestApi, cardCopyApi: () => ({ personaCardPlainText, personaTableTsv, personaReplyPlainText }) },
+      __test: { setLocale: setLocaleOverride, i18n: i18nTestApi, inDiff, isDiffCode, decorate, decorateStructured, setPersonaModeConfig, setupConfigPage, flushPersonaErrors, configDiagState: () => ({ reason: configFallbackReason, cardActive: configCardActive, fallbackFailed: configFallbackFailed, placeholderOff: configSlotFallbackOff !== null }), personaApi: () => personaTestApi, cardCopyApi: () => ({ personaCardPlainText, personaTableTsv, personaReplyPlainText }) },
       apply(ctx) {
         // 配置区账本与 settings 无关：尽早占住 plugins.bundle.config 的 key，但只等
         // slots（不等 configForms/React）。这里严禁裸读 ctx.slots：未 inject 的服务
@@ -5359,9 +5404,12 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
           ctx?.inject?.(['slots'], (child) => {
             try {
               configFallbackSlots = child?.slots ?? null
+              configDiag('slots.inject.fired', 'slots=' + typeof configFallbackSlots)
               installConfigSlotFallback(configFallbackSlots)
-            } catch {
+              configDiag('slots.placeholder', configSlotFallbackOff !== null ? 'installed' : 'not-installed')
+            } catch (error) {
               configFallbackFailed = true
+              configDegrade('slots 注入失败（' + String(error?.message ?? error) + '）')
             }
           })
         } catch {
@@ -5414,9 +5462,17 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
           ctx?.inject?.(['configForms', 'slots'], (child) => {
             try {
               const form = child.configForms?.get('dsh-structured')
+              let formShape = typeof form
+              try {
+                formShape = form === undefined ? 'undefined' : form === null ? 'null' : 'set=' + typeof form.set + ',getSnapshot=' + typeof form.getSnapshot + ',subscribe=' + typeof form.subscribe + ',status=' + String(form.getSnapshot?.()?.status)
+              } catch (error) {
+                formShape = 'probe-error: ' + String(error?.message ?? error)
+              }
+              configDiag('configForms.inject.fired', 'form=' + formShape)
               if (form) setupConfigPage(child, form)
-            } catch {
-              // 配置页不可用不影响视觉层与注入。
+            } catch (error) {
+              // 配置页不可用不影响视觉层与注入，但必须留下可诊断的降级原因。
+              configDegrade('配置卡初始化失败（' + String(error?.message ?? error) + '）')
             }
           })
         } catch {

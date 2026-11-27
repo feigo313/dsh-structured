@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.3.7 — 2026-11-27
+
+**English**
+
+- **Fix the plugin-detail settings card never replacing the 1.3.6 placeholder on a real host**: `setupConfigPage` opened with `if (child?.locale && …)`, but `locale` is not in the dependency list of the `ctx.inject(['configForms','slots'], …)` callback. Cordis 4.1.0's service proxy throws `cannot get property "locale" without inject`; the callback's catch swallowed the throw, so `registerConfigCard()` never ran and the detail page stayed on 「配置正在加载…」 while the placeholder and the visual layer were healthy. The probe is now wrapped in try/catch (language still follows `ctx.inject(['locale'])` or document/navigator), so the real card registers and takes over the placeholder.
+- **No silent degradation**: every remaining gate (`require`, `configForms`, `slots`, `form.set`, React / UI primitives) records a named reason, logs a `console.warn`, and rewrites the placeholder to `配置不可用：<reason>`; `[dsh-structured][config-diag]` info lines trace `configForms.inject.fired`, `gate.locale` and `card.registered`. A card whose host form is not ready now shows the concrete config status instead of a generic sentence.
+- **Regression**: 4 new host-style tests — strict Proxies that throw on `child.locale`, apply-path card registration, degradation reason + placeholder text, and the form-status detail. 176/176 tests pass.
+- **Real-host verification** (ego lite → `http://127.0.0.1:56646`, no Desktop restart): the card renders (`[data-dsh-structured-config]`), the placeholder is gone, all five sections (appearance / behavior / persona / depth / preview) render, and toggling 子代理注入 writes `false → true → false` back with a 已保存 status. Screenshot: `.tmp/ego-137/1.3.7-detail-ready.png`.
+
+**中文**
+
+- **修真实宿主里插件详情页设置卡永远不接管占位（1.3.6 遗留）**：`setupConfigPage` 一进来就读 `if (child?.locale && …)`，但 `locale` 不在 `ctx.inject(['configForms','slots'], …)` 回调的依赖清单里。Cordis 4.1.0 的服务代理直接抛 `cannot get property "locale" without inject`，异常被回调的 catch 吞掉，`registerConfigCard()` 从未执行，详情页停在「配置正在加载…」——而占位与视觉层本身都是好的。现在 locale 探测用 try/catch 包住（语言仍由 `ctx.inject(['locale'])` 或 document/navigator 决定），真实卡片得以注册并接管占位。
+- **不再静默降级**：剩下每道门（`require`、`configForms`、`slots`、`form.set`、React / UI primitives）都会记录具名原因、打 `console.warn`，并把占位文案改写为 `配置不可用：<原因>`；`[dsh-structured][config-diag]` 诊断行覆盖 `configForms.inject.fired`、`gate.locale`、`card.registered`。宿主表单未 ready 时，卡片显示具体配置状态，不再只有一句泛化文案。
+- **回归**：新增 4 条宿主式测试——读 `child.locale` 必抛的严格 Proxy、apply 注入路径注册、降级原因与占位文案、表单状态明细；176/176 通过。
+- **真实宿主验收**（ego lite → `http://127.0.0.1:56646`，未重启 Desktop）：卡片渲染（`[data-dsh-structured-config]`）、占位消失、五个区块（外观 / 行为 / 人格 / 输出深度 / 预览）齐全；切换「子代理注入」写回 `false → true → false` 并出现「已保存」。截图：`.tmp/ego-137/1.3.7-detail-ready.png`。
+
 ## 1.3.6 — 2026-11-27
 
 **English**
