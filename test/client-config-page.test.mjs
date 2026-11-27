@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
 import vm from 'node:vm'
+import { parseHTML } from 'linkedom'
 
 // 插件板块详情页配置区：宿主不会从 Config schema 自动生成表单，
 // 配置页必须由插件 client 注册进 plugins.bundle.config（键 = 包名）。
@@ -964,4 +965,210 @@ test('config page：form 从 loading 变 ready 时卡片 hooks 数量不增长�
   const body = renderOnce(tree.type, tree.props)
   assert.match(JSON.stringify(body), /data-dsh-structured-config/)
 })
+
+// ---------------------------------------------------------------------------
+// 1.3.6 宿主兼容回归：Cordis 4.1.0 的服务代理不允许访问未 inject 的服务属性。
+// 1.3.5 在 apply 第一行裸读 ctx.slots，真实宿主抛 "cannot get property \"slots\"
+// without inject"，apply 在最前面中断，卡片/视觉层/侧边栏一起消失。
+// 这里用 lib/client.js（发布产物）加载，并模拟宿主代理与真实 slot 生命周期。
+// ---------------------------------------------------------------------------
+
+function loadShippedClient(dom, fakeRequire) {
+  const code = readFileSync(new URL('../lib/client.js', import.meta.url), 'utf8')
+  let module = null
+  const observers = []
+  const window = {
+    __ModuleLoader__: {
+      load(definition) {
+        module = definition.factory(fakeRequire)
+      },
+    },
+  }
+  vm.runInNewContext(code, {
+    window,
+    document: dom,
+    TextEncoder,
+    MutationObserver: class {
+      constructor(callback) {
+        this.callback = callback
+        this.observed = false
+        observers.push(this)
+      }
+      observe() {
+        this.observed = true
+      }
+      disconnect() {}
+    },
+    requestAnimationFrame: (fn) => { fn(); return 0 },
+    cancelAnimationFrame() {},
+    setTimeout,
+    clearTimeout,
+    console: { info() {}, warn() {}, error() {} },
+    navigator: {},
+  }, { filename: 'lib/client.js' })
+  assert.ok(module, 'shipped client module should register')
+  return { module, observers }
+}
+
+/** 模拟 Cordis 4.1.0 的 context 代理：未注入的服务属性一律抛错，slots 触发即算回归。 */
+function makeStrictHostCtx() {
+  const calls = { slotsReads: 0, injects: [], unservedReads: [] }
+  const pending = []
+  const base = {
+    effect(fn) {
+      const dispose = fn()
+      return typeof dispose === 'function' ? dispose : () => {}
+    },
+    inject(deps, callback) {
+      calls.injects.push(deps.join(','))
+      // 最坏宿主：locale / configForms 永不服务，只有 slots 异步到达。
+      if (deps.length === 1 && deps[0] === 'slots') pending.push(callback)
+    },
+  }
+  const ctx = new Proxy(base, {
+    get(target, prop, receiver) {
+      if (prop === 'slots') {
+        calls.slotsReads += 1
+        throw new Error('cannot get property "slots" without inject')
+      }
+      if (Reflect.has(target, prop)) return Reflect.get(target, prop, receiver)
+      calls.unservedReads.push(String(prop))
+      throw new Error('cannot get property "' + String(prop) + '" without inject')
+    },
+  })
+  return { ctx, calls, pending }
+}
+
+function makeSlotService(options = {}) {
+  const registrations = []
+  const disposals = []
+  const slots = {
+    inject(name, factory) {
+      const dispose = factory()
+      return () => {
+        disposals.push(name)
+        if (typeof dispose === 'function') dispose()
+      }
+    },
+    register(definition, component) {
+      if (options.registerThrows) throw new Error('slot declaration rejected')
+      registrations.push({ definition, component })
+      return () => disposals.push(definition.name)
+    },
+  }
+  return { slots, registrations, disposals }
+}
+
+function personaFlow(document, payload) {
+  const flow = document.createElement('div')
+  flow.setAttribute('data-chat-flow-kind', 'assistant-step')
+  const slot = document.createElement('div')
+  slot.setAttribute('data-slot', 'conversation.chat.node')
+  const markdown = document.createElement('div')
+  markdown.className = '_markdown_preview'
+  markdown.innerHTML = '<div class="md-code-block"><div class="bannerWrap"><div data-code-block-banner><span class="_heading_persona">persona</span></div></div><div data-code-block-content><pre>' + JSON.stringify(payload) + '</pre></div></div>'
+  slot.appendChild(markdown)
+  flow.appendChild(slot)
+  document.body.appendChild(flow)
+  return { flow, markdown }
+}
+
+const HOST_PERSONA = JSON.stringify({
+  schema: 'dsh-structured/tone@1',
+  prefix: 'Boss，',
+  style: '搞怪',
+  suffix: '——完',
+  skipIn: ['code', 'diff', 'error', 'short', 'table'],
+})
+
+function assertPersonaDecorated(module, document, flow, markdown) {
+  module.__test.setPersonaModeConfig({
+    personaEnabled: true,
+    persona: HOST_PERSONA,
+    personaName: '测试鲸',
+    personaSignature: '签名S',
+    personaAvatar: '',
+  })
+  module.__test.decorate(flow)
+  assert.equal(markdown.getAttribute('data-dsh-persona-kind'), 'normal')
+  const cards = [...markdown.querySelectorAll('[data-dsh-structured-card-type]')]
+    .map((element) => element.getAttribute('data-dsh-structured-card-type'))
+  assert.deepEqual(cards, ['conclusion', 'next', 'risk'])
+}
+
+test('宿主兼容：apply 不裸读 ctx.slots；slots 异步到达才注册占位，卡片正常（1.3.6）', () => {
+  const { document } = parseHTML('<!doctype html><html><head></head><body></body></html>')
+  const { require: fakeRequire } = fakeRuntime()
+  const { module, observers } = loadShippedClient(document, fakeRequire)
+  assert.equal(Array.isArray(module.inject) && module.inject.length, 0, '插件仍不把 slots 列为必需服务')
+
+  const { ctx, calls, pending } = makeStrictHostCtx()
+  assert.doesNotThrow(() => module.apply(ctx), 'apply must survive the strict host proxy')
+  assert.equal(calls.slotsReads, 0, 'apply must never read ctx.slots directly')
+  assert.deepEqual(calls.injects.sort(), ['configForms', 'configForms,slots', 'locale', 'slots'])
+  assert.equal(pending.length, 1, 'slots wait is registered through ctx.inject')
+
+  // 视觉层/消息装饰必须在 apply 内就绪，不依赖 slots 是否到达。
+  assert.ok(document.getElementById('dsh-structured-skin-style'), 'visual layer style injected')
+  assert.equal(document.documentElement.getAttribute('data-dsh-structured'), 'active')
+  assert.equal(observers.length, 1)
+  assert.equal(observers[0].observed, true)
+
+  // slots 还没到达：占位不能抢跑。
+  const { slots, registrations } = makeSlotService()
+  assert.equal(registrations.length, 0)
+
+  // slots 异步到达后才注册占位，且 key = 包名。
+  assert.doesNotThrow(() => pending[0]({ slots }))
+  assert.equal(registrations.length, 1)
+  assert.equal(registrations[0].definition.name, 'plugins.bundle.config')
+  assert.equal(registrations[0].definition.key, 'dsh-structured')
+  assert.equal(registrations[0].component(), '配置正在加载…')
+
+  // 消息装饰端到端：persona 信封 -> 三卡 + 身份头。
+  const { flow, markdown } = personaFlow(document, {
+    version: 1,
+    kind: 'normal',
+    conclusion: { lead: '能上', body: '先灰度' },
+    suggestions: ['跑链路'],
+    risk: '回滚未演练',
+  })
+  assertPersonaDecorated(module, document, flow, markdown)
+  assert.equal(flow.querySelectorAll('[data-dsh-persona-head]').length, 1)
+})
+
+test('宿主兼容：slots 注册失败只影响设置占位，apply 与卡片装饰不抛（1.3.6）', () => {
+  const { document } = parseHTML('<!doctype html><html><head></head><body></body></html>')
+  const { require: fakeRequire } = fakeRuntime()
+  const { module } = loadShippedClient(document, fakeRequire)
+  const { ctx, calls, pending } = makeStrictHostCtx()
+  assert.doesNotThrow(() => module.apply(ctx))
+  assert.equal(calls.slotsReads, 0)
+
+  const { slots, registrations } = makeSlotService({ registerThrows: true })
+  assert.doesNotThrow(() => pending[0]({ slots }), 'placeholder registration failure must be contained')
+  assert.equal(registrations.length, 0)
+
+  const { flow, markdown } = personaFlow(document, {
+    version: 1,
+    kind: 'short',
+    text: '现在三点。',
+  })
+  assertPersonaDecoratedShort(module, document, flow, markdown)
+})
+
+function assertPersonaDecoratedShort(module, document, flow, markdown) {
+  module.__test.setPersonaModeConfig({
+    personaEnabled: true,
+    persona: HOST_PERSONA,
+    personaName: '测试鲸',
+    personaSignature: '签名S',
+    personaAvatar: '',
+  })
+  module.__test.decorate(flow)
+  assert.equal(markdown.getAttribute('data-dsh-persona-kind'), 'short')
+  const cards = [...markdown.querySelectorAll('[data-dsh-structured-card-type]')]
+    .map((element) => element.getAttribute('data-dsh-structured-card-type'))
+  assert.deepEqual(cards, ['short'])
+}
 

@@ -88,22 +88,41 @@ window.__ModuleLoader__.load({
     // 1.3.4 仍把这条注册放在 setupConfigPage 里，要先过 configForms / primitives /
     // react / form.set 四道静默门；任一环节不成立时 key 不存在，整块配置区就不渲染。
     // 1.3.5 起在 apply 入口先占位，真实卡片注册成功后再撤掉占位。
+    //
+    // 1.3.6 教训：这个占位注册必须拿到「已注入 slots 的 child context」才能用，
+    // 绝不能在 apply 里裸读 ctx.slots。本插件导出 inject: []，而 slots 由 ui-renderer
+    // 的兄弟 fiber 提供；Cordis 4.1.0 的服务代理对未 inject 的属性直接抛
+    // "cannot get property \"slots\" without inject"，1.3.5 把这条读放在 apply 第一行，
+    // 异常发生在所有功能初始化之前，整个客户端半区（卡片/视觉层/侧边栏）都不激活。
+    // 所以这里只接收调用方经 ctx.inject(['slots'], child => ...) 传入的 slots，
+    // 并且任何注册失败都只标记占位不可用，绝不外抛。
     let configFallbackSlots = null
     let configSlotFallbackOff = null
     let configCardActive = false
+    let configFallbackFailed = false
     const ConfigSlotPlaceholder = () => '配置正在加载…'
     const removeConfigSlotFallback = () => {
       try { configSlotFallbackOff?.() } catch {}
       configSlotFallbackOff = null
     }
     const installConfigSlotFallback = (slots) => {
-      if (configCardActive || configSlotFallbackOff !== null) return
+      if (configCardActive || configFallbackFailed || configSlotFallbackOff !== null) return
       if (!slots || typeof slots.inject !== 'function' || typeof slots.register !== 'function') return
       try {
-        configSlotFallbackOff = slots.inject(BUNDLE_CONFIG_SLOT, () =>
-          slots.register({ name: BUNDLE_CONFIG_SLOT, key: SIDEBAR_PANEL_ID }, ConfigSlotPlaceholder))
-        try { console.info('[dsh-structured] bundle config slot placeholder registered') } catch {}
+        const off = slots.inject(BUNDLE_CONFIG_SLOT, () => {
+          try {
+            const dispose = slots.register({ name: BUNDLE_CONFIG_SLOT, key: SIDEBAR_PANEL_ID }, ConfigSlotPlaceholder)
+            try { console.info('[dsh-structured] bundle config slot placeholder registered') } catch {}
+            return dispose
+          } catch {
+            // 槽位声明/注册失败只影响设置卡，消息装饰照常。
+            configFallbackFailed = true
+            return undefined
+          }
+        })
+        configSlotFallbackOff = typeof off === 'function' ? off : () => {}
       } catch {
+        configFallbackFailed = true
         configSlotFallbackOff = null
       }
     }
@@ -5327,19 +5346,27 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
     }
 
     return {
+      // 刻意不把 'slots' 列进必需服务：消息装饰不能反过来被配置页所需的服务卡住；
+      // 需要 slots 的地方一律通过 ctx.inject(['slots'], child => child.slots) 获取。
       inject: [],
       __test: { setLocale: setLocaleOverride, i18n: i18nTestApi, inDiff, isDiffCode, decorate, decorateStructured, setPersonaModeConfig, setupConfigPage, flushPersonaErrors, personaApi: () => personaTestApi, cardCopyApi: () => ({ personaCardPlainText, personaTableTsv, personaReplyPlainText }) },
       apply(ctx) {
-        // 配置区账本与 settings 无关：先无条件占住 plugins.bundle.config 的 key。
-        // slots 服务可能晚于本插件就绪，所以只等 slots（不等 configForms）。
-        configFallbackSlots = ctx?.slots ?? null
-        try { installConfigSlotFallback(configFallbackSlots) } catch {}
+        // 配置区账本与 settings 无关：尽早占住 plugins.bundle.config 的 key，但只等
+        // slots（不等 configForms/React）。这里严禁裸读 ctx.slots：未 inject 的服务
+        // 在 Cordis 代理上会抛 "cannot get property ... without inject"，而 apply
+        // 一抛，卡片/视觉层/侧边栏全部失效（1.3.5 回归）。只允许走 inject 的 child。
         try {
           ctx?.inject?.(['slots'], (child) => {
-            configFallbackSlots = child?.slots ?? configFallbackSlots
-            try { installConfigSlotFallback(configFallbackSlots) } catch {}
+            try {
+              configFallbackSlots = child?.slots ?? null
+              installConfigSlotFallback(configFallbackSlots)
+            } catch {
+              configFallbackFailed = true
+            }
           })
-        } catch {}
+        } catch {
+          configFallbackFailed = true
+        }
         // 设置页跟随宿主语言：locale 服务可选，缺失时由 detectLocale 退回 document / navigator。
         try { if (ctx?.locale && typeof ctx.locale.getSnapshot === 'function') attachLocale(ctx.locale, ctx) } catch {}
         try {

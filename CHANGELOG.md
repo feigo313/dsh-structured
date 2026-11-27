@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.3.6 — 2026-11-27
+
+**English**
+
+- **Fix the 1.3.5 client-entry regression (cards / persona rendering stayed raw code blocks)**: 1.3.5 opened `apply` with `configFallbackSlots = ctx?.slots ?? null`. This plugin exports `inject: []`, and the `slots` service is provided by a sibling fiber (ui-renderer); Cordis 4.1.0's context proxy rejects undeclared service reads with `Error: cannot get property "slots" without inject`. The throw happened on the first statement of `apply`, before `enable()`, so the whole client half — persona cards, visual skin, sidebar entry — failed to activate and every `persona` code-block envelope was left as raw text. The direct read is gone: the bundle-config placeholder is now installed only from `ctx.inject(['slots'], (child) => child.slots)`, and `inject: []` stays so message decoration never depends on the settings service. Placeholder register / dispose failures are contained (`configFallbackFailed`) and only cost the settings card.
+- **Regression**: 2 new host-style tests load the shipped `lib/client.js` under a Cordis-like proxy that throws on any undeclared service read. They assert `apply` never reads `ctx.slots` and never throws, the visual layer + observer are installed before slots arrive, the placeholder registers only after the async slots callback with key `dsh-structured`, a rejected `register` does not escape, and persona envelopes still decorate into `normal` / `short` cards. npm test: 172/172.
+
+**中文**
+
+- **修 1.3.5 的客户端入口回归（卡片 / 人格渲染全部退回原始代码块）**：1.3.5 在 `apply` 第一行写了 `configFallbackSlots = ctx?.slots ?? null`。本插件导出 `inject: []`，而 `slots` 服务由兄弟 fiber（ui-renderer）提供，Cordis 4.1.0 的 context 代理对未声明服务的属性读取直接抛 `Error: cannot get property "slots" without inject`。异常发生在 `apply` 的第一条语句、`enable()` 之前，整个客户端半区（人格卡片、视觉皮肤、侧边栏入口）都没激活，于是所有 `persona` 代码块信封都以原始文本显示。修复后彻底移除裸读：占位注册只通过 `ctx.inject(['slots'], (child) => child.slots)` 安装；`inject: []` 保持不变，消息装饰绝不依赖设置页服务。占位 `register` / dispose 失败全部收敛（`configFallbackFailed`），最坏只丢设置卡。
+- **回归**：新增 2 条宿主式测试，直接加载发布产物 `lib/client.js`，用会抛「未声明服务」的 Cordis 代理验证：`apply` 不读 `ctx.slots` 且不抛；视觉层与 observer 在 slots 到达前已就绪；占位只在 slots 异步回调后以 key `dsh-structured` 注册；`register` 抛错不外泄；persona 信封仍能装饰成 `normal` / `short` 卡片。npm test：172/172。
+
 ## 1.3.5 — 2026-11-27
 
 **English**
