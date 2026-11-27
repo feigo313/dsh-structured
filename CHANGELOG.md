@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.3.2 — 2026-11-27
+
+**English**
+
+- **Recognise literal persona envelopes (bare `<persona>` tags and bare JSON)**: some models skip the ```persona fence and emit literal `<persona>` … `</persona>` XML around the JSON, or put a bare `{"version":1,"kind":` object straight into the reply body; the host then renders the whole JSON as prose. `extractPersonaEnvelope` now also looks at top-level text nodes outside code blocks for (a) a `<persona>`/`</persona>` wrapper (case-insensitive, surrounding whitespace allowed) whose content is an envelope object, and (b) a text node starting with `{"version":1,"kind":` that balanced-parses to a complete JSON object. A real fenced envelope always wins; content outside the literal wrapper is preserved; text that only mentions `<persona>` without JSON, and ordinary JSON examples, are left alone. Recognised text runs through the existing strict / degrade renderer, and the wrapper is removed only when cards are actually produced.
+- **Regression**: 4 new tests (real turn-31 tag envelope, bare JSON start, ordinary code-block JSON example, `<persona>` mention without JSON); 163/164 pass. The pack-size guard baseline is updated to the new 1.3.2 tarball size (64 files).
+
+**中文**
+
+- **识别字面量 persona 信封（`<persona>` 标签 / 裸 JSON）**：模型偶尔不写 ```persona 围栏，而是把 JSON 包在字面 XML `<persona>…</persona>` 里，或直接在正文写以 `{"version":1,"kind":` 开头的裸对象，宿主按普通文本渲染，整段 JSON 摊给用户。`extractPersonaEnvelope` 现在会在代码块之外的顶层文本节点上补认两种来源：(a) `<persona>` / `</persona>` 包裹（大小写不敏感、允许前后空白）且内容为信封对象；(b) 以 `{"version":1,"kind":` 开头、能平衡解析出完整 JSON 对象的文本。正常代码块信封优先，字面量不抢；包裹外正文保留；只提到 `<persona>` 而没有 JSON、以及普通 JSON 示例都不处理。识别后走既有严格 / 降级渲染路径，只有真正出卡时才摘掉字面量外壳。
+- **回归**：新增 4 条测试（实机 turn 31 标签信封、裸 JSON 起始、普通代码块 JSON 示例、无 JSON 的 `<persona>` 字样）；163/164 通过。pack 体积基线已按 1.3.2 新包体（64 文件）更新。
+
 ## 1.3.1 — 2026-11-27
 
 **English**

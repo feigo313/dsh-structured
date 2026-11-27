@@ -2512,6 +2512,113 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
       }
     }
 
+    // 模型偶尔把 ```persona 围栏写成字面量 XML（<persona>…</persona>），或干脆把
+    // {"version":1,"kind":… 裸 JSON 写进正文：宿主按普通文本渲染，整段 JSON 摊给用户。
+    // 这里只认两种强信号，且正常代码块信封存在时不抢：
+    //   a) <persona>…</persona>（大小写不敏感、允许前后空白），内容必须是信封 JSON；
+    //   b) 顶层文本节点以 {"version":1,"kind": 开头，且能按字符串边界平衡解析出完整 JSON 对象。
+    // 识别到只登记来源，交给既有严格 / 降级渲染；确认要出卡时才摘掉来源，校验失败不静默删正文。
+    const PERSONA_TAG_LITERAL_RE = /<persona(?:\s[^>]*)?>([\s\S]*?)<\/persona\s*>/i
+    const PERSONA_BARE_LITERAL_RE = /^\{\s*"version"\s*:\s*1\s*,\s*"kind"\s*:/
+    const personaLiteralSources = new WeakMap()
+
+    const looksLikeLiteralEnvelope = (text) => {
+      const source = String(text ?? '').trim()
+      if (!source.startsWith('{')) return false
+      if (!/"version"\s*:\s*1/.test(source)) return false
+      return /"kind"\s*:\s*"/.test(source)
+    }
+
+    // 从首个 { 开始按字符串边界找配对的 }：裸 JSON 后面允许还有正文。
+    const balancedJsonObjectText = (text) => {
+      const source = String(text ?? '')
+      const start = source.indexOf('{')
+      if (start < 0) return null
+      let depth = 0
+      let inString = false
+      let escaped = false
+      for (let i = start; i < source.length; i += 1) {
+        const ch = source[i]
+        if (inString) {
+          if (escaped) { escaped = false; continue }
+          if (ch === '\\') { escaped = true; continue }
+          if (ch === '"') inString = false
+          continue
+        }
+        if (ch === '"') { inString = true; continue }
+        if (ch === '{') depth += 1
+        else if (ch === '}') {
+          depth -= 1
+          if (depth === 0) return { text: source.slice(start, i + 1), start, end: i + 1 }
+        }
+      }
+      return null
+    }
+
+    const literalPersonaEnvelope = (markdown) => {
+      // a0) 宿主把未知标签建成了元素：<persona>…</persona>
+      for (const element of markdown.querySelectorAll?.('*') ?? []) {
+        if (String(element.tagName ?? '').toLowerCase() !== 'persona') continue
+        if (element.closest?.('.md-code-block') || element.closest?.(`[${GENERATED_ATTR}]`)) continue
+        const text = element.textContent ?? ''
+        if (!looksLikeLiteralEnvelope(text)) continue
+        return { text: text.trim(), node: element, start: 0, end: 0, kind: 'tag-element', markdown }
+      }
+      for (const node of [...(markdown.childNodes ?? [])]) {
+        if (node.nodeType === 1) {
+          if (node.matches?.(`[${GENERATED_ATTR}]`)) continue
+          if (node.matches?.('.md-code-block') || node.querySelector?.('.md-code-block')) continue
+        } else if (node.nodeType !== 3) {
+          continue
+        }
+        const raw = String(node.textContent ?? '')
+        if (!raw.trim()) continue
+        const tagMatch = raw.match(PERSONA_TAG_LITERAL_RE)
+        if (tagMatch) {
+          const inner = String(tagMatch[1] ?? '').trim()
+          if (!looksLikeLiteralEnvelope(inner)) continue
+          const at = tagMatch.index ?? 0
+          return { text: inner, node, start: at, end: at + tagMatch[0].length, kind: 'tag', markdown }
+        }
+        const trimmed = raw.trimStart()
+        if (!PERSONA_BARE_LITERAL_RE.test(trimmed)) continue
+        const balanced = balancedJsonObjectText(trimmed)
+        if (!balanced) continue
+        try {
+          const parsed = JSON.parse(balanced.text)
+          if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) continue
+        } catch {
+          continue
+        }
+        const offset = raw.length - trimmed.length
+        return { text: balanced.text, node, start: offset + balanced.start, end: offset + balanced.end, kind: 'bare', markdown }
+      }
+      return null
+    }
+
+    // 摘掉字面量信封本身：块外正文保留（文本节点就地删段，块级容器仍有正文时重写剩余文本）。
+    const removeLiteralPersonaEnvelope = (source) => {
+      if (!source?.node) return
+      const node = source.node
+      if (source.kind === 'tag-element') {
+        const parent = node.parentElement
+        node.remove()
+        if (parent && parent !== source.markdown && !String(parent.textContent ?? '').trim()) parent.remove()
+        return
+      }
+      if (node.nodeType === 3) {
+        const value = String(node.data ?? node.textContent ?? '')
+        const rest = value.slice(0, source.start) + value.slice(source.end)
+        if (!rest.trim()) node.remove()
+        else node.data = rest
+        return
+      }
+      const raw = String(node.textContent ?? '')
+      const rest = raw.slice(0, source.start) + raw.slice(source.end)
+      if (!rest.trim()) node.remove()
+      else node.textContent = rest.trim()
+    }
+
     const extractPersonaEnvelope = (markdown) => {
       const blocks = [...(markdown.querySelectorAll?.('.md-code-block') ?? [])]
       const personaBlocks = blocks.filter((code) => {
@@ -2519,7 +2626,15 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
         const raw = code.querySelector?.('pre')?.textContent ?? ''
         return looksLikePersonaEnvelope(raw) || looksLikeBrokenPersonaEnvelope(raw)
       })
-      if (personaBlocks.length === 0) return { kind: 'none' }
+      if (personaBlocks.length === 0) {
+        // 正常代码块信封优先：字面量只在没有围栏时兜底，不抢模型真正的信封。
+        const literal = literalPersonaEnvelope(markdown)
+        if (literal) {
+          personaLiteralSources.set(markdown, literal)
+          return { ok: true, text: literal.text, literal: true }
+        }
+        return { kind: 'none' }
+      }
       const texts = personaBlocks.map((code) => code.querySelector('pre')?.textContent ?? '')
       // 多个 persona 块才是冲突；其它代码块是模型的正常内容，不算冲突。
       if (personaBlocks.length > 1) return { ok: false, error: 'persona 内容块必须唯一', conflict: true, texts }
@@ -2750,6 +2865,13 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
 
     const renderPersonaContent = (markdown, content, config, envelopeText = null) => {
       clearPersonaPending(markdown)
+      // 字面量信封（<persona> 标签 / 裸 JSON 文本）只有在确认按信封渲染时才摘掉来源；
+      // 块外正文由下面的「块外内容保留」逻辑照常保留。
+      const literalSource = personaLiteralSources.get(markdown)
+      if (literalSource) {
+        personaLiteralSources.delete(markdown)
+        removeLiteralPersonaEnvelope(literalSource)
+      }
       const doc = markdown.ownerDocument ?? document
       // 块外内容（模型的自然正文）保留：只摘出 persona 块本身，
       // 插件自己生成的节点（卡片 / 前后缀）不能当作"块外正文"再追加一次。
@@ -3079,6 +3201,12 @@ body[data-ds-dark-theme] .dss-scope .dss-card-short > p:first-child > strong:fir
     }
     const renderPersonaError = (markdown, message, sourceText, options = {}) => {
       clearPersonaPending(markdown)
+      // 降级路径同样要摘掉字面量信封外壳，避免原始 JSON 与降级卡片同时出现。
+      const literalSource = personaLiteralSources.get(markdown)
+      if (literalSource) {
+        personaLiteralSources.delete(markdown)
+        removeLiteralPersonaEnvelope(literalSource)
+      }
       console.warn('[dsh-structured] persona 未按合同渲染，已降级：' + message)
       const doc = markdown.ownerDocument ?? document
       const blockTexts = personaSourceTexts(markdown)

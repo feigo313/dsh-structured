@@ -2224,3 +2224,106 @@ test('1.2.3 PersonaMode：信封降级抢救时保留 💭 内心OS（身份头�
   assert.ok(suffix, 'salvage path must keep innerOs suffix')
   assert.match(suffix.textContent, /^💭 这次别再拖到明天。$/)
 })
+
+// 1.3.2：模型把 ```persona 围栏写成字面 XML / 裸 JSON 时，宿主按普通正文渲染。
+// 下面三个小工具只服务这组用例：搭 flow、设人格配置、把字面量文本安全塞进 <p>。
+const literalPersonaFlow = (harness, html, key) => {
+  const flow = harness.document.createElement('div')
+  flow.setAttribute('data-chat-flow-kind', 'assistant-step')
+  flow.setAttribute('data-chat-node-key', key + '-' + Math.random())
+  const slot = harness.document.createElement('div')
+  slot.setAttribute('data-slot', 'conversation.chat.node')
+  const markdown = harness.document.createElement('div')
+  markdown.className = '_markdown_preview'
+  markdown.innerHTML = html
+  slot.appendChild(markdown)
+  flow.appendChild(slot)
+  harness.document.body.appendChild(flow)
+  harness.plugin.__test.decorate(flow)
+  return markdown
+}
+
+const literalPersonaConfig = (harness) => {
+  const tone = JSON.stringify({ schema: 'dsh-structured/tone@1', prefix: 'Boss，', suffix: '——完', style: '搞怪', skipIn: ['code', 'diff', 'error', 'short', 'table'] })
+  harness.plugin.__test.setPersonaModeConfig({
+    personaEnabled: true,
+    personaHeadEnabled: false,
+    personaInnerOsEnabled: true,
+    persona: tone,
+    personaName: '鲸鱼',
+    personaSignature: 'S',
+    personaAvatar: '',
+  })
+}
+
+const escapeLiteralText = (text) => text
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/\n/g, '<br>')
+
+test('1.3.2 PersonaMode：<persona> 标签包裹的裸文本信封按合同出卡（实机 turn 31）', () => {
+  const harness = makeHarness(baseState, async () => true)
+  literalPersonaConfig(harness)
+  // session-231e379d turn 31 step 10 原文：模型没写代码块，直接吐了 <persona> + JSON + </persona>。
+  // 这段 JSON 自身还少了 conclusion 的闭合 `}`，正好一并验证既有「补闭合括号」降级路径。
+  const realEnvelope = `{"version":1,"kind":"normal","conclusion":{"lead":"看了，不是本插件：这段 DSML 是模型 deepseek-v4.1-flash 把工具调用标记吐进了正文，共 4 条消息（turn 66/68/70/71）。","points":["证据：session-626bb321 里 42 处 DSML，全部落在 assistant 文本通道，provider/model 都是 dsh-opencode-go/deepseek-v4.1-flash","形态：只剩 parameter 片段、没有函数名，前一条 reasoning 是「Write reply」——工具调用被截断后当正文返回","排除插件：dsh-structured 在该会话只出现在被读的项目文件里；插件不接触工具调用流，也不生成模型文本","顺带：1.3.1 已发（GitHub Release + npm 1.3.1 + 市场 PR #19205 已指 v1.3.1，check 仍 pending）；profile 已装 1.3.1，重启后生效"],"suggestions":["带 session id + turn 号向 DSH / opencode-go 报这个解析漏出问题","我再扫几个会话，确认是否都集中在 opencode-go 的 deepseek-v4.1-flash","市场 PR 的上游 check 继续等，不催合并"],"risk":"也可能是宿主把 DSML 特殊 token 解码成了文本，需要 provider 侧确认；单看日志不能排除宿主解析层。","innerOs":"咒文是从模型嘴里漏出来的，这锅结界不背。"}`
+  const literal = '<persona>\n' + realEnvelope + '\n</persona>'
+  const markdown = literalPersonaFlow(harness, '<p>' + escapeLiteralText(literal) + '</p>', 'literal-turn31')
+  // 真实文本少了闭合 }：补括号能过契约才会同步出卡，否则等既有降级宽限窗结束再出卡。
+  harness.flushPersonaErrors()
+  assert.equal(markdown.getAttribute('data-dsh-persona-kind'), 'normal', 'tag envelope must render as cards')
+  assert.equal(markdown.querySelectorAll('[data-dsh-structured-card-type]').length, 3, 'exactly three cards')
+  assert.doesNotMatch(markdown.textContent, /"version"\s*:\s*1/, 'raw JSON must not be shown')
+  assert.doesNotMatch(markdown.textContent, /<persona>|<\/persona>/, 'literal tags must be consumed')
+  assert.match(markdown.textContent, /DSML 是模型/)
+  assert.match(markdown.textContent, /上游 check 继续等/, 'suggestions must survive the degrade path')
+  const suffix = markdown.querySelector('.dss-persona-suffix')
+  assert.ok(suffix, 'innerOs suffix must render')
+  assert.match(suffix.textContent, /^💭 咒文是从模型嘴里漏出来的，这锅结界不背。$/)
+  // 二次 decorate 走缓存重建：卡片与 💭 都不能重复。
+  harness.plugin.__test.decorate(markdown)
+  assert.equal(markdown.querySelectorAll('[data-dsh-structured-card-type]').length, 3, 're-decorate stays three cards')
+  assert.equal(markdown.querySelectorAll('.dss-persona-suffix').length, 1, 're-decorate keeps a single innerOs suffix')
+  // 合法标签信封走严格路径：不需要任何修补也应出卡。
+  const wellFormed = literalPersonaFlow(harness, '<p>' + escapeLiteralText('<persona>{"version":1,"kind":"short","text":"严格路径"}</persona>') + '</p>', 'literal-tag-strict')
+  assert.equal(wellFormed.getAttribute('data-dsh-persona-kind'), 'short', 'well-formed tag envelope goes strict path')
+})
+
+test('1.3.2 PersonaMode：顶层裸 JSON 以 {"version":1,"kind": 开头时按信封渲染', () => {
+  const harness = makeHarness(baseState, async () => true)
+  literalPersonaConfig(harness)
+  // short 只有 version / kind 两个特征键，既有「三特征键」裸信封识别不认，正是 1.3.2 补的入口。
+  const markdown = literalPersonaFlow(harness, '<p>{"version":1,"kind":"short","text":"先把裸 JSON 收进卡片。"}</p>', 'literal-bare-short')
+  assert.equal(markdown.getAttribute('data-dsh-persona-kind'), 'short')
+  assert.equal(markdown.querySelectorAll('[data-dsh-structured-card-type]').length, 1)
+  assert.match(markdown.textContent, /先把裸 JSON 收进卡片。/)
+  assert.doesNotMatch(markdown.textContent, /"version"/, 'raw JSON must not be shown')
+})
+
+test('1.3.2 PersonaMode：普通代码块里的 JSON 示例不误判为信封', () => {
+  const harness = makeHarness(baseState, async () => true)
+  literalPersonaConfig(harness)
+  const markdown = literalPersonaFlow(
+    harness,
+    '<div class="md-code-block"><div class="bannerWrap"><div data-code-block-banner><span class="_heading_plain">代码块</span></div></div><div data-code-block-content><pre>{"name":"demo","count":2}</pre></div></div><p>普通 JSON 示例。</p>',
+    'literal-code-example',
+  )
+  assert.equal(markdown.getAttribute('data-dsh-persona-kind'), 'code')
+  assert.equal(markdown.querySelectorAll('[data-dsh-structured-card-type]').length, 0, 'JSON 示例不得出卡')
+  assert.match(markdown.textContent, /普通 JSON 示例/)
+})
+
+test('1.3.2 PersonaMode：提到 <persona> 字样但没有 JSON 的正文不处理', () => {
+  const harness = makeHarness(baseState, async () => true)
+  literalPersonaConfig(harness)
+  const markdown = literalPersonaFlow(
+    harness,
+    '<p>模型这次直接写了 &lt;persona&gt; 标签，但这条只是解释，没有 JSON 信封。</p>',
+    'literal-mention-only',
+  )
+  assert.equal(markdown.getAttribute('data-dsh-persona-kind'), null)
+  assert.equal(markdown.querySelectorAll('[data-dsh-structured-card-type]').length, 0, '无 JSON 不得出卡')
+  assert.match(markdown.textContent, /<persona> 标签/)
+  assert.match(markdown.textContent, /没有 JSON 信封/)
+})
