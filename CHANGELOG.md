@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.3.5 — 2026-11-27
+
+**English**
+
+- **Claim the bundle-config ledger key before any settings dependency**: the host's plugin detail page decides whether to render its settings area purely from its `plugins.bundle.config` ledger (`configured = ledger.bundles.has(pkg.name)`; the ledger is the set of `options.key` of slot entries). 1.3.4 moved registration out of `configForms.whileServed` but still registered inside `setupConfigPage`, behind `ctx.inject(['configForms','slots'])` plus silent `require` / primitives / `react.useState` / `form.set` gates; if any of them is unavailable the key never appears and the detail page renders no config section at all. The plugin now registers a placeholder entry at the top of `apply` (a plain string component, no React/settings dependency), and the real card replaces it when `setupConfigPage` runs. If the real card is later torn down, the placeholder is restored so the section does not disappear.
+- **Diagnostics**: `console.info` lines `bundle config slot placeholder registered` / `bundle config card registered` make the next desktop restart tell which path won.
+- **Regression**: 2 new tests — `apply` claims the slot key with no `configForms` at all, and the real card disposes the placeholder before registering. npm test: see release doc.
+
+**中文**
+
+- **先占住 bundle 配置账本 key，再谈 settings**：宿主插件详情页只看自己的 `plugins.bundle.config` 账本（`configured = ledger.bundles.has(pkg.name)`，账本即 slot entry 的 `options.key` 集合）决定是否渲染配置区。1.3.4 虽然把注册从 `configForms.whileServed` 里挪出来，却仍放在 `setupConfigPage` 内，要先过 `ctx.inject(['configForms','slots'])` 与 `require` / primitives / `react.useState` / `form.set` 四道静默门；任一环节不成立，key 就不存在，详情页整块配置区不渲染。现在 `apply` 入口先注册占位（纯字符串组件，不依赖 React/settings），真实卡片就绪后替换；真实卡片之后若被卸载，占位会恢复，配置区不会整块消失。
+- **诊断**：新增 `console.info` 两行（占位 / 真实卡片注册成功），下次重启桌面即可从控制台判断走的是哪条路。
+- **回归**：新增 2 条测试——完全没有 `configForms` 时 `apply` 仍占住 slot key；真实卡片注册前撤掉占位。npm test 结果见发布文档。
+
 ## 1.3.4 — 2026-11-27
 
 **English**

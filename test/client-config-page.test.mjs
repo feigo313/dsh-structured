@@ -143,10 +143,18 @@ let served = true
 function collectRegistration() {
   const injections = []
   const registrations = []
+  const disposed = []
   const slots = {
     inject(name, factory) {
       injections.push(name)
-      return factory()
+      let active = true
+      const inner = factory()
+      return () => {
+        if (!active) return
+        active = false
+        disposed.push(name)
+        if (typeof inner === 'function') inner()
+      }
     },
     register(options, component) {
       registrations.push({ options, component })
@@ -157,6 +165,7 @@ function collectRegistration() {
     slots,
     injections,
     registrations,
+    disposed,
     get: () => registrations.find((item) => item.options?.name === 'plugins.bundle.config') ?? null,
   }
 }
@@ -229,6 +238,58 @@ test('config page：宿主服务 describe 命名空间时注册 bundle 配置页
   face.mutateFields([{ op: 'set', path: ['x'], value: 1 }], 3)
   assert.deepEqual(form.mutateCalls[0][1], 3)
   assert.equal(face.readFields(), snapshot)
+})
+
+test('config page：apply 在没有 configForms 时也占住 bundle 配置 slot 的 key（1.3.5）', () => {
+  const { require: fakeRequire } = fakeRuntime()
+  const module = loadClient(makeDom(), fakeRequire)
+  const { slots, registrations } = collectRegistration()
+  const ctx = {
+    slots,
+    effect(fn) { return fn() },
+    // 模拟最坏宿主：configForms / locale 永不出现，两个注入回调都不执行。
+    inject(deps, callback) {
+      if (deps.includes('configForms') || deps.includes('locale')) return
+      callback({ slots })
+    },
+  }
+  module.apply(ctx)
+  const registration = registrations.find((item) => item.options?.name === 'plugins.bundle.config')
+  assert.ok(registration, 'fallback must claim plugins.bundle.config without configForms')
+  assert.equal(registration.options.key, 'dsh-structured')
+  assert.equal(registration.options.inject, undefined)
+  assert.equal(registration.component(), '配置正在加载…')
+})
+
+test('config page：真实卡片注册前撤掉占位，key 不重复（1.3.5）', () => {
+  const { require: fakeRequire } = fakeRuntime()
+  const module = loadClient(makeDom(), fakeRequire)
+  const { slots, registrations, disposed } = collectRegistration()
+  const snapshot = { status: 'ready', writable: true, value: { theme: 'deepseek' } }
+  const form = {
+    set() { return Promise.resolve(true) },
+    getSnapshot() { return snapshot },
+    subscribe() { return () => {} },
+  }
+  const child = {
+    configForms: { get: () => form, describe: () => ({ load() {} }) },
+    slots,
+    effect(fn) { return fn() },
+  }
+  const ctx = {
+    slots,
+    effect(fn) { return fn() },
+    inject(deps, callback) {
+      if (deps.includes('locale')) return
+      callback(child)
+    },
+  }
+  module.apply(ctx)
+  const cards = registrations.filter((item) => item.options?.name === 'plugins.bundle.config')
+  assert.equal(cards.length, 2, 'fallback then real card')
+  assert.equal(cards[0].component(), '配置正在加载…')
+  assert.equal(cards[cards.length - 1].component.name, 'StructuredConfigCard')
+  assert.ok(disposed.includes('plugins.bundle.config'), 'fallback injection must be disposed')
 })
 
 test('config page：describe 未服务本命名空间时详情页配置卡仍注册（1.3.4 不再依赖 whileServed）', () => {
