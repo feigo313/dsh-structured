@@ -1,4 +1,4 @@
-# 交接：dsh-structured（2026-11-28 更新，1.3.8 已发布：GitHub / npm 1.3.8；市场 PR #19540 已指 v1.3.8，待合并）
+# 交接：dsh-structured（2026-11-28 收尾：1.3.8 已发布，本轮大升级 1.3.0→1.3.8 结束；进入 issues/PR 监控模式，暂不加大功能）
 
 > 这是**唯一可信起点**。旧会话因上下文过大归档；本文件把项目全量口径、当前状态、待办与踩坑一次写完。新会话请先读完本文件再动手。
 
@@ -33,8 +33,9 @@
 
 ---
 
-## 3. 当前状态（2026-11-28 更新 / 1.3.8 已发布）
+## 3. 当前状态（2026-11-28 收尾 / 1.3.8 已发布，升级周期结束）
 
+- **周期状态（2026-11-28）**：本轮大升级（1.3.0 国际化 → 1.3.8）已收尾，功能冻结；**进入 issues / PR / CI / npm / Release 监控模式**，只做缺陷与发布物一致性维护，暂不加大功能。1.3.4–1.3.7 历史保留在下列各条。
 - **1.3.8（已发布，当前版，补丁）**：修已发布 1.3.7 包内 README 版本行滞后（包内仍写 1.3.4——改这一行的 `c66d821` 在打包之后才提交）与 `scripts/style-gate.mjs:266` 的 12px/13px 断言漂移；`docs/MAINTENANCE.md` §12.2 把 `style-gate` 写进发版顺序。**无运行时变更**：`src/`、`lib/` 与 1.3.7 发布包逐字节相同。`npm test` **176/176**；pack 64 文件 / 1,895,050 B / unpacked 2,938,343 B。远端 main `586fee5`、annotated tag `v1.3.8`、Release 资产 1,895,050 B（sha256 `455c9b95…`）、npm 1.3.8（shasum `2d53f194…`，与 Release 资产同 sha256）、市场 PR **#19540** open（diff 仅 tarball 一行）、profile 已装 1.3.8、CI run `46122868542` success。`docs/RELEASE-1.3.8.md`。
 - **1.3.7（已发布，上一版）**：修「占位后真实设置卡始终不接管」——`setupConfigPage` 在未 inject 的 child 上读 `locale`，Cordis 4.1.0 抛 `cannot get property "locale" without inject`，被注入回调的 catch 吞掉，`registerConfigCard()` 从未执行。修复：locale 探测包 try/catch + 每道门 `configDegrade('<缺失服务>')` 显式降级；`npm test` **176/176**；真实宿主 web 客户端（`http://127.0.0.1:56646`，与 Desktop 同一份 `app.asar` + profile）验到真实卡渲染、占位消失、开关写回、页面无异常。GitHub tag `v1.3.7`、Release 1,893,853 B（sha256 `5e6b2497…`）、npm 1.3.7（shasum `2f3aff6b…`）、远端 main `299e07d`、CI run `46007585146` success。发布文档 `docs/RELEASE-1.3.7.md`。
 - **1.3.6（已发布，事故修复版）**：删掉 1.3.5 在 `apply()` 顶部对 `ctx?.slots` 的裸读，slot 占位只经 `ctx.inject(['slots'])` 注册；`npm test` **172/172**；tag `v1.3.6`、Release 1,888,259 B、npm 1.3.6（shasum `ef76e04d…`）。修复后 persona 卡片恢复，但设置卡只到「配置正在加载…」占位——由 1.3.7 收尾。`docs/RELEASE-1.3.6.md`。
@@ -43,8 +44,8 @@
 - **1.3.3（已发布）**：主题=内心OS（💭 尾缀）可读性——字号约 13px、颜色 `--dss-ink-2`（明暗主题均达 WCAG AA，ink-2 为 AAA 档）；`npm test` **165/165**，pack 64 文件 / 1,876,704 B；tag `v1.3.3`、Release 1,876,704 B、npm 1.3.3。
 - **1.3.1（已发布）**：建议卡降级 / 抢救路径把 `[ROUTE]` 的 `]` 误判为数组结尾、产出幽灵空建议项；改为扫描器在字符串外判定结尾并加字段名闸。GitHub tag `v1.3.1`、Release 1,869,620 B、npm 1.3.1、市场 PR #19205 已指 v1.3.1。
 - **1.3.2（已发布）**：模型偶尔把 ```persona 写成 `<persona>` 标签或裸 JSON，插件改为兜底识别；164/164 pass，GitHub tag `v1.3.2`、Release 1,875,625 B、npm 1.3.2、market 已指 v1.3.2。`CHANGELOG` 新条目中英双语（英文在前，`docs/I18N.md` 第 4 节）。
-- 仓库：远端 `main` 现为 `586fee5`（release: dsh-structured 1.3.8）；1.3.8 的两次前置提交 `3cc0780`（style-gate 13px）、`259a3a2`（巡检日志）也已在远端，三者与本地**同 sha**；`v1.3.7` 期的远端 `299e07d` 仍在其父链上（tree `a31d8c57`，当年经 gh git-data API 重建）；1.3.0 发布提交 `4bd084e2`（release: dsh-structured 1.3.0 (innerOS salvage + i18n)，2026-11-26T16:59:56Z）仍在历史中，tag `v1.3.0`（annotated，远端对象 `842885fe` → commit `4bd084e2`，tagger 2026-11-26T17:00:13Z）；Release 资产 `dsh-structured-1.3.0.tgz`（1,865,727 B / sha256 `b2c20074…`，published 2026-11-26T17:00:28Z）。
-- 本机 `main` HEAD `586fee5` 与远端 `main` **同 sha**（2026-11-28 起不再有「同树异 sha」）；1.3.7 期曾是 `07af34c` ↔ `299e07d`。以远端 sha 为准，**不要 force push**；`git fetch` 走 github.com HTTPS 会间歇失败（本轮失败一次，`gh api repos/.../commits/main` 可替代读远端）。1.2.0 对齐前的开发提交仍在分支 `local-pre-release-20261126`。
+- 仓库：远端 `main` 现为 `bbf27ac`（docs: record the 1.3.8 release，1.3.8 收尾提交；发布提交 `586fee5` 为其父）；1.3.8 的两次前置提交 `3cc0780`（style-gate 13px）、`259a3a2`（巡检日志）也已在远端，三者与本地**同 sha**；`v1.3.7` 期的远端 `299e07d` 仍在其父链上（tree `a31d8c57`，当年经 gh git-data API 重建）；1.3.0 发布提交 `4bd084e2`（release: dsh-structured 1.3.0 (innerOS salvage + i18n)，2026-11-26T16:59:56Z）仍在历史中，tag `v1.3.0`（annotated，远端对象 `842885fe` → commit `4bd084e2`，tagger 2026-11-26T17:00:13Z）；Release 资产 `dsh-structured-1.3.0.tgz`（1,865,727 B / sha256 `b2c20074…`，published 2026-11-26T17:00:28Z）。
+- 本机 `main` HEAD `bbf27ac` 与远端 `main` **同 sha**（2026-11-28 起不再有「同树异 sha」）；1.3.7 期曾是 `07af34c` ↔ `299e07d`。以远端 sha 为准，**不要 force push**；`git fetch` 走 github.com HTTPS 会间歇失败（本轮失败一次，`gh api repos/.../commits/main` 可替代读远端）。1.2.0 对齐前的开发提交仍在分支 `local-pre-release-20261126`。
 - 1.2.2（前一版）：`48468f9`（main 头，fix(ci) 补 pack 基线）+ `26b44ed`（release 1.2.2）+ tag `v1.2.2`（远端对象 `422e99de` → `26b44ed`）+ npm `1.2.2` + Release 资产 1,830,526 B；再前一版 1.2.1 = `51d9964` + tag `v1.2.1` + 1,828,942 B。
 - npm：`dsh-structured@1.3.8` 已发布，latest = 1.3.8（64 文件 / 1,895,050 B / unpacked 2,938,343 B / shasum `2d53f194…` / sha256 `455c9b95…`，与 GitHub Release 资产逐字节相同）；1.3.7 为 64 / 1,893,853 B（其包内 README 版本行写错成 1.3.4，1.3.8 修正）。
 - 市场（awesome-dsh-plugin）：活动 PR **#19540 open**（head `feat/dsh-structured-1.3.8`，从上游 main `1114facb` 新建，未同步 fork main；diff 仅 `data/plugins/feigo313__dsh-structured.yml` 一行 tarball v1.3.7→v1.3.8；MERGEABLE，check 排队中）。上游 listing 现为 v1.3.7（#19205 已 MERGED）；合并前 v1.3.8 不算生效。更早 #19152 CLOSED、#19092 MERGED（v1.2.2）。
@@ -52,7 +53,7 @@
 - 门禁（2026-11-28 1.3.8）：`npm test` **176/176**（1.3.6 172、1.3.5 170、1.3.4 168、1.3.3 165）；`npm pack` 64 文件 / 1,895,050 B / unpacked 2,938,343 B（与 Release 资产、npm 包同 sha256）；`style-gate` 已于 2026-11-28 复跑 **PASS**（81 条 record 断言 0 失败，修正 12px→13px 断言后），并成为发版顺序必跑项（§12.2）；`desktop-check` / 对比度 80 / 色相 12 未随 1.3.8 复跑（无运行时改动）。
 - DSML 残片：上游网关问题（非本插件），待上游修复；本仓不改解析器。
 - 截图：仍为 1.2.0 实机 `13-settings-1.2.0.png` / `14-color-picker-1.2.0.png`（已脱敏裁切）；`screenshots.json` 共 10 张；1.2.1–1.3.8 未新增截图。
-- 下一版：待定；市场 PR #19540 合并是 1.3.8「三端」闭环的最后一步。
+- 下一版：**暂停**（功能冻结，监控模式）；市场 PR #19540 合并是 1.3.8「三端」闭环的最后一步，合并前上游 listing 仍是 v1.3.7。
 - 定时任务：原挂 `session-20a027e0` 的 6 个 active 任务已迁到本会话 `session-231e379d`：Issue 追踪轮询 / 每日插件更新检查 / dsh-structured 项目巡检 / H3 生态 / omp 巡检 / DSH 每周健康。
 ---
 
@@ -119,13 +120,13 @@ node .tools/market-XXX.mjs     # fork 同步 → 改 tarball 行 → 提交 → 
 ## 7. 待办队列
 
 1. **市场待合并**：PR #19540 open（上游 main `1114facb` 起的新分支），diff 仅 tarball 一行 v1.3.7→v1.3.8；上游 listing 现为 v1.3.7。合并后核 listing tarball 为 v1.3.8，1.3.8「三端」才算闭环。
-2. **1.3.x 观察**：issue/PR 按零信任处理；攒批规矩见 `docs/MAINTENANCE.md` 12.0。本仓 0 open issue / 0 open PR（历史 3 issue 全 CLOSED、1 PR 已 MERGED）；市场侧 1 个 open PR（#19540）。
+2. **监控模式（2026-11-28 起）**：暂停功能开发，回到每日 issues / PR / CI / npm / Release 巡检；issue/PR 按零信任处理；攒批规矩见 `docs/MAINTENANCE.md` 12.0。本仓 0 open issue / 0 open PR（历史 3 issue 全 CLOSED、1 PR 已 MERGED）；市场侧 1 个 open PR（#19540）。
 3. **桌面**：profile 已是 registry 1.3.8（package.json / lock / node_modules 一致，lib 与 npm 包逐字节相同）；1.3.8 无运行时改动，1.3.7 的实机设置卡验收结论继续有效；Desktop 重开即加载 1.3.8。
 4. **文档**：HANDOFF / `docs/RELEASE-1.3.4.md`–`docs/RELEASE-1.3.7.md` / `docs/MAINTENANCE-LOG.md` 已与 1.3.7 一致；`docs/ACCEPTANCE-1.3.0.md` 仍是最近一份 ACCEPTANCE，1.3.7 验收证据在 `RELEASE-1.3.7.md`。
 5. **长期项**（`docs/ROADMAP.md`）：A = 用户头像落本地数据目录；C = persona 抗漂移实测。
 6. **已知限制**：信封字符串截断仍会降级；没有任何 persona 块的回复只能靠合同/提醒压概率（1.2.1 起尾部提醒追加风格硬约束与 innerOS 必填）。
-7. **发布物可复现**：pack 基线在 `test/pack.test.mjs`（PINNED 64 文件 / 1,893,853 B / unpacked 2,935,689 B，±16 KB 容差）；当前仓库重打包 64 / 1,893,853 / 2,935,689（与发布物一致）。发版前先 `npm pack --json --ignore-scripts` 对一遍。
-8. **style-gate**：1.3.4–1.3.7 均未复跑（`artifacts/style-gate/` 最新目录 2026-11-26T12-12-56-015Z，早于 1.3.4 提交）→ 下次发版前补跑留证。
+7. **发布物可复现**：pack 基线在 `test/pack.test.mjs`（PINNED 64 文件 / 1,895,050 B / unpacked 2,938,343 B，±16 KB 容差）；当前仓库重打包 64 / 1,895,050 / 2,938,343（与发布物一致）。发版前先 `npm pack --json --ignore-scripts` 对一遍。
+8. **style-gate**：1.3.8 已把期望 12px 修正为 13px、写进发版顺序（`docs/MAINTENANCE.md` §12.2）并复跑 **PASS**（81 条 record 断言 0 失败）；1.3.4–1.3.7 期间未复跑的历史记录保留在 `docs/MAINTENANCE-LOG.md`。
 9. **DSML 残片**：上游网关问题，非本插件；等上游修，不在本仓动代码。
 ---
 
@@ -139,7 +140,7 @@ node scripts/theme-contrast.mjs            # 80/80
 node scripts/theme-hue-distance.mjs        # 12/12
 node .tools/computed-style-check.mjs       # 10 主题块 × 10 项（含 custom；headless Edge）
 node .tools/corpus-persona.mjs             # 真实会话语料回归（近期信封全部出卡）
-npm pack --json --ignore-scripts           # 64 文件 / 1,893,853 B（与发布物一致），基线在 test/pack.test.mjs（±16 KB 容差）
+npm pack --json --ignore-scripts           # 64 文件 / 1,895,050 B（与 1.3.8 发布物一致），基线在 test/pack.test.mjs（±16 KB 容差）
 ```
 
 ---
@@ -168,7 +169,7 @@ npm pack --json --ignore-scripts           # 64 文件 / 1,893,853 B（与发布
 | 文件 | 内容 |
 | --- | --- |
 | `docs/MAINTENANCE.md` | 手册：巡检流程、缺陷三态判定、发布门槛（9 节）、攒批规矩（12.0）、待发清单（12.1） |
-| `docs/MAINTENANCE-LOG.md` | 逐轮记录（顶部为 1.3.7 / 1.3.6 / 1.3.5 / 1.3.4 发布与事故记录；其下 1.3.0 与 2026-11-27 巡检、1.2.2、1.2.1、1.2.0） |
+| `docs/MAINTENANCE-LOG.md` | 逐轮记录（顶部为 2026-11-28 收尾与 1.3.8 / 1.3.7 / 1.3.6 / 1.3.5 / 1.3.4 记录；其下 1.3.0 与各轮巡检、1.2.2、1.2.1、1.2.0） |
 | `docs/ACCEPTANCE-1.3.0.md` | 1.3.0 验收与 pack 数字（1.3.1–1.3.7 的验收证据见各版 `docs/RELEASE-*.md` 与 `MAINTENANCE-LOG.md`） |
 | `docs/RELEASE-1.2.1.md` / `docs/RELEASE-1.2.2.md` / `docs/RELEASE-1.3.0.md` / `docs/RELEASE-1.3.4.md`–`docs/RELEASE-1.3.7.md` | 各版发布记录（tag / CI / 资产 / 三端） |
 | `docs/ROADMAP.md` | 1.1/1.2 候选 |
