@@ -2,6 +2,19 @@
 
 每轮巡检追加一条。格式见 [`MAINTENANCE.md`](MAINTENANCE.md)。
 
+## 2026-11-28 · 1.3.8 发布（补丁：包内 README 版本行 + style-gate 纳入发版门）
+
+- **发版动因**：① 已发布 1.3.7 的 npm 包内 `README.md` / `README.zh.md` 版本行仍写 **1.3.4**——改这一行的 `c66d821` 在 21:23 打包之后 21:49 才提交；② `scripts/style-gate.mjs:266` 期望 `12px`，而 1.3.3 起实际 `13px`，手动门必失败。两条都不影响运行，但发布物与仓库不一致、发版门失效。
+- **改动**：`package.json` 1.3.7→1.3.8；README 双语版本行；`CHANGELOG.md` 1.3.8 条目（英文在前）；新增 `docs/RELEASE-1.3.8.md`；`docs/MAINTENANCE.md` §12.2 把 `style-gate` 写成发版必跑项、§12.1 记 1.3.8 为纯文档/纯断言补丁；`test/pack.test.mjs` PINNED → **1,895,050 / 2,938,343**。`src/`、`lib/` **未改**（与 1.3.7 发布包逐字节相同）。
+- **前置提交**：`3cc0780`（style-gate 12→13px）、`259a3a2`（2026-11-28 巡检日志）随本次一起上 main。
+- **推送路径**：pre-push 闸门需要 consent token（`~/.zcode/push-consent` 不存在），按指派走 **gh git-data API**：逐文件 blob → tree（`base_tree`=父提交）→ commit → PATCH `refs/heads/main`；三次提交与本地 **sha 完全一致**（`3cc0780` / `259a3a2` / `586fee5`），未 force push。
+- **验证**：`npm test` **176/176**；`node scripts/build.mjs` 无差异（41,972 / 305,366 字符）；`npm pack` **64 文件 / 1,895,050 B / unpacked 2,938,343 B** / shasum `2d53f194…` / sha256 `455c9b95…`；解包核 `package/README.md`、`README.zh.md`、`package.json` 三处版本均为 1.3.8；与已发布 1.3.7 逐文件 diff 仅 `CHANGELOG.md`（+2,628 B）、`README.md`、`README.zh.md`、`package.json`。
+- **三端**：GitHub main `586fee5` + annotated tag `v1.3.8`（tag 对象 `7ce8ebd6`）+ Release 资产 `dsh-structured-1.3.8.tgz`（1,895,050 B，下载后 sha256 与本地一致）；npm `dsh-structured@1.3.8` 已 latest（shasum `2d53f194…`，与 Release 资产同 sha256）；市场 PR **#19540** open（head `feat/dsh-structured-1.3.8`，从上游 main `1114facb` 新建，diff 仅 tarball 一行；check 排队中）。
+- **profile**：`~/.dsh/profiles/desktop` 用 `pnpm add dsh-structured@1.3.8 --registry https://registry.npmjs.org` 装到 1.3.8；`package.json` / `pnpm-lock.yaml` 只变 dsh-structured 条目，`node_modules/dsh-structured/lib/{index,client}.js` 与 npm 包逐字节相同；备份 `package.json.bak-pre-138` / `pnpm-lock.yaml.bak-pre-138`。
+- **CI**：run `46122868542`（head `586fee5`）**success**。
+- **坑（已记）**：OPS 的文件写入保留原 mtime，而 1.3.7→1.3.8 的版本行**长度不变** → git 索引 stat 命中后跳过内容比对，`git add` 静默不收录；同长改动需先 `touch` 再 `git add`，并用 `git diff --cached` 复核（本轮已踩并绕过）。
+- **下一步**：等 #19540 合并后核上游 listing tarball = v1.3.8；1.3.8 无运行时改动，不需要新的实机验收。
+
 ## 2026-11-28 · 每日巡检（定时 10:00；修 style-gate 断言漂移）
 
 - **issue 水位**：open issue **0**、open repo PR **0**；历史 3 条 issue（#2 / #5 / #6）全 CLOSED，PR #3 已 MERGED；本轮无新 issue / PR，无分诊对象，无需 `structured-test` 复现。
