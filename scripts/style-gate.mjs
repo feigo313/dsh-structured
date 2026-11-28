@@ -263,7 +263,7 @@ async function runWorker(evidenceDirArg) {
     record('persona.prefixCount', persona.prefixCount, 1)                                         // renderPersonaContent（L2339）
     record('persona.suffixCount', persona.suffixCount, 1)                                         // innerOs 收尾（L2402）
     record('persona.prefixSize', persona.prefixSize, '12.5px')                                    // L1047 font:var(--dss-code-size)
-    record('persona.suffixSize', persona.suffixSize, '12px')                                      // L1048 calc(code*12/12.5)
+    record('persona.suffixSize', persona.suffixSize, '13px')                                      // L1048 calc(code*13/12.5) 1.3.3 innerOS readability
     record('persona.suffixBorderTop', persona.suffixBorderTop, '1px dotted')                      // L1048
     // 身份头几何（2026-11-26 修复：L1040-1046 的选择器由 `.dss-scope .dss-persona-head …` 改为
     // `.dss-scope.dss-persona-head …`，head 自身带 dss-scope 自持 token，两种挂载位置都成立）。
