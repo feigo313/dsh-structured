@@ -2,6 +2,20 @@
 
 每轮巡检追加一条。格式见 [`MAINTENANCE.md`](MAINTENANCE.md)。
 
+## 2026-11-28 · 每日巡检（定时 10:00；修 style-gate 断言漂移）
+
+- **issue 水位**：open issue **0**、open repo PR **0**；历史 3 条 issue（#2 / #5 / #6）全 CLOSED，PR #3 已 MERGED；本轮无新 issue / PR，无分诊对象，无需 `structured-test` 复现。
+- **线上快照（2026-11-28 15:30–15:36 +08 抓取）**：远端 main `73999cb`（tree `ec83689a`）与本地 HEAD `c66d821` **同树异 sha**（内容一致、无分叉）；CI 最近 8 次全 **success**（最新 run `46010634423`，head `73999cb`，2026-11-27T13:50:51Z）；npm `dist-tags.latest = 1.3.7`；Release `v1.3.7` 资产 `dsh-structured-1.3.7.tgz` 1,893,853 B / sha256 `5e6b2497…`；npm tarball 与 Release 资产**逐字节相同**（同 sha256，已下载复核）。
+- **市场 #19205 已合并**：state=MERGED（updatedAt 2026-11-27T16:27:14Z），两个 check（`check` / `Submission gate`）均 SUCCESS；上游 listing `data/plugins/feigo313__dsh-structured.yml` 的 `tarball` 已核为 `releases/download/v1.3.7/dsh-structured-1.3.7.tgz`，`category: session`。遗留瑕疵：PR 正文仍写「to v1.3.0」，与标题 v1.3.7 不一致（已合并，只记录、不改上游）。
+- **判定 ①：style-gate 断言漂移 —— 成立（门禁缺陷，非产品缺陷）**。`scripts/style-gate.mjs:266` 仍期望 `persona.suffixSize = '12px'`；而 1.3.3（`432d801`）已按 `docs/RELEASE-1.3.3.md` 把 `.dss-persona-suffix` 改成 `font:calc(var(--dss-code-size) * 13 / 12.5)`（默认 12.5 → 13px）+ `--dss-ink-2`，静态门 `test/style-browser.test.mjs:34` 已锁 13/12.5 且 `npm test` 绿，只有真浏览器门没跟上。复跑唯一失败项 `persona.suffixSize actual=13px expected=12px`；`artifacts/style-gate/` 历史为 2026-11-26 及以前全 PASS，1.3.3 之后至本轮未复跑 ⇒ 属发布后未复跑造成的漂移，不是渲染回归。
+- **修复（最小）**：`scripts/style-gate.mjs:266` 期望 `12px` → `13px`、注释同步 `calc(code*13/12.5)`；不改产品源码、不动视觉、不动注入链。
+- **验证**：`npm test` **176/176**（fail 0）；`theme-contrast` **PASS 80 checks**；`theme-hue-distance` **PASS 12 hue checks**；`style-gate`（`DSH_STRUCTURED_STYLE_GATE=1` + `--check`，真 ego lite 浏览器）**PASS，81 条 record 断言 0 失败**（修前 1 失败）；`desktop-check` **30 项全 PASS**（真实宿主 0.2.2-rc.5）；`git status` 干净（`pretest` 重建后 `lib == src`）；`npm pack` **64 文件 / 1,893,868 B / unpacked 2,935,715 B**（比发布包 +15 / +26 B，全部来自本次断言行与注释，仍在 `test/pack.test.mjs` ±16 KB 容差内）。
+- **判定 ②：已发布 1.3.7 包内 README 版本行滞后 —— 部分成立（文档类，已在 HEAD 修好）**。下载发布 tarball 逐文件比对：包内 `README.md:329` / `README.zh.md:329` 写「currently ships **1.3.4**」，与 `package.json` 1.3.7 不符；该行在本地 HEAD `c66d821`（2026-11-27 21:49 +08，晚于 21:23 打包）才改成 1.3.7，所以发布包带的是旧句。其余 62 个文件与本地 sha256 全同，代码/资源无差异 ⇒ 发布时文档未同步，下一版随包自动带走；不重发 1.3.7。
+- **逻辑校验**：远端 main 树 `ec83689a` 等于本地 HEAD 树，确认「同树异 sha」仍是 gh 重建提交所致，内容无分叉；`origin/main` ref 仍停 `48468f9`，因 `git fetch` 被重置（github.com HTTPS 直连不通）而本地 ref 过期，属观测口径问题、非远端回退。
+- **环境记录**：本机 `~/.dsh/profiles` 只有 `desktop / headless / bili-duty / open-design`，**没有 `structured-test`**（手册 §4 写的复现 profile 不存在）；`desktop` 已装 `dsh-structured@1.3.7`（`package.json` 与 `pnpm-lock.yaml` 一致），其余 profile 未装本插件。
+- **本轮动作**：只读抓取 + 一处门禁断言修正（`scripts/style-gate.mjs`）；追加本日志并本地 commit。**未** push / tag / Release / npm publish / 改市场 PR —— 均需 Boss 明确同意。
+- **下一步**：① 下一版发版时确认 README 版本行随包带出（已在树里），并把 `style-gate` 作为发版前置实际复跑（1.3.3–1.3.7 期间未跑）；② 攒批计数：本轮无产品 bug，仅 1 条门禁修正（按 12.0 不计 bug 条数），无发版压力；③ 若要收口 1.3.x，建议把「真浏览器 style-gate PASS」写进 §6 验证清单并每轮巡检复跑。
+
 ## 2026-11-27 · 1.3.7 发布（真实设置卡接管 + `child.locale` 未 inject 修复）
 
 - **主题**：修 1.3.6 留下的「占位后真实设置卡始终不接管」——`setupConfigPage` 在 `ctx.inject(['configForms','slots'])` 的 child 上读 `locale`，但 `locale` 不在依赖清单，Cordis 4.1.0 抛 `cannot get property "locale" without inject`；异常发生在 `registerConfigCard()` 之前，被注入回调的 catch 吞掉，占位永远停在「配置正在加载…」。
