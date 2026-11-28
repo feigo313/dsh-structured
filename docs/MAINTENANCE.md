@@ -162,7 +162,7 @@ dsh plugin --profile <profile> add dsh-structured@x.y.z
 
 发版顺序固定，缺一项不发：
 
-1. **全量测试**：`npm test` 全绿；有 ego-browser 的机器必须跑真实浏览器测试，缺失时跳过并在报告里注明。
+1. **全量测试**：`npm test` 全绿；**`style-gate` 必须跑过并读到 PASS**（`DSH_STRUCTURED_STYLE_GATE=1 node scripts/style-gate.mjs --check`，真 ego lite 浏览器门）——它是唯一校验 CSS 实际渲染值的门，静态断言跟不上字号/颜色漂移（1.3.3 把 persona 后缀改成 13px 后本门一直停在 12px，直到 2026-11-28 才发现）。有 ego-browser 的机器必须跑真实浏览器测试，缺失时跳过并在报告里注明。
 2. **视觉与布局**：`theme-contrast` 60 项 PASS、`desktop-check` 全 PASS、`lib==src`、记录 `npm pack` 文件数与体积。
 3. **截图随版本走**：样式或布局有改动时，发版前必须重拍 `assets/screenshots/` 中受影响的图——实机图必须来自该版本的真实界面，token 渲染图必须标清“非实机”，同时更新 `screenshots.json` 与 README；旧版图不得继续冒充新版。
 4. **版本与发布物**：`package.json` bump、CHANGELOG、annotated tag、Release 资产与 npm tarball 同字节。打包前确认工作区行尾为 LF（`.gitattributes` 已强制；必要时 `git add --renormalize .` 后重新检出），发布包必须与同一提交重打包的结果一致——否则体积数字不可复现。

@@ -326,4 +326,4 @@ ACCEPTANCE.md                3-line acceptance record
 
 ---
 
-**Package version:** this repository currently ships **1.3.7** (`package.json`). The install examples above keep the `1.2.0` release they were verified against.
+**Package version:** this repository currently ships **1.3.8** (`package.json`). The install examples above keep the `1.2.0` release they were verified against.

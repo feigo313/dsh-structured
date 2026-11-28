@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.3.8 — 2026-11-28
+
+**English**
+
+- **Fix the stale version line inside the published `1.3.7` package**: the npm tarball packed on 2026-11-27 21:23 (+08) still had `README.md:329` / `README.zh.md:329` saying "currently ships **1.3.4**", because that correction landed in the follow-up docs commit `c66d821` (21:49, after the pack). Nothing else drifted: the other 62 packed files were byte-identical to the repository. 1.3.8 repacks the corrected READMEs so the tarball's version line and `package.json` agree.
+- **Sync the manual style gate with 1.3.3's typography**: `scripts/style-gate.mjs:266` still expected `persona.suffixSize = '12px'`, while 1.3.3 (`432d801`) had already raised `.dss-persona-suffix` to `calc(var(--dss-code-size) * 13 / 12.5)` (13 px at the default 12.5) and the static gate in `test/style-browser.test.mjs:34` locked 13/12.5. The real-browser gate now expects `13px`, and `style-gate` is written into the release order (§12.2 of `docs/MAINTENANCE.md`) instead of relying on someone remembering to run it.
+- **No runtime change**: `src/` and `lib/` are untouched relative to 1.3.7; plugin behaviour, prompt contract, config schema and rendering are identical. Both changes above are documentation and gate-assertion fixes; they were already on `main` as `3cc0780` and `259a3a2` after 1.3.7 shipped, and 1.3.8 is the vehicle that carries them to npm, the GitHub Release and the market listing.
+
+**中文**
+
+- **修已发布 `1.3.7` 包内的版本行滞后**：2026-11-27 21:23 (+08) 打出的 npm tarball 里 `README.md:329` / `README.zh.md:329` 仍写「currently ships **1.3.4**」，因为那处修正在此后的文档提交 `c66d821`（21:49，打包之后）才落盘。其余无漂移：随包另外 62 个文件与仓库逐字节相同。1.3.8 重新打包，让包内版本行与 `package.json` 一致。
+- **让手动 style 门跟上 1.3.3 的字号**：`scripts/style-gate.mjs:266` 仍期望 `persona.suffixSize = '12px'`，而 1.3.3（`432d801`）早已把 `.dss-persona-suffix` 改成 `calc(var(--dss-code-size) * 13 / 12.5)`（默认 12.5 → 13px），静态门 `test/style-browser.test.mjs:34` 也锁了 13/12.5。真浏览器门现在期望 `13px`，并把 `style-gate` 写进发版顺序（`docs/MAINTENANCE.md` §12.2），不再靠人记得手动跑。
+- **无运行时变更**：相对 1.3.7 未改 `src/` 与 `lib/`；插件行为、prompt 合同、配置 schema 与渲染完全一致。上面两条分别是文档与门禁断言修复，1.3.7 发布后已在 `main` 上（`3cc0780` / `259a3a2`），1.3.8 是把它们带到 npm、GitHub Release 与市场条目的载体。
+
 ## 1.3.7 — 2026-11-27
 
 **English**
